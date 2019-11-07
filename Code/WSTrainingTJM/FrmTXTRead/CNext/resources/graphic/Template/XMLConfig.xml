@@ -1,0 +1,6 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Config>
+  <PartInfor PartName="4167892_SS_Wire" InstanceName="4167892_SS_Wire.1" Mass="0.2kg" Material="AL" Designer="Jack" Date="2018-12-18"></PartInfor>
+  <PartInfor PartName="" InstanceName="" Mass="" Material="" Designer="" Date=""></PartInfor>
+  <PartInfor PartName="111" InstanceName="222" Mass="10" Material="PP" Designer="Me" Date="20181220"></PartInfor>
+</Config>

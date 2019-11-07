@@ -1,0 +1,8 @@
+// DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
+Title = "XML Operation";
+Frame001.LabelDir.Title = "Directory: ";
+Frame001.PushButtonSelectPath.Title = "Select Path";
+Frame004.PushButtonReadXml.Title = "Read Xml";
+Frame004.PushButtonWriteXml.Title = "Write Xml";
+Frame011.Title = "Content";
+// END WIZARD REPLACEMENT ZONE

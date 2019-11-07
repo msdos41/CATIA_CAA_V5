@@ -1,0 +1,57 @@
+// DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
+CATDlgDialog WriteExcelDlg
+{
+  STYLE = CATDlgWndBtnOKCancel|CATDlgWndTitleBarHelp|CATDlgGridLayout;
+}
+
+CATDlgContainer Container003
+{
+  FATHER = WriteExcelDlg;
+  HEIGHT = 1;
+  WIDTH = 5;
+  GRID = { 0, 1, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgContainer Container004
+{
+  FATHER = WriteExcelDlg;
+  HEIGHT = 1;
+  WIDTH = 1;
+  GRID = { 1, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgLabel LabelSavePath
+{
+  FATHER = WriteExcelDlg;
+  GRID = { 2, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgEditor EditorSavePath
+{
+  FATHER = WriteExcelDlg;
+  STYLE = CATDlgEdtReadOnly;
+  TW = 25;
+  GRID = { 2, 2, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgPushButton PushButtonSelectPath
+{
+  FATHER = WriteExcelDlg;
+  GRID = { 2, 4, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgContainer Container008
+{
+  FATHER = WriteExcelDlg;
+  HEIGHT = 1;
+  WIDTH = 5;
+  GRID = { 2, 3, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgPushButton PushButtonReadXls
+{
+  FATHER = WriteExcelDlg;
+  GRID = { 3, 4, 1, 1, CATGRID_4SIDES };
+}
+
+// END WIZARD REPLACEMENT ZONE

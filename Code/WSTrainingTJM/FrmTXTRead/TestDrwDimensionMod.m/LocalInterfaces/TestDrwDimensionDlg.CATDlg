@@ -1,0 +1,33 @@
+// DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
+CATDlgDialog TestDrwDimensionDlg
+{
+  STYLE = CATDlgWndBtnOKCancel|CATDlgGridLayout;
+}
+
+CATDlgLabel Label001
+{
+  FATHER = TestDrwDimensionDlg;
+  GRID = { 0, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgSelectorList SelectorListLine
+{
+  FATHER = TestDrwDimensionDlg;
+  TW = 30;
+  GRID = { 0, 1, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgFrame Frame002
+{
+  FATHER = TestDrwDimensionDlg;
+  STYLE = CATDlgFraNoTitle|CATDlgGridLayout;
+  GRID = { 0, 2, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgPushButton PushButtonClear
+{
+  FATHER = Frame002;
+  GRID = { 0, 0, 1, 1, CATGRID_4SIDES };
+}
+
+// END WIZARD REPLACEMENT ZONE

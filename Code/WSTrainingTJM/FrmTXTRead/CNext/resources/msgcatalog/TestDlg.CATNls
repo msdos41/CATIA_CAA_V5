@@ -1,0 +1,11 @@
+// DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
+LabelLine.Title = "Line:";
+PushButtonCOUT.Title = "cout";
+LabelAxis.Title = "Axis:";
+PushButtonMidPtOnSurf.Title = "Mid Pt On Surf";
+PushButtonProjection.Title = "Projection";
+PushButtonStartOtherCmd.Title = "Start other command";
+PushButtonCompass.Title = "Compass Test";
+PushButtonReadTxt.Title = "Read Txt";
+PushButton3DView.Title = "3D View";
+// END WIZARD REPLACEMENT ZONE

@@ -1,0 +1,5 @@
+// DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
+Title = "Create Line";
+LabelFirstPoint.Title = "Point 1: ";
+LabelSecondPoint.Title = "Point 2: ";
+// END WIZARD REPLACEMENT ZONE

@@ -1,0 +1,92 @@
+// DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
+CATDlgDialog DrwSetColorDlg
+{
+  STYLE = CATDlgWndBtnOKApplyClose|CATDlgGridLayout;
+}
+
+CATDlgLabel LabelObject
+{
+  FATHER = DrwSetColorDlg;
+  GRID = { 0, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgSelectorList SelectorListObjectSelection
+{
+  FATHER = DrwSetColorDlg;
+  TH = 1;
+  TW = 20;
+  GRID = { 0, 2, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgContainer Container009
+{
+  FATHER = DrwSetColorDlg;
+  HEIGHT = 5;
+  WIDTH = 5;
+  GRID = { 1, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgLabel LabelColor
+{
+  FATHER = DrwSetColorDlg;
+  GRID = { 2, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgContainer Container011
+{
+  FATHER = DrwSetColorDlg;
+  HEIGHT = 1;
+  WIDTH = 10;
+  GRID = { 0, 1, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgCombo ComboColor
+{
+  FATHER = DrwSetColorDlg;
+  STYLE = CATDlgCmbDropDown;
+  GRID = { 2, 2, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgContainer Container012
+{
+  FATHER = DrwSetColorDlg;
+  HEIGHT = 5;
+  WIDTH = 5;
+  GRID = { 3, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgLabel LabelLineType
+{
+  FATHER = DrwSetColorDlg;
+  GRID = { 4, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgCombo ComboLineType
+{
+  FATHER = DrwSetColorDlg;
+  STYLE = CATDlgCmbDropDown;
+  GRID = { 4, 2, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgContainer Container015
+{
+  FATHER = DrwSetColorDlg;
+  HEIGHT = 5;
+  WIDTH = 5;
+  GRID = { 5, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgLabel LabelLineThickness
+{
+  FATHER = DrwSetColorDlg;
+  GRID = { 6, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgCombo ComboLineThickness
+{
+  FATHER = DrwSetColorDlg;
+  STYLE = CATDlgCmbDropDown;
+  GRID = { 6, 2, 1, 1, CATGRID_4SIDES };
+}
+
+// END WIZARD REPLACEMENT ZONE

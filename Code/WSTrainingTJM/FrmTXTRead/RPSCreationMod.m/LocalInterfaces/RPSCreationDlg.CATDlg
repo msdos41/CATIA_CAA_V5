@@ -1,0 +1,44 @@
+// DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
+CATDlgDialog RPSCreationDlg
+{
+  STYLE = CATDlgWndBtnClose|CATDlgGridLayout;
+}
+
+CATDlgFrame Frame001
+{
+  FATHER = RPSCreationDlg;
+  STYLE = CATDlgFraNoFrame|CATDlgGridLayout;
+  GRID = { 0, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgPushButton PushButtonRPSList
+{
+  FATHER = Frame001;
+  GRID = { 0, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgFrame Frame003
+{
+  FATHER = RPSCreationDlg;
+  STYLE = CATDlgFraNoFrame|CATDlgGridLayout;
+  GRID = { 0, 1, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgMultiList MultiListRPSList
+{
+  FATHER = Frame003;
+  CC = 5;
+  VCC = 5;
+  COLWTH = { 0, 15, 1, 5, 2, 10, 3, 10, 4, 10 };
+  GRID = { 0, 1, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgContainer Container006
+{
+  FATHER = Frame003;
+  HEIGHT = 5;
+  WIDTH = 5;
+  GRID = { 0, 0, 1, 1, CATGRID_4SIDES };
+}
+
+// END WIZARD REPLACEMENT ZONE

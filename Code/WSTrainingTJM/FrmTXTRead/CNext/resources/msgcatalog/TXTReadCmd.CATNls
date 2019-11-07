@@ -1,0 +1,8 @@
+// DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
+Title = "TXT Read";
+Frame004.PushButtonReadTXT.Title = "Read TXT";
+Frame008.PushButtonSelectFile.Title = "Select File";
+// END WIZARD REPLACEMENT ZONE
+
+
+// END WIZARD REPLACEMENT ZONE

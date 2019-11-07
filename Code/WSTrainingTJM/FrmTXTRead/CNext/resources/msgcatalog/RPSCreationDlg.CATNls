@@ -1,0 +1,8 @@
+// DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
+Frame001.PushButtonRPSList.Title = "Show List";
+ Frame003.MultiListRPSList.ColumnTitle1 = "Part No.";
+ Frame003.MultiListRPSList.ColumnTitle2 = "RPS";
+ Frame003.MultiListRPSList.ColumnTitle3 = "X";
+ Frame003.MultiListRPSList.ColumnTitle4 = "Y";
+ Frame003.MultiListRPSList.ColumnTitle5 = "Z";
+// END WIZARD REPLACEMENT ZONE

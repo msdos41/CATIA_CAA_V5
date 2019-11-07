@@ -1,0 +1,9 @@
+// DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
+Title = "Create Cube";
+LabelFirstLimit.Title = "First Limit: ";
+LabelSecondLimit.Title = "Second Limit: ";
+LabelRadius.Title = "Radius: ";
+Label010.Title = "mm";
+Label011.Title = "mm";
+Label012.Title = "mm";
+// END WIZARD REPLACEMENT ZONE

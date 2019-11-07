@@ -1,0 +1,29 @@
+// DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
+CATDlgDialog TestTempArrowDlg
+{
+  STYLE = CATDlgGridLayout;
+}
+
+CATDlgLabel Label001
+{
+  FATHER = TestTempArrowDlg;
+  GRID = { 0, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgContainer Container002
+{
+  FATHER = TestTempArrowDlg;
+  HEIGHT = 5;
+  WIDTH = 5;
+  GRID = { 0, 1, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgSelectorList SelectorListDir
+{
+  FATHER = TestTempArrowDlg;
+  TH = 1;
+  TW = 20;
+  GRID = { 0, 2, 1, 1, CATGRID_4SIDES };
+}
+
+// END WIZARD REPLACEMENT ZONE

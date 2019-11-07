@@ -1,0 +1,50 @@
+// DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
+CATDlgDialog ProductConstraintsDlg
+{
+  STYLE = CATDlgWndBtnOKCancel|CATDlgGridLayout;
+}
+
+CATDlgLabel LabelLine
+{
+  FATHER = ProductConstraintsDlg;
+  GRID = { 0, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgContainer Container002
+{
+  FATHER = ProductConstraintsDlg;
+  HEIGHT = 5;
+  WIDTH = 10;
+  GRID = { 0, 1, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgContainer Container003
+{
+  FATHER = ProductConstraintsDlg;
+  HEIGHT = 10;
+  WIDTH = 10;
+  GRID = { 1, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgLabel LabelFace
+{
+  FATHER = ProductConstraintsDlg;
+  GRID = { 2, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgSelectorList SelectorListSelectLine
+{
+  FATHER = ProductConstraintsDlg;
+  TH = 1;
+  TW = 20;
+  GRID = { 0, 2, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgSelectorList SelectorListSelectFace
+{
+  FATHER = ProductConstraintsDlg;
+  TH = 1;
+  GRID = { 2, 2, 1, 1, CATGRID_4SIDES };
+}
+
+// END WIZARD REPLACEMENT ZONE

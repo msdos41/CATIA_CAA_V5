@@ -1,0 +1,6 @@
+// DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
+Title = "Write Excel";
+LabelSavePath.Title = "Directory :";
+PushButtonSelectPath.Title = "Select Path";
+PushButtonReadXls.Title = "Read Excel";
+// END WIZARD REPLACEMENT ZONE

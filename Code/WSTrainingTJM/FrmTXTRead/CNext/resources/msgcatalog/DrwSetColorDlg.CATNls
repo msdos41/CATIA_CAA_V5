@@ -1,0 +1,7 @@
+// DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
+Title = "Set Properties";
+LabelObject.Title = "Object:";
+LabelColor.Title = "Color:";
+LabelLineType.Title = "Line Type:";
+LabelLineThickness.Title = "Line TH:";
+// END WIZARD REPLACEMENT ZONE

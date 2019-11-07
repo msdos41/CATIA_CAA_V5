@@ -1,0 +1,97 @@
+// DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
+CATDlgDialog CreateCubeFilletDlg
+{
+  STYLE = CATDlgWndBtnOKCancel|CATDlgWndTitleBarHelp|CATDlgGridLayout;
+}
+
+CATDlgLabel LabelFirstLimit
+{
+  FATHER = CreateCubeFilletDlg;
+  GRID = { 0, 0, 1, 1, CATGRID_LEFT|CATGRID_TOP|CATGRID_BOTTOM|CATGRID_CST_SIZE };
+}
+
+CATDlgContainer Container002
+{
+  FATHER = CreateCubeFilletDlg;
+  HEIGHT = 5;
+  WIDTH = 5;
+  GRID = { 1, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgLabel LabelSecondLimit
+{
+  FATHER = CreateCubeFilletDlg;
+  GRID = { 2, 0, 1, 1, CATGRID_LEFT|CATGRID_TOP|CATGRID_BOTTOM|CATGRID_CST_SIZE };
+}
+
+CATDlgContainer Container004
+{
+  FATHER = CreateCubeFilletDlg;
+  HEIGHT = 5;
+  WIDTH = 10;
+  GRID = { 0, 1, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgSpinner SpinnerFirstLimit
+{
+  FATHER = CreateCubeFilletDlg;
+  STYLE = CATDlgSpnEntry;
+  MIN = 0.000000;
+  MAX = 10.000000;
+  STEP = 10.000000;
+  GRID = { 0, 2, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgSpinner SpinnerSecondLimit
+{
+  FATHER = CreateCubeFilletDlg;
+  STYLE = CATDlgSpnEntry;
+  MIN = 0.000000;
+  MAX = 1000000.000000;
+  STEP = 1.000000;
+  GRID = { 2, 2, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgContainer Container007
+{
+  FATHER = CreateCubeFilletDlg;
+  HEIGHT = 5;
+  WIDTH = 5;
+  GRID = { 3, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgLabel LabelRadius
+{
+  FATHER = CreateCubeFilletDlg;
+  GRID = { 4, 0, 1, 1, CATGRID_LEFT|CATGRID_TOP|CATGRID_BOTTOM|CATGRID_CST_SIZE };
+}
+
+CATDlgSpinner SpinnerRadius
+{
+  FATHER = CreateCubeFilletDlg;
+  STYLE = CATDlgSpnEntry;
+  MIN = 0.000000;
+  MAX = 100000.000000;
+  STEP = 1.000000;
+  GRID = { 4, 2, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgLabel Label010
+{
+  FATHER = CreateCubeFilletDlg;
+  GRID = { 0, 3, 1, 1, CATGRID_LEFT|CATGRID_TOP|CATGRID_BOTTOM|CATGRID_CST_SIZE };
+}
+
+CATDlgLabel Label011
+{
+  FATHER = CreateCubeFilletDlg;
+  GRID = { 2, 3, 1, 1, CATGRID_LEFT|CATGRID_TOP|CATGRID_BOTTOM|CATGRID_CST_SIZE };
+}
+
+CATDlgLabel Label012
+{
+  FATHER = CreateCubeFilletDlg;
+  GRID = { 4, 3, 1, 1, CATGRID_LEFT|CATGRID_TOP|CATGRID_BOTTOM|CATGRID_CST_SIZE };
+}
+
+// END WIZARD REPLACEMENT ZONE

@@ -1,0 +1,48 @@
+// DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
+CATDlgDialog DrwAnnotationDlg
+{
+  STYLE = CATDlgGridLayout;
+}
+
+CATDlgLabel LabelElement
+{
+  FATHER = DrwAnnotationDlg;
+  GRID = { 0, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgContainer Container002
+{
+  FATHER = DrwAnnotationDlg;
+  HEIGHT = 1;
+  WIDTH = 10;
+  GRID = { 0, 1, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgSelectorList SelectorListElement
+{
+  FATHER = DrwAnnotationDlg;
+  TH = 1;
+  GRID = { 0, 2, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgContainer Container004
+{
+  FATHER = DrwAnnotationDlg;
+  HEIGHT = 5;
+  WIDTH = 10;
+  GRID = { 1, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgLabel LabelTol
+{
+  FATHER = DrwAnnotationDlg;
+  GRID = { 2, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgEditor EditorTol
+{
+  FATHER = DrwAnnotationDlg;
+  GRID = { 2, 2, 1, 1, CATGRID_4SIDES };
+}
+
+// END WIZARD REPLACEMENT ZONE

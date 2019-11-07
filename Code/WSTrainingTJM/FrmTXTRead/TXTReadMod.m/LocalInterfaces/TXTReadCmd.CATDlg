@@ -1,0 +1,71 @@
+// DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
+CATDlgDialog TXTReadCmd
+{
+  STYLE = CATDlgWndBtnClose|CATDlgWndTitleBarHelp|CATDlgGridLayout;
+}
+
+CATDlgContainer Container002
+{
+  FATHER = TXTReadCmd;
+  HEIGHT = 5;
+  WIDTH = 10;
+  GRID = { 1, 1, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgEditor EditorDir
+{
+  FATHER = TXTReadCmd;
+  STYLE = CATDlgEdtReadOnly;
+  TW = 30;
+  GRID = { 1, 2, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgFrame Frame004
+{
+  FATHER = TXTReadCmd;
+  STYLE = CATDlgFraNoFrame|CATDlgGridLayout;
+  GRID = { 2, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgPushButton PushButtonReadTXT
+{
+  FATHER = Frame004;
+  GRID = { 0, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgFrame Frame008
+{
+  FATHER = TXTReadCmd;
+  STYLE = CATDlgFraNoFrame|CATDlgGridLayout;
+  GRID = { 1, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgPushButton PushButtonSelectFile
+{
+  FATHER = Frame008;
+  GRID = { 0, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgSelectorList SelectorListTXTContent
+{
+  FATHER = TXTReadCmd;
+  GRID = { 2, 2, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgContainer Container010
+{
+  FATHER = TXTReadCmd;
+  HEIGHT = 5;
+  WIDTH = 20;
+  GRID = { 0, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgContainer Container011
+{
+  FATHER = TXTReadCmd;
+  HEIGHT = 5;
+  WIDTH = 50;
+  GRID = { 0, 2, 1, 1, CATGRID_4SIDES };
+}
+
+// END WIZARD REPLACEMENT ZONE

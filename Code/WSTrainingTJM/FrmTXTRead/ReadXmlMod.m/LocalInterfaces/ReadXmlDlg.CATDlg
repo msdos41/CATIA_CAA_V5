@@ -1,0 +1,82 @@
+// DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
+CATDlgDialog ReadXmlDlg
+{
+  STYLE = CATDlgGridLayout;
+}
+
+CATDlgFrame Frame001
+{
+  FATHER = ReadXmlDlg;
+  STYLE = CATDlgFraNoFrame|CATDlgGridLayout;
+  GRID = { 0, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgLabel LabelDir
+{
+  FATHER = Frame001;
+  GRID = { 0, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgEditor EditorSavePath
+{
+  FATHER = Frame001;
+  TW = 30;
+  GRID = { 0, 1, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgPushButton PushButtonSelectPath
+{
+  FATHER = Frame001;
+  GRID = { 0, 2, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgFrame Frame004
+{
+  FATHER = ReadXmlDlg;
+  STYLE = CATDlgFraNoFrame|CATDlgGridLayout;
+  GRID = { 1, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgPushButton PushButtonReadXml
+{
+  FATHER = Frame004;
+  GRID = { 0, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgContainer Container007
+{
+  FATHER = Frame004;
+  HEIGHT = 5;
+  WIDTH = 20;
+  GRID = { 0, 1, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgPushButton PushButtonWriteXml
+{
+  FATHER = Frame004;
+  GRID = { 0, 2, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgContainer Container009
+{
+  FATHER = Frame004;
+  HEIGHT = 5;
+  WIDTH = 5;
+  GRID = { 0, 3, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgFrame Frame011
+{
+  FATHER = ReadXmlDlg;
+  STYLE = CATDlgGridLayout;
+  GRID = { 2, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgSelectorList SelectorListReadXml
+{
+  FATHER = Frame011;
+  TW = 35;
+  GRID = { 0, 0, 1, 1, CATGRID_4SIDES };
+}
+
+// END WIZARD REPLACEMENT ZONE

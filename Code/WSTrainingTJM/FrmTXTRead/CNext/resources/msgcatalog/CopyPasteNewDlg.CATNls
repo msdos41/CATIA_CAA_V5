@@ -1,0 +1,5 @@
+// DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
+Title = "Copy And Paste";
+LabelElemToCopy.Title = "Element: ";
+LabelDestinationToPaste.Title = "Destination: ";
+// END WIZARD REPLACEMENT ZONE

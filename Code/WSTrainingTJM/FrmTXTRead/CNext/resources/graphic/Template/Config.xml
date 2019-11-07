@@ -1,0 +1,7 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Config>
+  <DataBase IP="localhost:1521" Database="JKORCL" UseName="SYSTEM" Password="lxylxy"></DataBase>
+  <Material>Material</Material>
+  <Thickness>Thickness</Thickness>
+  <WeldingStrick>WeldingStrick</WeldingStrick>
+</Config>

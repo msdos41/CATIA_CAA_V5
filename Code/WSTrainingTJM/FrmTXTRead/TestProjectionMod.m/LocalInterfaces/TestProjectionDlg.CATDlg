@@ -1,0 +1,50 @@
+// DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
+CATDlgDialog TestProjectionDlg
+{
+  STYLE = CATDlgWndBtnOKCancel|CATDlgGridLayout;
+}
+
+CATDlgLabel Label001
+{
+  FATHER = TestProjectionDlg;
+  GRID = { 0, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgContainer Container002
+{
+  FATHER = TestProjectionDlg;
+  HEIGHT = 5;
+  WIDTH = 5;
+  GRID = { 0, 1, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgSelectorList SelectorListPoint
+{
+  FATHER = TestProjectionDlg;
+  TH = 1;
+  TW = 20;
+  GRID = { 0, 2, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgContainer Container004
+{
+  FATHER = TestProjectionDlg;
+  HEIGHT = 5;
+  WIDTH = 5;
+  GRID = { 1, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgLabel Label005
+{
+  FATHER = TestProjectionDlg;
+  GRID = { 2, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgSelectorList SelectorListSolid
+{
+  FATHER = TestProjectionDlg;
+  TH = 1;
+  GRID = { 2, 2, 1, 1, CATGRID_4SIDES };
+}
+
+// END WIZARD REPLACEMENT ZONE

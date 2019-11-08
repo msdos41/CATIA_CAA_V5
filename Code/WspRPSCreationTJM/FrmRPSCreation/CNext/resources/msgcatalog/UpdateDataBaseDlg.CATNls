@@ -1,0 +1,7 @@
+// DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
+Title = "Update Data Base";
+ MultiListPartList.ColumnTitle1 = "Part No.";
+ MultiListPartList.ColumnTitle2 = "Select";
+Frame002.PushButtonRefresh.Title = "Refresh List";
+Frame002.PushButtonWriteExcel.Title = "Write Excel";
+// END WIZARD REPLACEMENT ZONE

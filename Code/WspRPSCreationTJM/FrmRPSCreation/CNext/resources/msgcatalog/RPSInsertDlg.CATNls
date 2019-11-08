@@ -1,0 +1,9 @@
+// DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
+Title = "RPS Insert";
+BOK = "Insert";
+LabelSelectPart.Title = "Select Part:";
+LabelRefPart.Title = "Reference: ";
+PushButtonQuery.Title = "Query";
+ Frame011.MultiListQueryResult.ColumnTitle1 = "Index";
+ Frame011.MultiListQueryResult.ColumnTitle2 = "Part No.";
+// END WIZARD REPLACEMENT ZONE

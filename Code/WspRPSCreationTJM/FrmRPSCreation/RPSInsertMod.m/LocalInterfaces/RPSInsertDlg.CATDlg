@@ -1,0 +1,96 @@
+// DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
+CATDlgDialog RPSInsertDlg
+{
+  STYLE = CATDlgWndBtnOKCancel|CATDlgGridLayout;
+}
+
+CATDlgLabel LabelSelectPart
+{
+  FATHER = RPSInsertDlg;
+  GRID = { 0, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgContainer Container002
+{
+  FATHER = RPSInsertDlg;
+  HEIGHT = 5;
+  WIDTH = 5;
+  GRID = { 0, 1, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgSelectorList SelectorListSelectPart
+{
+  FATHER = RPSInsertDlg;
+  TH = 1;
+  TW = 15;
+  GRID = { 0, 2, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgContainer Container004
+{
+  FATHER = RPSInsertDlg;
+  HEIGHT = 5;
+  WIDTH = 5;
+  GRID = { 1, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgLabel LabelRefPart
+{
+  FATHER = RPSInsertDlg;
+  GRID = { 2, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgEditor EditorRefPartNumber
+{
+  FATHER = RPSInsertDlg;
+  STYLE = CATDlgEdtInteger;
+  GRID = { 2, 2, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgContainer Container007
+{
+  FATHER = RPSInsertDlg;
+  HEIGHT = 5;
+  WIDTH = 5;
+  GRID = { 0, 3, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgContainer Container008
+{
+  FATHER = RPSInsertDlg;
+  HEIGHT = 1;
+  WIDTH = 50;
+  GRID = { 0, 4, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgPushButton PushButtonQuery
+{
+  FATHER = RPSInsertDlg;
+  GRID = { 2, 4, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgContainer Container010
+{
+  FATHER = RPSInsertDlg;
+  HEIGHT = 5;
+  WIDTH = 5;
+  GRID = { 3, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgFrame Frame011
+{
+  FATHER = RPSInsertDlg;
+  STYLE = CATDlgFraNoFrame|CATDlgGridLayout;
+  GRID = { 4, 0, 5, 1, CATGRID_4SIDES };
+}
+
+CATDlgMultiList MultiListQueryResult
+{
+  FATHER = Frame011;
+  CC = 2;
+  VCC = 2;
+  COLWTH = { 0, 5, 1, 20 };
+  GRID = { 0, 0, 1, 1, CATGRID_4SIDES };
+}
+
+// END WIZARD REPLACEMENT ZONE

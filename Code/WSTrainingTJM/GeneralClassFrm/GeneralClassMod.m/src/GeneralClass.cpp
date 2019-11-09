@@ -7449,12 +7449,20 @@ HRESULT GeneralClass::GetCrvRadiusOnSurface(CATFace_var ispFace,double &odblCrvR
 	{
 		return E_FAIL;
 	}
-	//
+	//获取最大最小曲率
 	double dblCurvatureMin,dblCurvatureMax;
 	pAnalysis2D->GetMinMaxCurvature(dblCurvatureMin,dblCurvatureMax);
 	//
-	odblCrvRadiusMin = abs(1/dblCurvatureMin);
-	odblCrvRadiusMax = abs(1/dblCurvatureMax);
+	odblCrvRadiusMin = abs(1/dblCurvatureMax);
+	odblCrvRadiusMax = abs(1/dblCurvatureMin);
+	//获取对应的方向
+	CATMathVector2D dirMin2D,dirMax2D;
+	CATMathVector dirMin3D,dirMax3D;
+	pAnalysis2D->GetMinMaxCurvaturesAndDirections(dblCurvatureMin,dblCurvatureMax,dirMin2D,dirMax2D,dirMin3D,dirMax3D);
+	dirMin2D.Dump();
+	dirMax2D.Dump();
+	dirMin3D.Dump();
+	dirMax3D.Dump();
 
 	return rc;
 }

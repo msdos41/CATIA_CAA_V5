@@ -99,6 +99,17 @@ TestUserDefinedMathBoxCmd::TestUserDefinedMathBoxCmd() :
 		{
 			continue;
 		}
+		double dblCrvRadiusMin,dblCrvRadiusMax;
+		rc = _pGeneralCls->GetCrvRadiusOnSurface(spFace,dblCrvRadiusMin,dblCrvRadiusMax);
+		if (SUCCEEDED(rc))
+		{
+			cout<<"Rmin: "<<dblCrvRadiusMin<<"   Rmax: "<<dblCrvRadiusMax<<endl;
+		}
+		if (dblCrvRadiusMin < 2.8 || dblCrvRadiusMin > 3.2)
+		{
+			continue;
+		}
+		//
 		CATIBRepAccess_var spiBrepAcess  =NULL_var;
 		spiBrepAcess = CATBRepDecodeCellInBody(spFace,spBody);
 		if (spiBrepAcess == NULL_var)
@@ -121,13 +132,6 @@ TestUserDefinedMathBoxCmd::TestUserDefinedMathBoxCmd() :
 		}
 		//AddHSO(spiSpecOnCell);
 		//
-		double dblCrvRadiusMin,dblCrvRadiusMax;
-		rc = _pGeneralCls->GetCrvRadiusOnSurface(spFace,dblCrvRadiusMin,dblCrvRadiusMax);
-		if (SUCCEEDED(rc))
-		{
-			cout<<"Rmin: "<<dblCrvRadiusMin<<"   Rmax: "<<dblCrvRadiusMax<<endl;
-		}
-		
 	}
 
 	/*

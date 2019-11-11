@@ -132,6 +132,15 @@ CATBoolean TestCrvRadiusCmd::ExitCmd(void * data)
 
 void TestCrvRadiusCmd::ActionSurfaceSelect(void * data)
 {
+	//
+	CATFrmEditor *pEditor = CATFrmEditor::GetCurrentEditor();
+	if (pEditor!=NULL)
+	{
+		CATHSO *pHSO = pEditor->GetHSO();
+		pHSO->Empty();
+	}
+	
+	//
 	CATBaseUnknown *pBUSelect = NULL;
 	CATPathElement *pPath = _pSurfaceAgent->GetValue();
 	pBUSelect = _pSurfaceAgent->GetElementValue(pPath);
@@ -145,5 +154,36 @@ void TestCrvRadiusCmd::ActionSurfaceSelect(void * data)
 	int iTabRow = 0;
 	_pDlg->GetSelectorListSurface()->SetSelect(&iTabRow,1);
 
+	//
+	_pGeneralCls->SetHighlight(pBUSelect);
+	//
+	ShowResults(pBUSelect);
+
 	_pSurfaceAgent->InitializeAcquisition();
+}
+
+void TestCrvRadiusCmd::ShowResults(CATBaseUnknown_var ispBU)
+{
+	CATBody_var spBody = _pGeneralCls->GetBodyFromFeature(ispBU);
+	if (spBody == NULL_var)
+	{
+		return;
+	}
+	CATLISTP(CATCell) lstCell;
+	spBody->GetAllCells(lstCell,2);
+	if (lstCell.Size()==0)
+	{
+		return;
+	}
+	CATFace_var spFace = lstCell[1];
+	if (spFace == NULL_var)
+	{
+		return;
+	}
+	double dblCrvRadiusMin,dblCrvRadiusMax;
+	HRESULT rc = _pGeneralCls->GetCrvRadiusOnSurface(spFace,dblCrvRadiusMin,dblCrvRadiusMax);
+	if (SUCCEEDED(rc))
+	{
+		cout<<"Rmin: "<<dblCrvRadiusMin<<"   Rmax: "<<dblCrvRadiusMax<<endl;
+	}
 }

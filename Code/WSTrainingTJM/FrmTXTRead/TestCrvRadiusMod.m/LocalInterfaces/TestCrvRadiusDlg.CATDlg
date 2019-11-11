@@ -1,0 +1,37 @@
+// DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
+CATDlgDialog TestCrvRadiusDlg
+{
+  STYLE = CATDlgWndBtnOKCancel|CATDlgGridLayout;
+}
+
+CATDlgLabel LabelSurface
+{
+  FATHER = TestCrvRadiusDlg;
+  GRID = { 0, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgSelectorList SelectorListSurface
+{
+  FATHER = TestCrvRadiusDlg;
+  TH = 1;
+  TW = 30;
+  GRID = { 0, 1, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgContainer Container003
+{
+  FATHER = TestCrvRadiusDlg;
+  HEIGHT = 5;
+  WIDTH = 5;
+  GRID = { 1, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgEditor EditorResult
+{
+  FATHER = TestCrvRadiusDlg;
+  STYLE = CATDlgEdtMultiline;
+  TH = 2;
+  GRID = { 2, 1, 1, 1, CATGRID_4SIDES };
+}
+
+// END WIZARD REPLACEMENT ZONE

@@ -73,6 +73,7 @@ void MyAddinMain::CreateCommands ()
 	new MyAddinHdr("TestCrossDoc","TestCrossDocMod","TestCrossDocCmd", (void*)NULL);
 	new MyAddinHdr("TestUserDefinedMathBox","TestUserDefinedMathBox","TestUserDefinedMathBoxCmd", (void*)NULL);
 	new MyAddinHdr("TestDrwDimension","TestDrwDimensionMod","TestDrwDimensionCmd", (void*)NULL);
+	new MyAddinHdr("TestCrvRadius","TestCrvRadiusMod","TestCrvRadiusCmd", (void*)NULL);
 }
 
 //-----------------------------------------------------------------------------
@@ -152,6 +153,10 @@ CATCmdContainer * MyAddinMain::CreateToolbars ()
 	NewAccess(CATCmdStarter,pTestDrwDim,TestDrwDimension);
 	SetAccessCommand(pTestDrwDim,"TestDrwDimension");
 	SetAccessNext(pTestUDMathBox,pTestDrwDim);
+
+	NewAccess(CATCmdStarter,pTestCrvRadius,TestCrvRadius);
+	SetAccessCommand(pTestCrvRadius,"TestCrvRadius");
+	SetAccessNext(pTestDrwDim,pTestCrvRadius);
 
 
 	//NewAccess(CATCmdStarter,pDrwAnnotation,DrwAnnotation);

@@ -175,6 +175,11 @@ void TestCrvRadiusCmd::ShowResults(CATBaseUnknown_var ispBU)
 	{
 		return;
 	}
+	//print edge size of each Surface
+	CATLISTP(CATCell) lstCellEdge;
+	spBody->GetAllCells(lstCellEdge,1);
+	cout<<"lstCellEdge Size: "<<lstCellEdge.Size()<<endl;
+	//
 	CATFace_var spFace = lstCell[1];
 	if (spFace == NULL_var)
 	{
@@ -186,4 +191,51 @@ void TestCrvRadiusCmd::ShowResults(CATBaseUnknown_var ispBU)
 	{
 		cout<<"Rmin: "<<dblCrvRadiusMin<<"   Rmax: "<<dblCrvRadiusMax<<endl;
 	}
+	//
+	CATUnicodeString strRefName = ShowReferenceName(ispBU);
+	//
+	CATICGMObject *pCurTopo = 0;
+	rc=spBody->QueryInterface(IID_CATICGMObject,(void**)&pCurTopo);
+	if (SUCCEEDED(rc)&&pCurTopo!=NULL)
+	{
+		unsigned long curResultTag = pCurTopo->GetPersistentTag();
+		cout <<"Current Selection's Topo Result tag : " ;
+		cout << curResultTag << endl;
+	}
+
+}
+
+CATUnicodeString TestCrvRadiusCmd::ShowReferenceName(CATBaseUnknown_var ispBU)
+{
+	CATUnicodeString ostrRefName = "";
+	CATISpecObject_var spiSpecObj = _pGeneralCls->GetSpecFromBaseUnknownFunc(ispBU);
+	if (spiSpecObj == NULL_var)
+	{
+		return ostrRefName;
+	}
+	//Get From BaseUnknown
+	CATIAReference *piaReference = NULL;
+	HRESULT rc = GetReferenceFromObject(ispBU,piaReference);
+	if (FAILED(rc) || piaReference == NULL)
+	{
+		return ostrRefName;
+	}
+	CATBSTR bstrRefName;
+	piaReference->get_DisplayName(bstrRefName);
+	ostrRefName.BuildFromBSTR(bstrRefName);
+
+	//Get From SpecObj
+	CATIAReference *piaReferenceSpecObj = NULL;
+	rc = GetReferenceFromObject(ispBU,piaReferenceSpecObj);
+	if (SUCCEEDED(rc) && piaReferenceSpecObj != NULL)
+	{
+		CATBSTR bstrRefNameSpecObj;
+		piaReference->get_DisplayName(bstrRefNameSpecObj);
+		CATUnicodeString strRefNameSpecObj = "";
+		strRefNameSpecObj.BuildFromBSTR(bstrRefNameSpecObj);
+		cout<<"Get Ref Name from SpecObj: "<<strRefNameSpecObj<<endl;
+	}
+	cout<<"Get Ref Name from BaseUnknown: "<<ostrRefName<<endl;	
+	return ostrRefName;
+
 }

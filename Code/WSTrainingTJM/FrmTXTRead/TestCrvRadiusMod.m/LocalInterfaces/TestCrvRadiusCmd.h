@@ -60,6 +60,7 @@ class TestCrvRadiusCmd: public CATStateCommand
   CATBoolean ExitCmd(void * data);
   void ActionSurfaceSelect(void * data);
   void ShowResults(CATBaseUnknown_var ispBU);
+  CATUnicodeString ShowReferenceName(CATBaseUnknown_var ispBU);
 private:
 
 	  TestCrvRadiusDlg			*_pDlg;

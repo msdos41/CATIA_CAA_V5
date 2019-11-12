@@ -73,6 +73,7 @@
 #include "CATIMf3DAxisSystem.h"
 #include "CATIPrtPart.h"
 #include "CATIBRepAccess.h"
+#include "CATMecModAutoServices.h"
 
 //ObjectModelerBase 
 #include "CATInit.h"
@@ -212,6 +213,7 @@
 //InfInterfaces
 #include "CATIADocument.h"
 #include "CATIASelection.h"
+#include "CATIAReference.h"
 
 //SpaceAnalysisInterfaces 
 #include "CATIInertia.h"
@@ -585,6 +587,9 @@ class ExportedByGeneralClassMod GeneralClass: public CATBaseUnknown
   //
   CATBoolean Create2DDrwDimension(CATIDrwAnnotationFactory_var spAnnFact, CATISpecObject_var spSpecOn2DElem1, CATISpecObject_var spSpecOn2DElem2, CATDrwDimType dimType, CATDrwDimRepresentation dimRep, CATMathPoint2D iMathAnchorPt1, CATMathPoint2D iMathAnchorPt2, CATIDrwDimDimension_var &spiDim);
   HRESULT GetCrvRadiusOnSurface(CATFace_var ispFace,double &odblCrvRadiusMin,double &odblCrvRadiusMax);
+
+  //
+  CATISpecObject_var GetSpecFromBaseUnknownFunc(CATBaseUnknown* ipBUOfObject);
 };
 
 //-----------------------------------------------------------------------

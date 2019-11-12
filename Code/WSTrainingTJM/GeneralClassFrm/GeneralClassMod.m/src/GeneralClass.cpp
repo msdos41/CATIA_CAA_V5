@@ -7474,3 +7474,31 @@ HRESULT GeneralClass::GetCrvRadiusOnSurface(CATFace_var ispFace,double &odblCrvR
 
 	return rc;
 }
+
+CATISpecObject_var GeneralClass::GetSpecFromBaseUnknownFunc(CATBaseUnknown* ipBUOfObject)
+{
+	cout<<"GetSpecFromBaseUnknownFunc()"<<endl;
+	if (!ipBUOfObject)
+	{
+		cout<<"Internal error :GetSpecFromBaseUnknownFunc()->CATBaseUnknown is NULL "<<endl;
+		return NULL_var;
+	}
+
+	CATISpecObject_var spiSpecOfObj = NULL_var;
+	spiSpecOfObj = ipBUOfObject;
+	if (!spiSpecOfObj)
+	{
+		CATIBRepAccess_var spiBRepAccess = ipBUOfObject;
+		if (!!spiBRepAccess)
+		{
+			CATIFeaturize_var spiFeaturize = spiBRepAccess; 
+			if (!!spiFeaturize)
+				//ÌØÕ÷»¯
+				spiSpecOfObj = spiFeaturize->FeaturizeR(MfPermanentBody|MfLastFeatureSupport|MfNoDuplicateFeature);
+		}
+
+	}
+
+
+	return spiSpecOfObj;
+}

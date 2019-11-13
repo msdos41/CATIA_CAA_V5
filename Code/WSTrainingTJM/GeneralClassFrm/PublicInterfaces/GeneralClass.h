@@ -403,6 +403,9 @@ class ExportedByGeneralClassMod GeneralClass: public CATBaseUnknown
   //Body根据3个方向获得6个极值点的Body
   void CreateExtremePoint(CATBody_var ispBody,CATGeoFactory_var ispGeoFac , CATMathVector iFirstVT,CATMathVector iSecondVT, CATMathVector iThirdVT,int iMaxOrMin,CATBody_var &ospPointBody);
 
+  //
+  void GetMathPtFromBody(CATBody*ipBody,CATLISTV(CATMathPoint) &oMathPtList);
+
   //设置属性-------3D和2D同时适用
   HRESULT YFSetSpecObjectAttrEx(CATISpecObject_var ispiSpecObject, CATUnicodeString istrKey, CATLISTV(CATUnicodeString) iLstStrings);
   HRESULT YFSetSpecObjectAttrEx(CATISpecObject_var ispiSpecObject, CATUnicodeString istrKey, CATListOfDouble  iValueList);
@@ -590,6 +593,8 @@ class ExportedByGeneralClassMod GeneralClass: public CATBaseUnknown
 
   //
   CATISpecObject_var GetSpecFromBaseUnknownFunc(CATBaseUnknown* ipBUOfObject);
+
+
 };
 
 //-----------------------------------------------------------------------

@@ -1049,8 +1049,10 @@ void GeneralClass::TransferSelectToBU(CATFeatureImportAgent *pFeatAgent,CATBaseU
 			return;
 		}
 		ospProductSeletion = spPartObject;
+		return;
 	}
 	ospProductSeletion = pProduct;
+	return;
 }
 
 //选择元素，转换成BaseUnknown，并同时返回所属Product(Instance)
@@ -2993,6 +2995,50 @@ HRESULT GeneralClass::GetBoundingPtsFromInertia(CATIProduct_var ispiProd,vector<
 	olstBoundingPts.push_back(CATMathPoint(arrHigh4));
 
 	return rc;
+}
+
+//从CATBody获取数学点集合
+void GeneralClass::GetMathPtFromBody(CATBody*ipBody,CATLISTV(CATMathPoint)  &oMathPtList)
+{
+	if (ipBody==NULL)
+		return;
+
+	CATLISTP(CATCell) LISTCell; 
+	ipBody->GetAllCells( LISTCell, 0 ); 
+	if (LISTCell.Size()==0)
+		return ;
+
+	for( int index = 1; index <= LISTCell.Size(); index++ )
+	{ 
+		CATMathPoint oMathPoint;
+		CATCell * pCell = LISTCell[index]; 
+		if(pCell == NULL) 
+		{
+			cout<<"CATCell is NULL."<<endl;
+			continue;
+		}
+
+		CATCell_var spCell = pCell;
+
+		CATVertex_var spVertex = spCell;
+		if(spVertex == NULL_var) 
+		{
+			cout<<"CATVertex is NULL_var."<<endl;
+			continue;
+		}
+
+		CATPoint *pPoint = spVertex->GetPoint();
+		if(pPoint == NULL)
+		{
+			cout<<"GetPoint failed."<<endl;
+			continue;
+		}
+
+		pPoint->GetMathPoint(oMathPoint);
+
+		oMathPtList.Append(oMathPoint);
+	}
+
 }
 
 //描述：设置属性

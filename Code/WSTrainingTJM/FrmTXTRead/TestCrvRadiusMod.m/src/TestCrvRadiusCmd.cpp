@@ -95,14 +95,14 @@ void TestCrvRadiusCmd::BuildGraph()
 
 	//SurfaceÑ¡Ôñ
 	_pSurfaceAgent = new CATFeatureImportAgent("Select Surface");
-	_pSurfaceAgent->SetElementType("CATSurface");
+	_pSurfaceAgent->SetElementType("CATCurve");
 	_pSurfaceAgent->SetBehavior(CATDlgEngWithPrevaluation|CATDlgEngWithCSO|CATDlgEngWithPSOHSO|CATDlgEngOneShot);
 
 	_pSurfaceFieldAgent = new CATDialogAgent("Select Surface Field");
 	_pSurfaceFieldAgent->AcceptOnNotify(_pDlg->GetSelectorListSurface(),
 										_pDlg->GetSelectorListSurface()->GetListSelectNotification());
 
-	CATDialogState *pDlgStateSurface = GetInitialState("Select Line");
+	CATDialogState *pDlgStateSurface = GetInitialState("Select");
 	pDlgStateSurface->AddDialogAgent(_pSurfaceAgent);
 	pDlgStateSurface->AddDialogAgent(_pSurfaceFieldAgent);
 
@@ -164,6 +164,7 @@ void TestCrvRadiusCmd::ActionSurfaceSelect(void * data)
 
 void TestCrvRadiusCmd::ShowResults(CATBaseUnknown_var ispBU)
 {
+	/*
 	CATBody_var spBody = _pGeneralCls->GetBodyFromFeature(ispBU);
 	if (spBody == NULL_var)
 	{
@@ -202,6 +203,31 @@ void TestCrvRadiusCmd::ShowResults(CATBaseUnknown_var ispBU)
 		cout <<"Current Selection's Topo Result tag : " ;
 		cout << curResultTag << endl;
 	}
+	//
+	cout<<"--------CATSurface Points------"<<endl;
+	CATBody *pBodyCATSurface = GetCATSurfaceBodyFromBU(ispBU);
+	if (pBodyCATSurface == NULL)
+	{
+		return;
+	}
+	CATLISTV(CATMathPoint) lstMathPt = NULL;
+	_pGeneralCls->GetMathPtFromBody(pBodyCATSurface,lstMathPt);
+	for (int i=1; i<=lstMathPt.Size();i++)
+	{
+		lstMathPt[i].Dump();
+	}
+	cout<<"-------------------------------"<<endl;
+	*/
+	//
+	cout<<"---------CATCurve Points-------"<<endl;
+	CATLISTV(CATMathPoint) lstMathPt = NULL;
+	lstMathPt.RemoveAll();
+	GetEndPointsFromCATCurve(ispBU,lstMathPt);
+	for (int i=1; i<=lstMathPt.Size();i++)
+	{
+		lstMathPt[i].Dump();
+	}
+	cout<<"-------------------------------"<<endl;
 
 }
 
@@ -238,4 +264,138 @@ CATUnicodeString TestCrvRadiusCmd::ShowReferenceName(CATBaseUnknown_var ispBU)
 	cout<<"Get Ref Name from BaseUnknown: "<<ostrRefName<<endl;	
 	return ostrRefName;
 
+}
+
+CATBody* TestCrvRadiusCmd::GetCATSurfaceBodyFromBU(CATBaseUnknown_var ispBU)
+{
+	CATBody *pBodyCATSurface = NULL;
+	if (ispBU == NULL_var)
+	{
+		return pBodyCATSurface;
+	}
+	//
+	CATBaseUnknown *pBU = NULL;
+	CATIProduct_var spiProd = NULL_var;
+	_pGeneralCls->TransferSelectToBU(_pSurfaceAgent,pBU,spiProd);
+	if (pBU == NULL || spiProd == NULL)
+	{
+		return pBodyCATSurface;
+	}
+	//
+	CATSoftwareConfiguration * pConfig = new CATSoftwareConfiguration();//ÅäÖÃÖ¸Õë
+	CATTopData * topdata =new CATTopData(pConfig, NULL);//topdata
+	
+	CATIPrtContainer_var spiPrtCont = NULL_var;
+	CATGeoFactory *pGeoFactory = _pGeneralCls->GetProductGeoFactoryAndPrtCont(spiProd,spiPrtCont);
+	if (pGeoFactory == NULL)
+	{
+		return pBodyCATSurface;
+	}
+	//
+	CATBody_var spBody = _pGeneralCls->GetBodyFromFeature(ispBU);
+	if (spBody == NULL_var)
+	{
+		return pBodyCATSurface;
+	}
+	CATLISTP(CATCell) lstCell;
+	spBody->GetAllCells(lstCell,2);
+	if (lstCell.Size()==0)
+	{
+		return pBodyCATSurface;
+	}
+	CATFace_var spFace = lstCell[1];
+	if (spFace == NULL_var)
+	{
+		return pBodyCATSurface;
+	}
+	CATSurface_var spSurface = spFace->GetSurface();
+	if (spSurface == NULL_var)
+	{
+		return pBodyCATSurface;
+	}
+	CATSurLimits surMaxLimits;
+	spSurface->GetLimits(surMaxLimits) ;
+
+	CATTopSkin * TopSkin =CATCreateTopSkin(pGeoFactory,topdata,spSurface,&surMaxLimits);
+	//CATICGMTopSkin * TopSkin =CATCGMCreateTopSkin(pGeoFactory,topdata,iNewSurface,&surMaxLimits);
+	if (TopSkin==NULL)
+	{
+		return pBodyCATSurface;
+	}
+
+	TopSkin->Run();
+
+	CATBody*pTopPlaneBody=NULL;
+	pTopPlaneBody = TopSkin->GetResult();
+
+	pBodyCATSurface = pTopPlaneBody;
+
+	return pBodyCATSurface;
+
+}
+
+HRESULT TestCrvRadiusCmd::GetEndPointsFromCATCurve(CATBaseUnknown_var ispBU,CATLISTV(CATMathPoint) &olstMathPt)
+{
+	HRESULT rc = S_OK;
+	if (ispBU == NULL_var)
+	{
+		return E_FAIL;
+	}
+	//
+	CATBaseUnknown *pBU = NULL;
+	CATIProduct_var spiProd = NULL_var;
+	_pGeneralCls->TransferSelectToBU(_pSurfaceAgent,pBU,spiProd);
+	if (pBU == NULL || spiProd == NULL)
+	{
+		return E_FAIL;
+	}
+	//
+	CATSoftwareConfiguration * pConfig = new CATSoftwareConfiguration();//ÅäÖÃÖ¸Õë
+	CATTopData * topdata =new CATTopData(pConfig, NULL);//topdata
+
+	CATIPrtContainer_var spiPrtCont = NULL_var;
+	CATGeoFactory *pGeoFactory = _pGeneralCls->GetProductGeoFactoryAndPrtCont(spiProd,spiPrtCont);
+	if (pGeoFactory == NULL)
+	{
+		return E_FAIL;
+	}
+	//
+	CATBody_var spBody = _pGeneralCls->GetBodyFromFeature(ispBU);
+	if (spBody == NULL_var)
+	{
+		return E_FAIL;
+	}
+	CATLISTP(CATCell) lstCell;
+	spBody->GetAllCells(lstCell,1);
+	if (lstCell.Size()==0)
+	{
+		return E_FAIL;
+	}
+	CATEdge_var spEdge = lstCell[1];
+	if (spEdge == NULL_var)
+	{
+		return E_FAIL;
+	}
+	CATEdgeCurve_var spEdgeCurve = spEdge ->GetCurve(NULL);
+	if(spEdgeCurve == NULL_var)
+	{ 
+		return E_FAIL; 
+	}
+
+	CATCurve_var spCurve = spEdgeCurve->GetRefCurve();
+	if (spCurve == NULL_var)
+	{
+		return E_FAIL;
+	}
+	//
+	CATCrvParam crvParmStart = spCurve->GetStartLimit();
+	CATCrvParam crvParmEnd = spCurve->GetEndLimit();
+	//
+	CATMathPoint mathPtStart = spCurve->EvalPoint(crvParmStart);
+	CATMathPoint mathPtEnd = spCurve->EvalPoint(crvParmEnd);
+	//
+	olstMathPt.Append(mathPtStart);
+	olstMathPt.Append(mathPtEnd);
+
+	return rc;
 }

@@ -63,6 +63,7 @@ class TestCrvRadiusCmd: public CATStateCommand
   CATUnicodeString ShowReferenceName(CATBaseUnknown_var ispBU);
   CATBody* GetCATSurfaceBodyFromBU(CATBaseUnknown_var ispBU);
   HRESULT GetEndPointsFromCATCurve(CATBaseUnknown_var ispBU,CATLISTV(CATMathPoint) &olstMathPt);
+  HRESULT PrintVariousInfo(CATBaseUnknown_var ispBU);
 private:
 
 	  TestCrvRadiusDlg			*_pDlg;

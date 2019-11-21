@@ -35,6 +35,9 @@ TestCrvRadiusCmd::TestCrvRadiusCmd() :
 	_pDlg->SetVisibility(CATDlgShow);
 
 	_pGeneralCls = new GeneralClass();
+
+	ofstream OutFile("C:\\DataInfo.txt",ios::trunc); 
+	OutFile.close();
 }
 
 //-------------------------------------------------------------------------
@@ -95,7 +98,8 @@ void TestCrvRadiusCmd::BuildGraph()
 
 	//SurfaceÑ¡Ôñ
 	_pSurfaceAgent = new CATFeatureImportAgent("Select Surface");
-	_pSurfaceAgent->SetElementType("CATCurve");
+	_pSurfaceAgent->SetElementType("CATSurface");
+	//_pSurfaceAgent->SetElementType("CATCurve");
 	_pSurfaceAgent->SetBehavior(CATDlgEngWithPrevaluation|CATDlgEngWithCSO|CATDlgEngWithPSOHSO|CATDlgEngOneShot);
 
 	_pSurfaceFieldAgent = new CATDialogAgent("Select Surface Field");
@@ -157,7 +161,8 @@ void TestCrvRadiusCmd::ActionSurfaceSelect(void * data)
 	//
 	_pGeneralCls->SetHighlight(pBUSelect);
 	//
-	ShowResults(pBUSelect);
+	//ShowResults(pBUSelect);
+	PrintVariousInfo(pBUSelect);
 
 	_pSurfaceAgent->InitializeAcquisition();
 }
@@ -397,5 +402,163 @@ HRESULT TestCrvRadiusCmd::GetEndPointsFromCATCurve(CATBaseUnknown_var ispBU,CATL
 	olstMathPt.Append(mathPtStart);
 	olstMathPt.Append(mathPtEnd);
 
+	return rc;
+}
+
+HRESULT TestCrvRadiusCmd::PrintVariousInfo(CATBaseUnknown_var ispBU)
+{
+	HRESULT rc = S_OK;
+	//
+	ofstream OutFile("C:\\DataInfo.txt",ios::app); 
+	//
+	cout<<"Starting Print..............."<<endl;
+	//
+	CATILinkableObject_var spLink = ispBU;
+	if (spLink==NULL_var)
+	{
+		return E_FAIL;
+	}
+	CATListOfCATUnicodeString TempListString;
+	boolean b1=false;
+	spLink->ListSupportedAreasIdentifier(&TempListString,b1);
+	for (int i=1;i<=TempListString.Size();i++)
+	{
+		cout<<"Temp String ="<<TempListString[i]<<endl;
+	}
+	//
+	SEQUENCE(octet) LastModification = spLink ->GetLastModificationId();
+	SEQUENCE(octet) LocatorType = spLink ->GetLocatorType();
+	SEQUENCE(octet) AdditionalInfos = spLink ->GetAdditionalInfos();
+	for (int i=0;i<LastModification.length();i++)
+	{
+		octet Temp  = LastModification[i];
+		cout<<"LastModification = "<<Temp<<endl;
+	}
+	for (int i=0;i<LocatorType.length();i++)
+	{
+		octet Temp  = LocatorType[i];
+		cout<<"LocatorType = "<<Temp<<endl;
+	}
+	for (int i=0;i<AdditionalInfos.length();i++)
+	{
+		octet Temp  = AdditionalInfos[i];
+		cout<<"AdditionalInfos = "<<Temp<<endl;
+	}
+	//
+	CATUnicodeString Name1 = CATBaseUnknown_var(spLink)->ClassName();
+	cout<<"ClassName:"<<Name1<<endl;
+	//
+	CATUnicodeString Name = spLink->GetName(CATRelativeName);
+	cout<<"RelativeName:"<<Name<<endl;
+	//
+	const char* chRelativeName = Name.ConvertToChar();
+	OutFile<<"RelativeName: ";
+	OutFile<<chRelativeName<<endl;
+	//
+	Name = spLink->GetName(CATShortestName);
+	cout<<"ShortestName:"<<Name<<endl;
+	Name = spLink->GetName(CATSafestName);
+	cout<<"SafestName:  "<<Name<<endl;
+	Name = spLink->GetName(CATTypedName);
+	cout<<"TypedName:   "<<Name<<endl;
+	//
+	SEQUENCE(octet) iD;
+	spLink->GetIdentifier(iD,b1);
+	cout<<"Is UUID : "<<(int)b1<<endl;
+	int count = iD.length();
+	cout<<"id = ";
+	OutFile<<"id = ";
+	for (int i=0;i<count;i++)
+	{
+		octet Temp  = iD[i];
+		cout<<Temp;
+		OutFile<<Temp;
+	}
+	cout<<endl;
+	OutFile<<endl;
+	//
+	CATUnicodeString area_identifier = "";
+	CATBoolean bFillArea = spLink->IsAFilledArea(area_identifier);
+	cout<<"area_identifier: "<<area_identifier<<endl;
+	//
+	CATIAReference *piaReference = NULL;
+	rc = GetReferenceFromObject(ispBU,piaReference);
+	if (FAILED(rc) || piaReference == NULL)
+	{
+		return E_FAIL;
+	}
+	CATIMfGeometryAccess_var spGeometryAccess = piaReference;
+	if (spGeometryAccess!=NULL_var)
+	{	
+		CATLISTV(CATBaseUnknown_var) Cells;
+		spGeometryAccess->GetCells("Start",Cells);
+		for (int i = 1;i<=Cells.Size();i++)
+		{
+			CATILinkableObject_var spLink11 = Cells[i];
+			CATUnicodeString Name3 = spLink11->GetName(CATRelativeName);
+			cout<<"RelativeName:"<<Name3<<endl;
+		}
+	}
+	//
+	CATIBRepAccess_var spBRepAccess = spLink;
+	if (spBRepAccess!=NULL_var)
+	{	
+		CATLISTV(CATBaseUnknown_var) lstGeometries ;
+		spBRepAccess->GetGeometries(lstGeometries);
+
+		CATLISTV(CATISpecObject_var) spRAssiss;
+		spRAssiss = spBRepAccess->GetNecessaryFeatures();
+
+		for (int i=1;i<=lstGeometries.Size();i++)
+		{
+			CATBaseUnknown_var spObject = lstGeometries[i];
+		}
+
+		for (int i=1;i<=spRAssiss.Size();i++)
+		{
+			CATBaseUnknown_var spObject = spRAssiss[i];
+		}
+
+		CATUnicodeString Name ;
+		spBRepAccess->GetSymbolicLinkResolveView(Name);
+		cout<<"GetSymbolicLinkResolveView name:"<<Name<<endl;
+	}
+	//
+	CATIVpmAFLAffectedObject *piVpmFLAffObj = NULL;
+	rc = ispBU->QueryInterface(IID_CATIVpmAFLAffectedObject,(void**)&piVpmFLAffObj);
+	if (SUCCEEDED(rc)&&piVpmFLAffObj!=NULL)
+	{
+		SEQUENCE(octet) oUUID;
+		piVpmFLAffObj->GetUUID(oUUID);
+		cout<<"UUID = ";
+		for (int i=0;i<oUUID.length();i++)
+		{
+			octet Temp  = oUUID[i];
+			cout<<Temp;
+		}
+		cout<<endl;
+	}
+	//Get From BaseUnknown
+	CATIAReference *piaReferenceBU = NULL;
+	rc = GetReferenceFromObject(ispBU,piaReferenceBU);
+	if (FAILED(rc) || piaReferenceBU == NULL)
+	{
+		return E_FAIL;
+	}
+	CATBSTR bstrRefName;
+	piaReferenceBU->get_DisplayName(bstrRefName);
+	CATUnicodeString strRefName;
+	strRefName.BuildFromBSTR(bstrRefName);
+	cout<<"ReferenceName: "<<strRefName<<endl;
+
+	_bstr_t bstrt = bstrRefName;
+	char *pchRefName = bstrt;
+	OutFile<<"ReferenceName: ";
+	OutFile<<pchRefName<<endl;
+	//
+	cout<<"Printing End...................."<<endl;
+	//
+	OutFile<<endl;
+	OutFile.close();  
 	return rc;
 }

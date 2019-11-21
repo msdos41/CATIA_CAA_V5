@@ -39,7 +39,7 @@ CATSketcherInterfaces	\
 CATSaiSpaceAnalysisItf	\
 YFAirventXMLM		\
 CATGeometricOperators \
-
+GUIDVPMInterfaces	\
 
 # System dependant variables
 #

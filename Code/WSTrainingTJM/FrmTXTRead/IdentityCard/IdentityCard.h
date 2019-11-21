@@ -49,3 +49,4 @@ AddPrereqComponent("TopologicalOperators",Protected);
 AddPrereqComponent("BasicTopologicalOpe",Protected);
 AddPrereqComponent("CATIAApplicationFrame",Protected);
 AddPrereqComponent("SpaceAnalysisInterfaces",Protected);
+AddPrereqComponent("VPMInterfaces",Public);

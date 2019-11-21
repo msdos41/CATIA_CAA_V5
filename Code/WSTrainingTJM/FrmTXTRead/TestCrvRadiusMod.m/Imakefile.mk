@@ -32,6 +32,7 @@ CATGitInterfaces  \
 KnowledgeItf  \
 CATTopologicalOperators  \
 CATBasicTopologicalOpe  \
+GUIDVPMInterfaces	\
 
 # System dependant variables
 #

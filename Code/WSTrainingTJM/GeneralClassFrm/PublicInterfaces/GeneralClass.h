@@ -74,6 +74,7 @@
 #include "CATIPrtPart.h"
 #include "CATIBRepAccess.h"
 #include "CATMecModAutoServices.h"
+#include "CATIMfGeometryAccess.h"
 
 //ObjectModelerBase 
 #include "CATInit.h"
@@ -221,6 +222,12 @@
 //GeometricOperators
 #include "CATCreateLocalAnalysisD.h"
 #include "CATLocalAnalysis2D.h"
+
+//VPMInterfaces
+#include "CATIVpmAFLAffectedObject.h"
+
+//ObjectModelerSystem
+#include "CORBAAnyDef.h"
 
 //
 #include <map>

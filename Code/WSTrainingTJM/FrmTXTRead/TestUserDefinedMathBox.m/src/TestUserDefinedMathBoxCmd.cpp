@@ -92,6 +92,7 @@ TestUserDefinedMathBoxCmd::TestUserDefinedMathBoxCmd() :
 	{
 		return;
 	}
+	int iCountColor = 0;
 	for (int i=1; i<= lstCell.Size(); i++)
 	{
 		CATFace_var spFace = lstCell[i];
@@ -99,6 +100,7 @@ TestUserDefinedMathBoxCmd::TestUserDefinedMathBoxCmd() :
 		{
 			continue;
 		}
+		/*
 		double dblCrvRadiusMin,dblCrvRadiusMax;
 		rc = _pGeneralCls->GetCrvRadiusOnSurface(spFace,dblCrvRadiusMin,dblCrvRadiusMax);
 		if (SUCCEEDED(rc))
@@ -109,12 +111,19 @@ TestUserDefinedMathBoxCmd::TestUserDefinedMathBoxCmd() :
 		{
 			continue;
 		}
+		*/
 		//
 		CATIBRepAccess_var spiBrepAcess  =NULL_var;
 		spiBrepAcess = CATBRepDecodeCellInBody(spFace,spBody);
 		if (spiBrepAcess == NULL_var)
 		{
 			continue;
+		}
+		unsigned int iRed,iGreen,iBlue;
+		rc = _pGeneralCls->GetColorOnBRepObject(spiBrepAcess,iRed,iGreen,iBlue);
+		if (SUCCEEDED(rc)&&iRed==0&&iGreen==0&&iBlue==0)
+		{
+			iCountColor++;
 		}
 		CATIFeaturize_var  spToFeaturize  =  spiBrepAcess;
 		if  (NULL_var  ==  spToFeaturize)
@@ -130,10 +139,17 @@ TestUserDefinedMathBoxCmd::TestUserDefinedMathBoxCmd() :
 		{
 			_pGeneralCls->SetHighlight(pBU);	//目前只能用vb方法高亮成功，caa方法暂时都无法高亮
 		}
+		//rc = _pGeneralCls->GetColorOnObject(spiSpecOnCell,iRed,iGreen,iBlue);
+		//if (SUCCEEDED(rc)&&iRed==0&&iGreen==0&&iBlue==0)
+		//{
+		//	iCountColor++;
+		//}
 		//AddHSO(spiSpecOnCell);
 		//
 	}
-
+	cout<<"-----------------------------------------------"<<endl;
+	cout<<"The Specific Color Count is "<<iCountColor<<endl;
+	cout<<"-----------------------------------------------"<<endl;
 	/*
 	double num1 = 0.00005;
 	double num2 = 0.00006;

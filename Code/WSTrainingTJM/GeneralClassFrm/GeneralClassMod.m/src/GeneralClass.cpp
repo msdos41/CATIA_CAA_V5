@@ -7548,3 +7548,47 @@ CATISpecObject_var GeneralClass::GetSpecFromBaseUnknownFunc(CATBaseUnknown* ipBU
 
 	return spiSpecOfObj;
 }
+
+
+HRESULT GeneralClass::GetColorOnBRepObject(CATIBRepAccess_var ispiSubElement,unsigned int &oRed,unsigned int &oGreen,unsigned int &oBlue)
+{
+	HRESULT rc=E_FAIL;
+
+	if( !ispiSubElement ) return rc;
+
+	CATIPersistentSubElement *piPersistentSubElement=NULL;
+	rc = ispiSubElement->QueryInterface(IID_CATIPersistentSubElement,(void **)&piPersistentSubElement);
+	if( FAILED(rc) || !piPersistentSubElement ) return rc;
+
+	CATIVisProperties *piGraphProp=NULL;
+	rc = piPersistentSubElement->GetVisPropertiesAccess(piGraphProp);
+	piPersistentSubElement->Release(); piPersistentSubElement = NULL;
+	if( FAILED(rc) || !piGraphProp ) return rc;
+
+	CATVisPropertiesValues AttributeValue;
+	rc = piGraphProp->GetPropertiesAtt(AttributeValue,CATVPColor,CATVPMesh);	//第三个参数需要注意，曲面 曲线等都不一样
+	piGraphProp->Release(); piGraphProp = NULL;
+
+	rc = AttributeValue.GetColor(oRed,oGreen,oBlue);
+
+	return rc;
+}
+
+HRESULT GeneralClass::GetColorOnObject(CATISpecObject_var ispiSpecOnObject,unsigned int &oRed,unsigned int &oGreen,unsigned int &oBlue)
+{
+	HRESULT rc=E_FAIL;
+
+	if( !ispiSpecOnObject ) return rc;
+
+	CATVisPropertiesValues AttributeValue;
+	CATIVisProperties *piGraphProp=NULL;
+	rc = ispiSpecOnObject->QueryInterface(IID_CATIVisProperties,(void **)&piGraphProp);
+	if( FAILED(rc) || !piGraphProp ) return rc;
+
+	rc = piGraphProp->GetPropertiesAtt(AttributeValue,CATVPColor,CATVPMesh);	//第三个参数需要注意，曲面 曲线等都不一样
+	piGraphProp->Release();  piGraphProp = NULL;
+
+	rc = AttributeValue.GetColor(oRed,oGreen,oBlue);
+
+	return rc;
+}

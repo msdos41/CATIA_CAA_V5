@@ -75,6 +75,7 @@
 #include "CATIBRepAccess.h"
 #include "CATMecModAutoServices.h"
 #include "CATIMfGeometryAccess.h"
+#include "CATIPersistentSubElement.h"
 
 //ObjectModelerBase 
 #include "CATInit.h"
@@ -601,7 +602,9 @@ class ExportedByGeneralClassMod GeneralClass: public CATBaseUnknown
   //
   CATISpecObject_var GetSpecFromBaseUnknownFunc(CATBaseUnknown* ipBUOfObject);
 
-
+  //
+  HRESULT GetColorOnBRepObject(CATIBRepAccess_var ispiSubElement,unsigned int &oRed,unsigned int &oGreen,unsigned int &oBlue);
+  HRESULT GetColorOnObject(CATISpecObject_var ispiSpecOnObject,unsigned int &oRed,unsigned int &oGreen,unsigned int &oBlue);
 };
 
 //-----------------------------------------------------------------------

@@ -50,3 +50,5 @@ AddPrereqComponent("BasicTopologicalOpe",Protected);
 AddPrereqComponent("CATIAApplicationFrame",Protected);
 AddPrereqComponent("SpaceAnalysisInterfaces",Protected);
 AddPrereqComponent("VPMInterfaces",Public);
+AddPrereqComponent("YFDatumTempFrm",Public);
+AddPrereqComponent("YFAirventViewFeedbackFrm",Public);

@@ -74,6 +74,8 @@ void MyAddinMain::CreateCommands ()
 	new MyAddinHdr("TestUserDefinedMathBox","TestUserDefinedMathBox","TestUserDefinedMathBoxCmd", (void*)NULL);
 	new MyAddinHdr("TestDrwDimension","TestDrwDimensionMod","TestDrwDimensionCmd", (void*)NULL);
 	new MyAddinHdr("TestCrvRadius","TestCrvRadiusMod","TestCrvRadiusCmd", (void*)NULL);
+	new MyAddinHdr("TestTempPoint","TestTempPointMod","TestTempPointCmd", (void*)NULL);
+	new MyAddinHdr("TestMultiList","TestMultiListMod","TestMultiListCmd", (void*)NULL);
 }
 
 //-----------------------------------------------------------------------------
@@ -157,6 +159,15 @@ CATCmdContainer * MyAddinMain::CreateToolbars ()
 	NewAccess(CATCmdStarter,pTestCrvRadius,TestCrvRadius);
 	SetAccessCommand(pTestCrvRadius,"TestCrvRadius");
 	SetAccessNext(pTestDrwDim,pTestCrvRadius);
+
+	NewAccess(CATCmdStarter,pTestTempPoint,TestTempPoint);
+	SetAccessCommand(pTestTempPoint,"TestTempPoint");
+	SetAccessNext(pTestCrvRadius,pTestTempPoint);
+
+	NewAccess(CATCmdStarter,pTestMultiList,TestMultiList);
+	SetAccessCommand(pTestMultiList,"TestMultiList");
+	SetAccessNext(pTestTempPoint,pTestMultiList);
+
 
 
 	//NewAccess(CATCmdStarter,pDrwAnnotation,DrwAnnotation);

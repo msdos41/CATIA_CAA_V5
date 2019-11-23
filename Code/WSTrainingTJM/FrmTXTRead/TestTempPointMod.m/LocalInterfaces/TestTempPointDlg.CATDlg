@@ -1,0 +1,14 @@
+// DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
+CATDlgDialog TestTempPointDlg
+{
+  STYLE = CATDlgWndBtnClose|CATDlgWndTitleBarHelp|CATDlgGridLayout;
+}
+
+CATDlgSelectorList SelectorListSelect
+{
+  FATHER = TestTempPointDlg;
+  TW = 30;
+  GRID = { 0, 0, 1, 1, CATGRID_4SIDES };
+}
+
+// END WIZARD REPLACEMENT ZONE

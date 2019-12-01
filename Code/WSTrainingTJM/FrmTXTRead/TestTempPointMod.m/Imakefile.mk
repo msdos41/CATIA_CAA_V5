@@ -35,6 +35,8 @@ CATBasicTopologicalOpe  \
 GUIDVPMInterfaces	\
 YFAirventViewFeedbackM	\
 YFDatumTempM	\
+CATMechanicalModeler	\
+CATVisualization	\
 
 # System dependant variables
 #

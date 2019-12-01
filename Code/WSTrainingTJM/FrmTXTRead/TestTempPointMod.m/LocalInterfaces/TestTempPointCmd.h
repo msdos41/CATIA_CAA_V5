@@ -62,6 +62,9 @@ class TestTempPointCmd: public CATStateCommand
   virtual CATBoolean  ActionOne(void * data);
   CATBoolean ExitCmd(void * data);
   void ActionSelect(void * data);
+  HRESULT FindMechanicalToolFromPath(CATPathElement *ipPath);
+  void TestHighLight();
+  void ActionSelect2(void * data);
 private:
 
 	  TestTempPointDlg		*_pDlg;
@@ -79,6 +82,10 @@ private:
 	  CATDialogAgent		*_pSurfaceFieldAgent;
 
 	  YFAirventViewerFeedbackManager	*_pViewerFeedbackManager;	//ÆÁÄ»²¶×½
+
+	  CATLISTV(CATBaseUnknown_var)		_lstBUSurface;
+
+	  CATLISTP(CATCell)					_lstCellSelect;
 
 
 

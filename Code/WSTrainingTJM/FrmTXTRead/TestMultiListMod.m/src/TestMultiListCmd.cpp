@@ -156,16 +156,23 @@ void TestMultiListCmd::BuildGraph()
 	//_pSurfaceAgent->SetElementType("CATCurve");
 	_pCurveAgent->SetBehavior(CATDlgEngWithPrevaluation|CATDlgEngWithCSO|CATDlgEngWithPSOHSO|CATDlgEngOneShot);
 
-	//_pSurfaceFieldAgent = new CATDialogAgent("Select Surface Field");
-	//_pSurfaceFieldAgent->AcceptOnNotify(_pDlg->GetSelectorListSelect(),
-	//	_pDlg->GetSelectorListSelect()->GetListSelectNotification());
+	_pSurfaceFieldAgent = new CATDialogAgent("Select Surface Field");
+	_pSurfaceFieldAgent->AcceptOnNotify(_pDlg->GetMultiListSelect(),
+										_pDlg->GetMultiListSelect()->GetListSelectNotification());
+
+	_pCurveFieldAgent = new CATDialogAgent("Select Edge Field");
+	_pCurveFieldAgent->AcceptOnNotify(_pDlg->GetMultiListSelect(),
+									  _pDlg->GetMultiListSelect()->GetListSelectNotification());
 
 	CATDialogState *pDlgStateSurface = GetInitialState("Select Surface");
 	pDlgStateSurface->AddDialogAgent(_pSurfaceAgent);
-	//pDlgStateSurface->AddDialogAgent(_pSurfaceFieldAgent);
+	pDlgStateSurface->AddDialogAgent(_pSurfaceFieldAgent);
+	pDlgStateSurface->AddDialogAgent(_pCurveFieldAgent);
 
 	CATDialogState *pDlgStateEdge = AddDialogState("Select Edge");
 	pDlgStateEdge->AddDialogAgent(_pCurveAgent);
+	pDlgStateEdge->AddDialogAgent(_pCurveFieldAgent);
+	pDlgStateEdge->AddDialogAgent(_pSurfaceFieldAgent);
 
 	AddTransition( pDlgStateSurface, pDlgStateSurface, 
 					AndCondition(IsOutputSetCondition (_pSurfaceAgent),
@@ -178,12 +185,14 @@ void TestMultiListCmd::BuildGraph()
 					Action ((ActionMethod) &TestMultiListCmd::ActionSelectCurve));
 
 	AddTransition( pDlgStateSurface, pDlgStateEdge, 
-				Condition((ConditionMethod) &TestMultiListCmd::DecideCurveSelect),
-				Action ((ActionMethod) &TestMultiListCmd::TransToCurve));
+					AndCondition(IsOutputSetCondition(_pCurveFieldAgent),
+								Condition((ConditionMethod) &TestMultiListCmd::DecideCurveSelect)),
+					Action ((ActionMethod) &TestMultiListCmd::TransToCurve));
 
 	AddTransition( pDlgStateEdge, pDlgStateSurface, 
-		Condition((ConditionMethod) &TestMultiListCmd::DecideSurfaceSelect),
-		Action ((ActionMethod) &TestMultiListCmd::TransToSurface));
+					AndCondition(IsOutputSetCondition(_pSurfaceFieldAgent),
+								Condition((ConditionMethod) &TestMultiListCmd::DecideSurfaceSelect)),
+					Action ((ActionMethod) &TestMultiListCmd::TransToSurface));
 }
 
 
@@ -251,6 +260,13 @@ void TestMultiListCmd::ActionSelectSurface()
 		_pDlg->GetMultiListSelect()->SetColumnItem(2,_lstAliasCurve[i+1],i,CATDlgDataAdd);
 	}
 	//
+	int iTabRow = 0;
+	if (_lstBUSurface.Size()>0)
+	{
+		iTabRow = _lstBUSurface.Size()-1;
+	}
+	_pDlg->GetMultiListSelect()->SetSelect(&iTabRow,1,1);
+	//
 	_pSurfaceAgent->InitializeAcquisition();
 }
 
@@ -277,15 +293,22 @@ void TestMultiListCmd::ActionSelectCurve()
 		_pDlg->GetMultiListSelect()->SetColumnItem(2,_lstAliasCurve[i+1],i,CATDlgDataAdd);
 	}
 	//
+	int iTabRow = 0;
+	if (_lstBUCurve.Size()>0)
+	{
+		iTabRow = _lstBUCurve.Size()-1;
+	}
+	_pDlg->GetMultiListSelect()->SetSelect(&iTabRow,1,1);
+	//
 	_pCurveAgent->InitializeAcquisition();
 }
 
 void TestMultiListCmd::TransToCurve()
 {
-	_pSurfaceAgent->InitializeAcquisition();
+	_pSurfaceFieldAgent->InitializeAcquisition();
 }
 
 void TestMultiListCmd::TransToSurface()
 {
-	_pCurveAgent->InitializeAcquisition();
+	_pCurveFieldAgent->InitializeAcquisition();
 }

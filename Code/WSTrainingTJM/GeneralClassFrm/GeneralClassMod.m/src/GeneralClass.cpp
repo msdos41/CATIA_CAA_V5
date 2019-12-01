@@ -1137,6 +1137,72 @@ void GeneralClass::SetHighlight(CATBaseUnknown *ipBUSelect, CATFrmEditor *ipEdit
 	}
 }
 
+//累积高亮元素，不清空已高亮
+void GeneralClass::SetGroupHighlight(CATBaseUnknown *ipBUSelect, CATFrmEditor *ipEditor, CATHSO *ipHSO)
+{
+	//if (ipHSO != NULL)
+	//{
+	//	ipHSO->Empty();
+	//}
+
+	if ((ipBUSelect != NULL) && (ipEditor != NULL) && (ipHSO != NULL))
+	{
+		CATIBuildPath *piBuildPath = NULL;
+		HRESULT rc = ipBUSelect->QueryInterface(IID_CATIBuildPath,(void**) &piBuildPath);
+		if (SUCCEEDED(rc))
+		{
+			CATPathElement context = ipEditor->GetUIActiveObject();
+			CATPathElement *pPathElement = NULL;
+
+			rc = piBuildPath->ExtractPathElement(&context,&pPathElement);
+			if (pPathElement != NULL)
+			{
+				CATUnicodeString strPath = "";
+				PathElementString(pPathElement,strPath);
+				cout<<"Highlight Path: "<<strPath<<endl;
+				ipHSO->AddElement(pPathElement);
+				pPathElement->Release();
+				pPathElement = NULL;
+			}
+			piBuildPath->Release();
+			piBuildPath = NULL;
+		}
+	}
+}
+
+//累积高亮元素，不清空已高亮
+void GeneralClass::SetGroupHighlightFromSpecObj(CATISpecObject_var ispSpecObj, CATFrmEditor *ipEditor, CATHSO *ipHSO)
+{
+	//if (ipHSO != NULL)
+	//{
+	//	ipHSO->Empty();
+	//}
+
+	if ((ispSpecObj != NULL_var) && (ipEditor != NULL) && (ipHSO != NULL))
+	{
+		CATIBuildPath *piBuildPath = NULL;
+		HRESULT rc = ispSpecObj->QueryInterface(IID_CATIBuildPath,(void**) &piBuildPath);
+		if (SUCCEEDED(rc))
+		{
+			CATPathElement context = ipEditor->GetUIActiveObject();
+			CATPathElement *pPathElement = NULL;
+
+			rc = piBuildPath->ExtractPathElement(&context,&pPathElement);
+			if (pPathElement != NULL)
+			{
+				CATUnicodeString strPath = "";
+				PathElementString(pPathElement,strPath);
+				cout<<"Highlight Path: "<<strPath<<endl;
+				ipHSO->AddElement(pPathElement);
+				pPathElement->Release();
+				pPathElement = NULL;
+			}
+			piBuildPath->Release();
+			piBuildPath = NULL;
+		}
+	}
+}
+
 //使用VB方法高亮
 void GeneralClass::SetHighlight(CATBaseUnknown *pBUSelect)
 {
@@ -1188,6 +1254,52 @@ void GeneralClass::SetHighlight(CATBaseUnknown *pBUSelect)
 	//	pHSO->AddElements(iElement);
 	//	pHSO->EndAddElements();
 	//}
+
+}
+
+//高亮一组cell,可以选择不同的维度
+void GeneralClass::SetHighlightCells(CATBody_var ispBody, CATLISTP(CATCell) ilstCell, int iDimension)
+{
+	if (ispBody == NULL_var)
+	{
+		return;
+	}
+	for (int i=1; i<=ilstCell.Size(); i++)
+	{
+		CATIBRepAccess_var spiBrepAcess  =NULL_var;
+		switch (iDimension)
+		{
+			case 2:
+				{
+					CATFace_var spFace = ilstCell[i];
+					if (spFace!=NULL_var)
+					{
+						spiBrepAcess = CATBRepDecodeCellInBody(spFace,ispBody);
+					}
+					break;
+				}
+			default:
+				cout<<"Wrong Dimension Input"<<endl;
+		}
+		if (spiBrepAcess == NULL_var)
+		{
+			continue;
+		}
+		CATIFeaturize_var  spToFeaturize  =  spiBrepAcess;
+		if  (NULL_var  ==  spToFeaturize)
+		{
+			continue;
+		}
+		CATISpecObject_var spiSpecOnCell  =  spToFeaturize->FeaturizeR(MfPermanentBody|MfDefaultFeatureSupport |MfRelimitedFeaturization|MfDuplicateFeature);    //目前只能按照这样的枚举值特征化，后面才能高亮
+		//CATISpecObject_var spiSpecOnCell  =  spToFeaturize->FeaturizeR();
+		//CATISpecObject_var spiSpecOnCell  =  spToFeaturize->FeaturizeR(MfNoDuplicateFeature | MfPermanentBody | MfSelectingFeatureSupport | MfFunctionalFeaturization);
+		CATBaseUnknown *pBU = NULL;
+		HRESULT rc = spiSpecOnCell->QueryInterface(IID_CATBaseUnknown,(void**)&pBU);
+		if (SUCCEEDED(rc)&&pBU != NULL)
+		{
+			SetHighlight(pBU);	//目前只能用vb方法高亮成功，caa方法暂时都无法高亮
+		}
+	}
 
 }
 
@@ -1249,6 +1361,35 @@ void GeneralClass::PathElementString(CATPathElement *ipPathElem, CATUnicodeStrin
 			}
 		}
 	}
+}
+
+//根据选择对象的路径，找到所属的最高一级的实体body
+CATISpecObject_var GeneralClass::GetMechanicalToolFromPath(CATPathElement *ipPath)
+{
+	CATISpecObject_var spiSpecMechTool = NULL_var;
+	if (ipPath!=NULL)
+	{
+		ipPath->InitToTopElement();
+		CATBaseUnknown *pObject = ipPath->GetNextChildObject();
+		for (;pObject!=NULL;pObject=ipPath->GetNextChildObject())
+		{
+			CATIMechanicalTool_var spiMechTool = pObject;
+			if (spiMechTool != NULL_var)
+			{
+				spiSpecMechTool = spiMechTool;
+				if (spiSpecMechTool!=NULL_var)
+				{
+					CATIAlias_var spiAlias = spiSpecMechTool;
+					if (spiAlias != NULL_var)
+					{
+						cout<<"Belong to: "<<spiAlias->GetAlias()<<endl;
+						break;
+					}
+				}
+			}
+		}
+	}
+	return spiSpecMechTool;
 }
 
 //获得输入节点下的所有存储信息

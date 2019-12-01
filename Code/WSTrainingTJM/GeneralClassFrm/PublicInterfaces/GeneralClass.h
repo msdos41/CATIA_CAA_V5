@@ -346,7 +346,9 @@ class ExportedByGeneralClassMod GeneralClass: public CATBaseUnknown
   ////设置高亮
   void SetHighlight(CATFeatureImportAgent *ipFeatImpAgt, CATHSO *ipHSO);
   void SetHighlight(CATBaseUnknown *ipBUSelect, CATFrmEditor *ipEditor, CATHSO *ipHSO);
+  void SetGroupHighlight(CATBaseUnknown *ipBUSelect, CATFrmEditor *ipEditor, CATHSO *ipHSO);
   void SetHighlight(CATBaseUnknown *pBUSelect);	//VB方法，同时可以适用于跨窗口以及2D
+  void SetHighlightCells(CATBody_var ispBody, CATLISTP(CATCell) ilstCell, int iDimension);
   //从选择Agent返回对应的路径字符串
   void PathElementString(CATFeatureImportAgent *ipFeatImpAgt,CATUnicodeString &strPathName);
 
@@ -605,6 +607,11 @@ class ExportedByGeneralClassMod GeneralClass: public CATBaseUnknown
   //
   HRESULT GetColorOnBRepObject(CATIBRepAccess_var ispiSubElement,unsigned int &oRed,unsigned int &oGreen,unsigned int &oBlue);
   HRESULT GetColorOnObject(CATISpecObject_var ispiSpecOnObject,unsigned int &oRed,unsigned int &oGreen,unsigned int &oBlue);
+  void SetGroupHighlightFromSpecObj(CATISpecObject_var ispSpecObj, CATFrmEditor *ipEditor, CATHSO *ipHSO);
+
+  ////根据选择对象的路径，找到所属的最高一级的实体body
+  CATISpecObject_var GetMechanicalToolFromPath(CATPathElement *ipPath);
+
 };
 
 //-----------------------------------------------------------------------

@@ -40,6 +40,7 @@ CATSaiSpaceAnalysisItf	\
 YFAirventXMLM		\
 CATGeometricOperators \
 GUIDVPMInterfaces	\
+CATMechanicalModeler	\
 
 # System dependant variables
 #

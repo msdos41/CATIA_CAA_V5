@@ -40,3 +40,4 @@ AddPrereqComponent("SpaceAnalysisInterfaces",Public);
 AddPrereqComponent("YFAirventXMLFrm",Public);
 AddPrereqComponent("GeometricOperators",Public);
 AddPrereqComponent("VPMInterfaces",Public);
+AddPrereqComponent("MechanicalModeler",Public);

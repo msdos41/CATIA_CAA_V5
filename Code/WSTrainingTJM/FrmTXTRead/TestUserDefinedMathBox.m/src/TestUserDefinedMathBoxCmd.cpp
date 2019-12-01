@@ -47,6 +47,7 @@ TestUserDefinedMathBoxCmd::TestUserDefinedMathBoxCmd() :
 		RequestDelayedDestruction();
 		return;
 	}
+	cout<<spiProdRoot->GetPartNumber()<<endl;
 	CATIPrtContainer_var  spRootContainer = _pGeneralCls->GetPrtContainer(spiProdRoot);
 	if( spRootContainer == NULL_var )
 	{
@@ -130,14 +131,21 @@ TestUserDefinedMathBoxCmd::TestUserDefinedMathBoxCmd() :
 		{
 			continue;
 		}
-		//CATISpecObject_var spiSpecOnCell  =  spToFeaturize->FeaturizeR(MfPermanentBody|MfLastFeatureSupport|MfRelimitedFeaturization|MfDuplicateFeature);    //(MfNoDuplicateFeature  |  MfTemporaryBody  |  MfSelectingFeatureSupport  |  MfFunctionalFeaturization);
+		CATISpecObject_var spiSpecOnCell  =  spToFeaturize->FeaturizeR(MfPermanentBody|MfLastFeatureSupport|MfRelimitedFeaturization|MfDuplicateFeature);    //(MfNoDuplicateFeature  |  MfTemporaryBody  |  MfSelectingFeatureSupport  |  MfFunctionalFeaturization);
 		//CATISpecObject_var spiSpecOnCell  =  spToFeaturize->FeaturizeF();
-		CATISpecObject_var spiSpecOnCell  =  spToFeaturize->FeaturizeR(MfNoDuplicateFeature | MfPermanentBody | MfSelectingFeatureSupport | MfFunctionalFeaturization);
+		//CATISpecObject_var spiSpecOnCell  =  spToFeaturize->FeaturizeR(MfNoDuplicateFeature | MfPermanentBody | MfSelectingFeatureSupport | MfFunctionalFeaturization);
 		CATBaseUnknown *pBU = NULL;
 		rc = spiSpecOnCell->QueryInterface(IID_CATBaseUnknown,(void**)&pBU);
 		if (SUCCEEDED(rc)&&pBU != NULL)
 		{
 			_pGeneralCls->SetHighlight(pBU);	//目前只能用vb方法高亮成功，caa方法暂时都无法高亮
+		}
+		//
+		CATISpecObject_var spiSpecFather = spiSpecOnCell->GetFather();
+		if (spiSpecFather != NULL_var)
+		{
+			CATIAlias_var spiAlias = spiSpecFather;
+			cout<<"Father Name: "<<spiAlias->GetAlias()<<endl;
 		}
 		//rc = _pGeneralCls->GetColorOnObject(spiSpecOnCell,iRed,iGreen,iBlue);
 		//if (SUCCEEDED(rc)&&iRed==0&&iGreen==0&&iBlue==0)

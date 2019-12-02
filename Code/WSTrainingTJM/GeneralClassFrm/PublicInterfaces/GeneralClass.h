@@ -349,11 +349,15 @@ class ExportedByGeneralClassMod GeneralClass: public CATBaseUnknown
   void SetGroupHighlight(CATBaseUnknown *ipBUSelect, CATFrmEditor *ipEditor, CATHSO *ipHSO);
   void SetHighlight(CATBaseUnknown *pBUSelect);	//VB方法，同时可以适用于跨窗口以及2D
   void SetHighlightCells(CATBody_var ispBody, CATLISTP(CATCell) ilstCell, int iDimension);
+  void SetGroupHighlightFromSpecObj(CATISpecObject_var ispSpecObj, CATFrmEditor *ipEditor, CATHSO *ipHSO);
   //从选择Agent返回对应的路径字符串
   void PathElementString(CATFeatureImportAgent *ipFeatImpAgt,CATUnicodeString &strPathName);
 
   //从PathElement返回对应路径字符串
   void PathElementString(CATPathElement *ipPathElem, CATUnicodeString &ostrPath);
+
+  ////根据选择对象的路径，找到所属的最高一级的实体body
+  CATISpecObject_var GetMechanicalToolFromPath(CATPathElement *ipPath);
 
   //获得输入节点下的所有存储信息
   HRESULT YFGetSpecAttrInfo(CATISpecObject_var ispiSpecOnObject);
@@ -509,17 +513,19 @@ class ExportedByGeneralClassMod GeneralClass: public CATBaseUnknown
   //读取Excel文件中的指定列的所有内容
   void GetColumnContents(CATUnicodeString strInputSheetPath, long ilCol, CATListOfCATUnicodeString &oListOfColContents);
 
-
+  //图纸中创建零件信息表格
   CATBoolean CreatePartInfoTable(CATIView_var ispiCurrentView, double iPositionX, double iPositionY, int iRow, int iCol, CATUnicodeString istrTableName, vector<CATListOfCATUnicodeString> iListOfCellString, CATIADrawingTable *&opiaDrwTable);
   void ChangeFontType(CATIADrawingText *ipText ,CATUnicodeString istrText);
 
-
+  //根据Inertia的方向计算3D包围盒
   HRESULT GetBoundingPtsFromInertia(CATIProduct_var ispiProd,vector<CATMathPoint> &olstBoundingPts);
 
   //从xml中读取
   int GetResourcePath(CATUnicodeString istrFileName,CATUnicodeString &oPath);
   HRESULT GetFeatureNamesFromXML(CATUnicodeString istrFileName, CATListOfCATUnicodeString &olstFeatureNames);
   HRESULT GetParmNamesAndTolFromXML(CATUnicodeString istrFileName, CATListOfCATUnicodeString &olstFeatureNames);
+  //从xml中获取比例
+  HRESULT GetScaleFromXML(CATUnicodeString istrFileName, vector<CATListOfDouble> &ovecScale);
 
   //判断是否是大众零件号
   CATBoolean IsVWPartNumber(CATIProduct_var ispiProd);
@@ -542,7 +548,7 @@ class ExportedByGeneralClassMod GeneralClass: public CATBaseUnknown
   //获取UnicodeString下第一个出现的字母的序号
   int IsAlpha(CATUnicodeString istrValue);
 
-
+  //从三个输入的向量中过滤出夹角最接近90度的两个向量
   void GetTwoVerticalVectors(double iarrX[3],double iarrY[3],double iarrZ[3],double oarrFirst[3], double oarrSecond[3]);
 
 
@@ -551,7 +557,7 @@ class ExportedByGeneralClassMod GeneralClass: public CATBaseUnknown
   HRESULT GetSheetFromDittoName(CATDocument *ipDoc, CATUnicodeString istrAlias, CATIDftSheet *&opiDftSheet, CATI2DDitto *&opiDitto,double oarrPos[2]);
   HRESULT GetTablePosInView(CATI2DDitto *ipiDittoTable, double oarrPos[2]);
 
-
+  //根据输入的4点和相对锚点位置，把这4个点转到相应的图纸全局位置上，并排序，输出列表第一个是包围盒最左上角的点，第二个点是顺时针的下一个点
   void TransferPoint2DToAbsPos(vector<CATMathPoint2D> ivecPt2D, double iarrAnchorpos[2],CATMathPoint2D oPt2Dnew[4]);
 
   //根据输入的4点进行排序，输出列表第一个是包围盒最左上角的点，第二个点是顺时针的下一个点
@@ -559,11 +565,16 @@ class ExportedByGeneralClassMod GeneralClass: public CATBaseUnknown
   void SortPt2DClockwise(vector<double*> &iovecPt2D);
   void SortPt2DClockwise(vector<POINT2D> &iovecPt2D);
 
+  //根据锚点和比例，把输入的点集移动到该位置，并返回新坐标的点集
   void TransferPt2DToAbsPos(vector<double*> ivecPt2D, double iarrAnchorPos[2],double iScale,vector<double*> &ovecPt2DAbs);
+
+  //根据输入的三个向量，投影到输入平面后，根据向量的长度，取前2个较长的作为输出方向
   void GetTwoLongerDirections(double iarrDir1[3],double iarrDir2[3],double iarrDir3[3],double iarrPlane[3],double oarrDir1[3],double oarrDir2[3]);
 
-
+  //根据输入的斜向包围盒的4个点，算出竖直方向的偏移量，然后获得新的参考锚点
   void CalculateVerticalMovePoint(vector<double*> ivecPt2D,double ipt1[2],double ipt2[2],double iTol,int iType,double opt[2]);
+
+  //根据锚点和比例，把输入的点集移动到该位置，并返回新坐标的点集，以及对应的长方形包围盒的对角线的两个点
   void MovePt2DToAbsPos(vector<POINT2D> ivecPt2D, double iarrAnchorPos[2],double iScale,int iType, vector<POINT2D> &ovecPt2DAbs,double oPtCorner1[2],double oPtCorner2[2]);
 
   //根据输入的4点按顺序创建数学线
@@ -578,39 +589,37 @@ class ExportedByGeneralClassMod GeneralClass: public CATBaseUnknown
   //检查输入的4点与已经存在的点集是否有相交(包括接触)，并求出y向的最大干涉值（即需要移动摆脱干涉的距离）
   CATBoolean CheckBoxIntersect(int iType, vector<POINT2D> ivecPt2D, vector<vector<POINT2D>> ivecLstBox, double &oCollisionY);
 
-  //
+  //计算点在box内的y向最大干涉量
   double CalculateCollisionDistanceMax(int iType,POINT2D iPt,vector<POINT2D> ivecBox);
 
-
-  HRESULT GetScaleFromXML(CATUnicodeString istrFileName, vector<CATListOfDouble> &ovecScale);
-
-
+  //根据分割关键字分割字符串，输出字符串列表
   CATBoolean SplitString(CATUnicodeString iStrString, CATUnicodeString iStrSplit, CATListOfCATUnicodeString &oStrList);
 
-
+  //检查License
   HRESULT CheckStaticLicense(CATUnicodeString istrLicName);
   HRESULT CheckDynamicLicense(CATUnicodeString istrLicName);
 
-  //
+  //删除数字型字符串末尾无用的0和小数点
   void RemoveLastZeroesFromString(CATUnicodeString &ioString);
 
-  //
+  //获取BaseUnknown的名称
   CATUnicodeString GetNameFromBaseUnknownFunc(CATBaseUnknown_var ispiBaseUnknown);
 
-  //
+  //创建2D尺寸标注
   CATBoolean Create2DDrwDimension(CATIDrwAnnotationFactory_var spAnnFact, CATISpecObject_var spSpecOn2DElem1, CATISpecObject_var spSpecOn2DElem2, CATDrwDimType dimType, CATDrwDimRepresentation dimRep, CATMathPoint2D iMathAnchorPt1, CATMathPoint2D iMathAnchorPt2, CATIDrwDimDimension_var &spiDim);
+
+  //求出曲面中点的曲率半径最大和最小值
   HRESULT GetCrvRadiusOnSurface(CATFace_var ispFace,double &odblCrvRadiusMin,double &odblCrvRadiusMax);
 
-  //
+  //CATBaseUnknown特征化到CATSpecObject
   CATISpecObject_var GetSpecFromBaseUnknownFunc(CATBaseUnknown* ipBUOfObject);
 
-  //
+  //获取RGB颜色值
   HRESULT GetColorOnBRepObject(CATIBRepAccess_var ispiSubElement,unsigned int &oRed,unsigned int &oGreen,unsigned int &oBlue);
   HRESULT GetColorOnObject(CATISpecObject_var ispiSpecOnObject,unsigned int &oRed,unsigned int &oGreen,unsigned int &oBlue);
-  void SetGroupHighlightFromSpecObj(CATISpecObject_var ispSpecObj, CATFrmEditor *ipEditor, CATHSO *ipHSO);
+  
 
-  ////根据选择对象的路径，找到所属的最高一级的实体body
-  CATISpecObject_var GetMechanicalToolFromPath(CATPathElement *ipPath);
+  
 
 };
 

@@ -6389,6 +6389,7 @@ HRESULT GeneralClass::GetScaleFromXML(CATUnicodeString istrFileName, vector<CATL
 	return rc;
 }
 
+//根据分割关键字分割字符串，输出字符串列表
 CATBoolean GeneralClass::SplitString(CATUnicodeString iStrString, CATUnicodeString iStrSplit, CATListOfCATUnicodeString &oStrList)
 {
 	CATUnicodeString strTemp, strTemp2;
@@ -7610,7 +7611,7 @@ CATUnicodeString GeneralClass::GetNameFromBaseUnknownFunc(CATBaseUnknown_var isp
 	return strPathName;
 }
 
-//
+//求出曲面中点的曲率半径最大和最小值
 HRESULT GeneralClass::GetCrvRadiusOnSurface(CATFace_var ispFace,double &odblCrvRadiusMin,double &odblCrvRadiusMax)
 {
 	HRESULT rc = S_OK;
@@ -7662,6 +7663,7 @@ HRESULT GeneralClass::GetCrvRadiusOnSurface(CATFace_var ispFace,double &odblCrvR
 	return rc;
 }
 
+//CATBaseUnknown特征化到CATSpecObject
 CATISpecObject_var GeneralClass::GetSpecFromBaseUnknownFunc(CATBaseUnknown* ipBUOfObject)
 {
 	cout<<"GetSpecFromBaseUnknownFunc()"<<endl;
@@ -7690,7 +7692,7 @@ CATISpecObject_var GeneralClass::GetSpecFromBaseUnknownFunc(CATBaseUnknown* ipBU
 	return spiSpecOfObj;
 }
 
-
+//获取Brep曲面的RGB颜色值
 HRESULT GeneralClass::GetColorOnBRepObject(CATIBRepAccess_var ispiSubElement,unsigned int &oRed,unsigned int &oGreen,unsigned int &oBlue)
 {
 	HRESULT rc=E_FAIL;
@@ -7715,6 +7717,7 @@ HRESULT GeneralClass::GetColorOnBRepObject(CATIBRepAccess_var ispiSubElement,uns
 	return rc;
 }
 
+//获取SpecObj的RGB颜色值
 HRESULT GeneralClass::GetColorOnObject(CATISpecObject_var ispiSpecOnObject,unsigned int &oRed,unsigned int &oGreen,unsigned int &oBlue)
 {
 	HRESULT rc=E_FAIL;

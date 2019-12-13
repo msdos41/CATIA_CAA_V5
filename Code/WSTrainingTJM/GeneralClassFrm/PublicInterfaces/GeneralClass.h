@@ -652,7 +652,7 @@ class ExportedByGeneralClassMod GeneralClass: public CATBaseUnknown
 
   //检查两个body是否G0连续
   CATBoolean CheckG0Connection(CATGeoFactory *ipGeoFactory,CATTopData *ipTopData,CATBody_var ispBody1,CATBody_var ispBody2);
-
+  CATBoolean CheckG0Connection(CATGeoFactory *ipGeoFactory,CATTopData *ipTopData,CATLISTP(CATBody) ilstBody);
   //检查两个曲面在共线上的任意一点的法线的方向是否相同或者相反
   int CheckTwoSurfaceTangencyInOnePoint(CATGeoFactory *ipGeoFactory, CATTopData *ipTopData, CATCell_var ispCellSurface1,CATCell_var ispCellSurface2,CATCell_var ispCellCurveMutual);
 };

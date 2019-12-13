@@ -297,7 +297,10 @@ void TestProjectionCmd::ActionOK3(void * data)
 		CATBody_var spBodyCurve = _pGeneralCls->GetBodyFromFeature(_spiSpecSolid);
 		if (spBodySurface!=NULL_var && spBodyCurve!=NULL_var)
 		{
-			CATBoolean bConnection = _pGeneralCls->CheckG0Connection(pGeoFactory,topdata,spBodySurface,spBodyCurve);
+			CATLISTP(CATBody) lstBody = NULL;
+			lstBody.Append(spBodySurface);
+			lstBody.Append(spBodyCurve);
+			CATBoolean bConnection = _pGeneralCls->CheckG0Connection(pGeoFactory,topdata,lstBody);
 			if (bConnection)
 			{
 				cout<<"G0 Connected"<<endl;

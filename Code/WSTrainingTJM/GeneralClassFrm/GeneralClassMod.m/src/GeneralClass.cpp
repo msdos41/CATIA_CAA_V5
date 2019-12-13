@@ -8645,17 +8645,18 @@ int GeneralClass::CheckTwoSurfaceTangencyInOnePoint(CATGeoFactory *ipGeoFactory,
 	}
 }
 
-//描述：检查两个body是否G0连续----该方法特指实体上的曲面
+//描述：检查body列表是否G0连续----该方法特指实体上的曲面
 //输入：CATGeoFactory 几何工厂，CATTopData Topdata,CATBody body对象1，CATBody body对象2
 //输出：
 //返回：CATBoolean
-CATBoolean GeneralClass::CheckG0Connection(CATGeoFactory *ipGeoFactory,CATTopData *ipTopData,CATBody_var ispBody1,CATBody_var ispBody2)
+CATBoolean GeneralClass::CheckG0Connection(CATGeoFactory *ipGeoFactory,CATTopData *ipTopData,CATLISTP(CATBody) ilstBody)
 {
-	CATLISTP(CATBody) lstBody = NULL;
-	lstBody.Append(ispBody1);
-	lstBody.Append(ispBody2);
+	if (ilstBody.Size() == 0)
+	{
+		return FALSE;
+	}
 	//把这些body组合起来
-	ListPOfCATBody * HListOfCurve=&lstBody;
+	ListPOfCATBody * HListOfCurve=&ilstBody;
 	CATHybAssemble * pHybAssemble=CATCreateTopAssemble(ipGeoFactory, ipTopData, HListOfCurve);
 	if (pHybAssemble==NULL)
 	{
@@ -8678,5 +8679,4 @@ CATBoolean GeneralClass::CheckG0Connection(CATGeoFactory *ipGeoFactory,CATTopDat
 		}
 	}
 	return FALSE;
-
 }

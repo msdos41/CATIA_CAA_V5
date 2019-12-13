@@ -2609,6 +2609,10 @@ HRESULT GeneralClass::CreateBodyFromCell(CATCell *ipCell,CATIProduct_var ispiPro
 	return rc;
 }
 
+//描述：根据维数，从Cell转到body
+//输入：CATGeoFactory 几何工厂, CATCell cell对象，int 维数
+//输出：
+//返回：CATBody body对象
 CATBody* GeneralClass::CreateBodyFromCell(CATGeoFactory *ipGeoFactory, CATCell_var ispCell, int iDimension)
 {
 	CATBody *pBody = ipGeoFactory->CreateBody();
@@ -7793,7 +7797,7 @@ HRESULT GeneralClass::GetColorOnObject(CATISpecObject_var ispiSpecOnObject,unsig
 }
 
 //描述：根据输入的曲面获取所有的边界，相切的cell算作一根边界
-//输入：CATBaseUnknown_var BaseUnknown对象
+//输入：CATBaseUnknown_var 曲面对象，CATIProduct，CATBaseUnknown_var 曲线对象
 //输出：vector<vector<CATCell_var>> olstCellEdge
 //返回：HRESULT
 HRESULT GeneralClass::GetBordersFromSurface(CATBaseUnknown_var ispBUSurface, CATIProduct_var ispiProduct, CATBaseUnknown_var ispBUCurve, vector<vector<CATCell_var>> &olstCellEdge)
@@ -8063,7 +8067,7 @@ HRESULT GeneralClass::GetBordersFromSurface(CATBaseUnknown_var ispBUSurface, CAT
 }
 
 //描述：根据输入的曲面获取所有的边界，相切的cell算作一根边界
-//输入：vector<CATCell_var> 曲面cell的列表，CATIProduct_var 所有元素所在的Product，vector<CATCell_var> 曲线cell的列表
+//输入：CATGeoFactory, CATTopData, vector<CATCell_var> 曲面cell的列表，CATIProduct_var 所有元素所在的Product，vector<CATCell_var> 曲线cell的列表
 //输出：vector<vector<CATCell_var>> olstCellEdge
 //返回：HRESULT
 HRESULT GeneralClass::GetBordersFromSurface(CATGeoFactory *ipGeoFactory, CATTopData *ipTopData, vector<CATCell_var> ivecCellSurface, vector<CATCell_var> ivecCellCurve, vector<vector<CATCell_var>> &olstCellEdge)
@@ -8641,7 +8645,10 @@ int GeneralClass::CheckTwoSurfaceTangencyInOnePoint(CATGeoFactory *ipGeoFactory,
 	}
 }
 
-//
+//描述：检查两个body是否G0连续----该方法特指实体上的曲面
+//输入：CATGeoFactory 几何工厂，CATTopData Topdata,CATBody body对象1，CATBody body对象2
+//输出：
+//返回：CATBoolean
 CATBoolean GeneralClass::CheckG0Connection(CATGeoFactory *ipGeoFactory,CATTopData *ipTopData,CATBody_var ispBody1,CATBody_var ispBody2)
 {
 	CATLISTP(CATBody) lstBody = NULL;

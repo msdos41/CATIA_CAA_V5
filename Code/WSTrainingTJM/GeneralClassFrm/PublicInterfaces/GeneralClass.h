@@ -629,20 +629,31 @@ class ExportedByGeneralClassMod GeneralClass: public CATBaseUnknown
   HRESULT GetColorOnBRepObject(CATIBRepAccess_var ispiSubElement,unsigned int &oRed,unsigned int &oGreen,unsigned int &oBlue);
   HRESULT GetColorOnObject(CATISpecObject_var ispiSpecOnObject,unsigned int &oRed,unsigned int &oGreen,unsigned int &oBlue);
 
-  //
+  //根据输入的曲面获取所有的边界，相切的cell算作一根边界
   HRESULT GetBordersFromSurface(CATBaseUnknown_var ispBUSurface, CATIProduct_var ispiProduct, CATBaseUnknown_var ispBUCurve, vector<vector<CATCell_var>> &olstCellEdge);
-  HRESULT GetBordersFromSurface(vector<CATCell_var> ivecCellSurface, CATIProduct_var ispiProduct, vector<CATCell_var> ivecCellCurve, vector<vector<CATCell_var>> &olstCellEdge);
   HRESULT GetBordersFromSurface(CATGeoFactory *ipGeoFactory, CATTopData *ipTopData, vector<CATCell_var> ivecCellSurface, vector<CATCell_var> ivecCellCurve, vector<vector<CATCell_var>> &olstCellEdge);
+
+  //从curve的cell中获取两个端点
   HRESULT GetPointsFromCurveCell(CATCell_var ispCellOfCurve, CATMathPoint &omathPt1, CATMathPoint &omathPt2);
-  CATBoolean CheckPointsEqual(CATMathPoint imathPt1, CATMathPoint imathPtRef1, CATMathPoint imathPtRef2, double idblTol);
+
+  ////检查1个点是否和参考的2个点中的其中一个点相同，如果相同，把相同的那个参考点放在ref1的位置
   CATBoolean CheckPointsEqual(CATMathPoint imathPt1, CATMathPoint &iomathPtRef1, CATMathPoint &iomathPtRef2);
+
+  //检查两根曲线是否相切
   int CheckTwoCurvesTangency(CATCell_var ispCellCurve1,CATCell_var ispCellCurve2);
   int CheckTwoCurvesTangency(CATCell_var ispCellCurve1,CATMathPoint iptCurve1,CATCell_var ispCellCurve2,CATMathPoint iptCurve2);
   int CheckTwoCurvesTangency(CATGeoFactory *ipGeoFactory,CATTopData *ipTopData,CATCell_var ispCellCurve1,CATMathPoint iptCurve1,CATCell_var ispCellCurve2,CATMathPoint iptCurve2);
+
+  //从CATCell转到CATCurve
   CATCurve_var GetCurveFromCell(CATCell_var ispCellCurve);
-  int GetNeighborCellList(CATBody_var ispBodySolid,vector<CATCell_var> ivecCellSurface,vector<CATCell_var> ivecCellCurve,vector<CATCell_var> &ovecCellSurfaceNeighbor);
+
+  //根据2维surfacecell和对应的1维curvecell在实体body上找到相邻的cell，并且同时判断是否相切
   int GetNeighborCellList(CATGeoFactory *ipGeoFactory, CATTopData *ipTopData, CATBody_var ispBodySolid,vector<CATCell_var> ivecCellSurface,vector<CATCell_var> ivecCellCurve,vector<CATCell_var> &ovecCellSurfaceNeighbor);
+
+  //检查两个body是否G0连续
   CATBoolean CheckG0Connection(CATGeoFactory *ipGeoFactory,CATTopData *ipTopData,CATBody_var ispBody1,CATBody_var ispBody2);
+
+  //检查两个曲面在共线上的任意一点的法线的方向是否相同或者相反
   int CheckTwoSurfaceTangencyInOnePoint(CATGeoFactory *ipGeoFactory, CATTopData *ipTopData, CATCell_var ispCellSurface1,CATCell_var ispCellSurface2,CATCell_var ispCellCurveMutual);
 };
 

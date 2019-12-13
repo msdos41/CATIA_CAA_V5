@@ -41,3 +41,4 @@ AddPrereqComponent("YFAirventXMLFrm",Public);
 AddPrereqComponent("GeometricOperators",Public);
 AddPrereqComponent("VPMInterfaces",Public);
 AddPrereqComponent("MechanicalModeler",Public);
+AddPrereqComponent("BasicTopologicalOpe",Public);

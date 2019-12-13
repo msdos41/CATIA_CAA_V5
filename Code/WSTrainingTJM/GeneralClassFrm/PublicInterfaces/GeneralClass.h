@@ -32,6 +32,7 @@
 #include "CATAutoConversions.h"
 #include "CATISysLicenseSettingAtt.h"
 #include "CATISysDynLicenseSettingAtt.h"
+#include "CATError.h"
 
 //ObjectSpecsModeler 
 #include "CATIDescendants.h"
@@ -116,6 +117,7 @@
 #include "CATSurface.h"
 #include "CATSurLimits.h"
 #include "CATTransfoManager.h"
+#include "CATCrvLimits.h"
 
 //DraftingInterfaces
 #include "CATIGenerSpec.h"
@@ -192,6 +194,7 @@
 
 //BasicTopologicalOpe 
 #include "CATTopPointOperator.h"
+#include "CATTopLineOperator.h"
 
 //MechanicalModelerUI 
 #include "CATFeatureImportAgent.h"
@@ -258,6 +261,13 @@ struct POINT2D{
 	double Coord[2];
 
 };
+
+#define TOLTANGENCY 0.005	//0.005rad 约等于 0.3度不到 作为两线相切的判断公差
+
+#define TOLSURFACEGAP 0.004	//曲面G0连续的间隙公差值
+
+#define TOLCURVEGAP	0.004	//曲线G0连续的间隙公差值
+
 
 //-----------------------------------------------------------------------
 
@@ -349,6 +359,7 @@ class ExportedByGeneralClassMod GeneralClass: public CATBaseUnknown
   void SetGroupHighlight(CATBaseUnknown *ipBUSelect, CATFrmEditor *ipEditor, CATHSO *ipHSO);
   void SetHighlight(CATBaseUnknown *pBUSelect);	//VB方法，同时可以适用于跨窗口以及2D
   void SetHighlightCells(CATBody_var ispBody, CATLISTP(CATCell) ilstCell, int iDimension);
+  void SetHighlightCells(CATBody_var ispBody, vector<CATCell_var> ivecCell, int iDimension);
   void SetGroupHighlightFromSpecObj(CATISpecObject_var ispSpecObj, CATFrmEditor *ipEditor, CATHSO *ipHSO);
   //从选择Agent返回对应的路径字符串
   void PathElementString(CATFeatureImportAgent *ipFeatImpAgt,CATUnicodeString &strPathName);
@@ -410,7 +421,7 @@ class ExportedByGeneralClassMod GeneralClass: public CATBaseUnknown
 
   ////从Cell转到Body------2维曲面
   HRESULT CreateBodyFromCell(CATCell *ipCell,CATIProduct_var ispiProduct,CATBody *&opBodyOnCell);
-
+  CATBody* CreateBodyFromCell(CATGeoFactory *ipGeoFactory, CATCell_var ispCell, int iDimension);
   ////从body获得MathPoint
   HRESULT GetMathPoint(CATBody_var ispPointBody,CATMathPoint& oMathPoint);
 
@@ -617,10 +628,22 @@ class ExportedByGeneralClassMod GeneralClass: public CATBaseUnknown
   //获取RGB颜色值
   HRESULT GetColorOnBRepObject(CATIBRepAccess_var ispiSubElement,unsigned int &oRed,unsigned int &oGreen,unsigned int &oBlue);
   HRESULT GetColorOnObject(CATISpecObject_var ispiSpecOnObject,unsigned int &oRed,unsigned int &oGreen,unsigned int &oBlue);
-  
 
-  
-
+  //
+  HRESULT GetBordersFromSurface(CATBaseUnknown_var ispBUSurface, CATIProduct_var ispiProduct, CATBaseUnknown_var ispBUCurve, vector<vector<CATCell_var>> &olstCellEdge);
+  HRESULT GetBordersFromSurface(vector<CATCell_var> ivecCellSurface, CATIProduct_var ispiProduct, vector<CATCell_var> ivecCellCurve, vector<vector<CATCell_var>> &olstCellEdge);
+  HRESULT GetBordersFromSurface(CATGeoFactory *ipGeoFactory, CATTopData *ipTopData, vector<CATCell_var> ivecCellSurface, vector<CATCell_var> ivecCellCurve, vector<vector<CATCell_var>> &olstCellEdge);
+  HRESULT GetPointsFromCurveCell(CATCell_var ispCellOfCurve, CATMathPoint &omathPt1, CATMathPoint &omathPt2);
+  CATBoolean CheckPointsEqual(CATMathPoint imathPt1, CATMathPoint imathPtRef1, CATMathPoint imathPtRef2, double idblTol);
+  CATBoolean CheckPointsEqual(CATMathPoint imathPt1, CATMathPoint &iomathPtRef1, CATMathPoint &iomathPtRef2);
+  int CheckTwoCurvesTangency(CATCell_var ispCellCurve1,CATCell_var ispCellCurve2);
+  int CheckTwoCurvesTangency(CATCell_var ispCellCurve1,CATMathPoint iptCurve1,CATCell_var ispCellCurve2,CATMathPoint iptCurve2);
+  int CheckTwoCurvesTangency(CATGeoFactory *ipGeoFactory,CATTopData *ipTopData,CATCell_var ispCellCurve1,CATMathPoint iptCurve1,CATCell_var ispCellCurve2,CATMathPoint iptCurve2);
+  CATCurve_var GetCurveFromCell(CATCell_var ispCellCurve);
+  int GetNeighborCellList(CATBody_var ispBodySolid,vector<CATCell_var> ivecCellSurface,vector<CATCell_var> ivecCellCurve,vector<CATCell_var> &ovecCellSurfaceNeighbor);
+  int GetNeighborCellList(CATGeoFactory *ipGeoFactory, CATTopData *ipTopData, CATBody_var ispBodySolid,vector<CATCell_var> ivecCellSurface,vector<CATCell_var> ivecCellCurve,vector<CATCell_var> &ovecCellSurfaceNeighbor);
+  CATBoolean CheckG0Connection(CATGeoFactory *ipGeoFactory,CATTopData *ipTopData,CATBody_var ispBody1,CATBody_var ispBody2);
+  int CheckTwoSurfaceTangencyInOnePoint(CATGeoFactory *ipGeoFactory, CATTopData *ipTopData, CATCell_var ispCellSurface1,CATCell_var ispCellSurface2,CATCell_var ispCellCurveMutual);
 };
 
 //-----------------------------------------------------------------------

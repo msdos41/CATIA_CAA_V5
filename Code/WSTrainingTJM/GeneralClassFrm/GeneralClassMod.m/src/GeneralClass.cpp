@@ -1303,6 +1303,52 @@ void GeneralClass::SetHighlightCells(CATBody_var ispBody, CATLISTP(CATCell) ilst
 
 }
 
+//高亮一组cell,可以选择不同的维度
+void GeneralClass::SetHighlightCells(CATBody_var ispBody, vector<CATCell_var> ivecCell, int iDimension)
+{
+	if (ispBody == NULL_var)
+	{
+		return;
+	}
+	for (int i=0; i<ivecCell.size(); i++)
+	{
+		CATIBRepAccess_var spiBrepAcess  =NULL_var;
+		switch (iDimension)
+		{
+		case 2:
+			{
+				CATFace_var spFace = ivecCell[i];
+				if (spFace!=NULL_var)
+				{
+					spiBrepAcess = CATBRepDecodeCellInBody(spFace,ispBody);
+				}
+				break;
+			}
+		default:
+			cout<<"Wrong Dimension Input"<<endl;
+		}
+		if (spiBrepAcess == NULL_var)
+		{
+			continue;
+		}
+		CATIFeaturize_var  spToFeaturize  =  spiBrepAcess;
+		if  (NULL_var  ==  spToFeaturize)
+		{
+			continue;
+		}
+		CATISpecObject_var spiSpecOnCell  =  spToFeaturize->FeaturizeR(MfPermanentBody|MfDefaultFeatureSupport |MfRelimitedFeaturization|MfDuplicateFeature);    //目前只能按照这样的枚举值特征化，后面才能高亮
+		//CATISpecObject_var spiSpecOnCell  =  spToFeaturize->FeaturizeR();
+		//CATISpecObject_var spiSpecOnCell  =  spToFeaturize->FeaturizeR(MfNoDuplicateFeature | MfPermanentBody | MfSelectingFeatureSupport | MfFunctionalFeaturization);
+		CATBaseUnknown *pBU = NULL;
+		HRESULT rc = spiSpecOnCell->QueryInterface(IID_CATBaseUnknown,(void**)&pBU);
+		if (SUCCEEDED(rc)&&pBU != NULL)
+		{
+			SetHighlight(pBU);	//目前只能用vb方法高亮成功，caa方法暂时都无法高亮
+		}
+	}
+
+}
+
 //从选择Agent返回对应的路径字符串
 void GeneralClass::PathElementString(CATFeatureImportAgent *ipFeatImpAgt,CATUnicodeString &strPathName)
 {
@@ -2561,6 +2607,15 @@ HRESULT GeneralClass::CreateBodyFromCell(CATCell *ipCell,CATIProduct_var ispiPro
 	//
 	opBodyOnCell = pBody;
 	return rc;
+}
+
+CATBody* GeneralClass::CreateBodyFromCell(CATGeoFactory *ipGeoFactory, CATCell_var ispCell, int iDimension)
+{
+	CATBody *pBody = ipGeoFactory->CreateBody();
+	CATDomain *pDomain = pBody->CreateDomain(iDimension);
+	pDomain->AddCell(ispCell);
+	pBody->AddDomain(pDomain);
+	return pBody;
 }
 
 
@@ -7735,4 +7790,886 @@ HRESULT GeneralClass::GetColorOnObject(CATISpecObject_var ispiSpecOnObject,unsig
 	rc = AttributeValue.GetColor(oRed,oGreen,oBlue);
 
 	return rc;
+}
+
+//描述：根据输入的曲面获取所有的边界，相切的cell算作一根边界
+//输入：CATBaseUnknown_var BaseUnknown对象
+//输出：vector<vector<CATCell_var>> olstCellEdge
+//返回：HRESULT
+HRESULT GeneralClass::GetBordersFromSurface(CATBaseUnknown_var ispBUSurface, CATIProduct_var ispiProduct, CATBaseUnknown_var ispBUCurve, vector<vector<CATCell_var>> &olstCellEdge)
+{
+	HRESULT rc = S_OK;
+	//
+	if (ispBUSurface == NULL_var || ispiProduct == NULL_var)
+	{
+		return E_FAIL;
+	}
+	//
+	CATBody_var spBodySurface = GetBodyFromFeature(ispBUSurface);
+	if (spBodySurface == NULL_var)
+	{
+		return E_FAIL;
+	}
+	CATBody_var spBodyCurve = GetBodyFromFeature(ispBUCurve);
+	if (spBodyCurve == NULL_var)
+	{
+		return E_FAIL;
+	}
+	//取输入的curve的任意一个1维cell的两个端点作为后续比较的起始点
+	CATLISTP(CATCell) lstCellOfCurve;
+	spBodyCurve->GetAllCells(lstCellOfCurve,1);
+	if (lstCellOfCurve.Size() == 0)
+	{
+		return E_FAIL;
+	}
+	CATMathPoint mathPt1, mathPt2;
+	rc = GetPointsFromCurveCell(lstCellOfCurve[1],mathPt1,mathPt2);
+	if (FAILED(rc))
+	{
+		return E_FAIL;
+	}
+	//获取GeoFactory
+	CATSoftwareConfiguration * pConfig = new CATSoftwareConfiguration();//配置指针
+	CATTopData * topdata =new CATTopData(pConfig, NULL);//topdata
+
+	CATIPrtContainer_var ospiCont=NULL_var;
+	CATGeoFactory*  pGeoFactory=GetProductGeoFactoryAndPrtCont(ispiProduct,ospiCont);
+	if (ospiCont==NULL_var||pGeoFactory==NULL)
+	{
+		cout<<"GetProductGeoFactoryAndPrtCont Failed"<<endl;
+		return E_FAIL;
+	}
+	//获取输入的Surface的所有的2维cell，因为有可能选择的面包含多个面cell，需要把面中间的curvecell删除
+	CATLISTP(CATCell) lstCellOfSurface;
+	spBodySurface->GetAllCells(lstCellOfSurface,2);
+	if (lstCellOfSurface.Size()==0)
+	{
+		return E_FAIL;
+	}
+	//循环把每个surfacecell转成body
+	lstCellOfCurve.RemoveAll();
+	for (int i=1; i<=lstCellOfSurface.Size(); i++)
+	{
+		CATBody *pBody = CreateBodyFromCell(pGeoFactory,lstCellOfSurface[i],2);
+		if (pBody == NULL)
+		{
+			continue;
+		}
+		//获得每个surfacebody的1维cell
+		CATLISTP(CATCell) lstCellDim1;
+		pBody->GetAllCells(lstCellDim1,1);
+		lstCellOfCurve.Append(lstCellDim1);
+	}
+	//获取每个curvecell的两个端点
+	vector<vector<CATMathPoint>> vecLstPointStartEnd;
+	vector<CATCell_var> vecCellCurve;
+	for (int i=1; i<= lstCellOfCurve.Size(); i++)
+	{
+		CATMathPoint mathPtStart, mathPtEnd;
+		rc = GetPointsFromCurveCell(lstCellOfCurve[i],mathPtStart,mathPtEnd);
+		if (FAILED(rc))
+		{
+			continue;
+		}
+		vector<CATMathPoint> vecPoint;
+		vecPoint.push_back(mathPtStart);
+		vecPoint.push_back(mathPtEnd);
+
+		//
+		vecLstPointStartEnd.push_back(vecPoint);
+		vecCellCurve.push_back(lstCellOfCurve[i]);
+	}
+	//把列表内部相同重复的curvecell和对应的端点都删除
+	vector<vector<CATMathPoint>> vecLstPointNoDuplicate;
+	vector<CATCell_var> vecCellCurveNoDuplicate;
+	for (int i=0; i<vecLstPointStartEnd.size(); i++)
+	{
+		bool bEqual = false;
+		CATMathPoint mathPtStart,mathPtEnd;
+		mathPtStart = vecLstPointStartEnd[i][0];
+		mathPtEnd = vecLstPointStartEnd[i][1];
+		for (int j=0; j<vecLstPointStartEnd.size(); j++)
+		{
+			if (i==j)
+			{
+				continue;
+			}
+			CATMathPoint mathPtTemp1,mathPtTemp2;
+			mathPtTemp1 = vecLstPointStartEnd[j][0];
+			mathPtTemp2 = vecLstPointStartEnd[j][1];
+			if (CheckPointsEqual(mathPtStart,mathPtTemp1,mathPtTemp2)&&CheckPointsEqual(mathPtEnd,mathPtTemp1,mathPtTemp2))
+			{
+				bEqual = true;
+				break;
+			}
+		}
+		if (!bEqual)
+		{
+			vector<CATMathPoint> vecPoint;
+			vecPoint.push_back(mathPtStart);
+			vecPoint.push_back(mathPtEnd);
+			vecLstPointNoDuplicate.push_back(vecPoint);
+			vecCellCurveNoDuplicate.push_back(vecCellCurve[i]);
+			bEqual = false;
+		}
+
+	}
+	if (vecCellCurveNoDuplicate.size() == 0 || vecLstPointNoDuplicate.size() == 0)
+	{
+		return E_FAIL;
+	}
+	//根据mathPt1,mathPt2在vector中找到对应的序号，获得对应的curvecell和两个端点
+	vector<CATMathPoint> vecPoint;
+	int iIndexInitial = -1;
+	for (int i=0; i<vecLstPointNoDuplicate.size(); i++)
+	{
+		CATMathPoint mathPtStart,mathPtEnd;
+		mathPtStart = vecLstPointNoDuplicate[i][0];
+		mathPtEnd = vecLstPointNoDuplicate[i][1];
+		if (CheckPointsEqual(mathPtStart,mathPt1,mathPt2)&&CheckPointsEqual(mathPtEnd,mathPt1,mathPt2))
+		{
+			iIndexInitial = i;
+			vecPoint.push_back(mathPtEnd);
+			vecPoint.push_back(mathPtStart);	//由于后面的计算连续性从ptstart开始，因此把它放在vector第二位，第一位要留给和最终的vector的最后一位的比较
+			break;
+		}
+	}
+	if (iIndexInitial == -1)
+	{
+		return E_FAIL;
+	}
+	//取任意一个端点开始，计算与它相连的元素
+	CATMathPoint mathPtInitial(vecPoint[1]);
+	CATMathPoint mathPtLast(vecPoint[0]);
+	//先把起始元素加入
+	vector<vector<CATMathPoint>> vecLstPointConnected;
+	vector<CATCell_var> vecCellCurveConnected;
+	vecLstPointConnected.push_back(vecPoint);
+	vecCellCurveConnected.push_back(vecCellCurveNoDuplicate[iIndexInitial]);
+	//循环判断相连元素
+	int i=0;
+	while (vecLstPointConnected.size()<vecLstPointNoDuplicate.size())
+	{
+		if (iIndexInitial == i)
+		{
+			i++;
+			continue;
+		}
+		CATMathPoint mathPtTemp1 = vecLstPointNoDuplicate[i][0];
+		CATMathPoint mathPtTemp2 = vecLstPointNoDuplicate[i][1];
+		if (CheckPointsEqual(mathPtInitial,mathPtTemp1,mathPtTemp2))
+		{
+			vector<CATMathPoint> vecPtTemp;
+			vecPtTemp.push_back(mathPtTemp1);
+			vecPtTemp.push_back(mathPtTemp2);
+			vecLstPointConnected.push_back(vecPtTemp);
+			vecCellCurveConnected.push_back(vecCellCurveNoDuplicate[i]);
+			//起始判断点移动到下一个不相同的点
+			mathPtInitial = mathPtTemp2;
+			iIndexInitial = i;
+			i = 0;
+			continue;
+		}
+		i++;
+	}
+	/*
+	for (int i=0; i<vecLstPointNoDuplicate.size(); i++)
+	{
+		if (iIndexInitial == i)
+		{
+			continue;
+		}
+		CATMathPoint mathPtTemp1 = vecLstPointNoDuplicate[i][0];
+		CATMathPoint mathPtTemp2 = vecLstPointNoDuplicate[i][1];
+		if (CheckPointsEqual(mathPtInitial,mathPtTemp1,mathPtTemp2))
+		{
+			vector<CATMathPoint> vecPtTemp;
+			vecPtTemp.push_back(mathPtTemp1);
+			vecPtTemp.push_back(mathPtTemp2);
+			vecLstPointConnected.push_back(vecPtTemp);
+			vecCellCurveConnected.push_back(vecCellCurveNoDuplicate[i]);
+			//起始判断点移动到下一个不相同的点
+			mathPtInitial = mathPtTemp2;
+			iIndexInitial = i;
+			i = 0;
+			//continue;
+		}
+		if (vecLstPointNoDuplicate.size() == vecLstPointConnected.size())	//当新的列表内的数量和处理前的列表内容数量一样时，循环退出
+		{
+			break;
+		}
+	}
+	*/
+	if (vecLstPointNoDuplicate.size() != vecLstPointConnected.size())
+	{
+		return E_FAIL;
+	}
+	//判断下vector的首末端点是否相连，正常情况应该是相连的
+	int iCount = vecLstPointConnected.size();
+	if (vecLstPointConnected[0][0].DistanceTo(vecLstPointConnected[iCount-1][1])>TOLCURVEGAP)
+	{
+		return E_FAIL;
+	}
+	//根据相切情况重新分组，把所有的相切的curve分到一组
+	vector<vector<CATCell_var>> vecLstCellCurveGrouped;
+	vector<CATCell_var> vecCellCurveTangent;
+	int iResultTangency;
+	vecCellCurveTangent.push_back(vecCellCurveConnected[0]);	//先把第一个加进去
+	for (int i=0;i<vecCellCurveConnected.size()-1;i++)
+	{
+		iResultTangency = CheckTwoCurvesTangency(pGeoFactory,topdata,vecCellCurveConnected[i],vecLstPointConnected[i][1],vecCellCurveConnected[i+1],vecLstPointConnected[i+1][0]);
+		if (-1 == iResultTangency)
+		{
+			return E_FAIL;
+		}
+		else if (0 == iResultTangency)
+		{
+			vecLstCellCurveGrouped.push_back(vecCellCurveTangent);
+			vecCellCurveTangent.clear();
+			vecCellCurveTangent.push_back(vecCellCurveConnected[i+1]);
+		}
+		else if (1 == iResultTangency)
+		{
+			vecCellCurveTangent.push_back(vecCellCurveConnected[i+1]);
+		}
+		if (i == vecCellCurveConnected.size()-2)
+		{
+			vecLstCellCurveGrouped.push_back(vecCellCurveTangent);
+		}
+	}
+	//判断vector的第一组的第一个和最后一组的最后一个的相切情况
+	CATCell_var spCellFirst = vecLstCellCurveGrouped[0][0];
+	int iGroup = vecLstCellCurveGrouped.size();
+	int iCountLastGroup = vecLstCellCurveGrouped[iGroup-1].size();
+	CATCell_var spCellLast = vecLstCellCurveGrouped[iGroup-1][iCountLastGroup-1];
+	iResultTangency = CheckTwoCurvesTangency(pGeoFactory,topdata,spCellFirst,vecLstPointConnected[0][0],spCellLast,vecLstPointConnected[iCount-1][1]);
+	if (-1 == iResultTangency)
+	{
+		return E_FAIL;
+	}
+	else if (1 == iResultTangency)	//如果第一个和最后一个curve相切，则把原来的第一组加到最后一组的最后，删掉原来的第一组，再把最后一组插到第一组的位置
+	{
+		vector<CATCell_var> vecGroupFirst;
+		vecGroupFirst.insert(vecGroupFirst.end(),vecLstCellCurveGrouped[iGroup-1].begin(),vecLstCellCurveGrouped[iGroup-1].end());
+		vecGroupFirst.insert(vecGroupFirst.end(),vecLstCellCurveGrouped[0].begin(),vecLstCellCurveGrouped[0].end());
+		olstCellEdge.push_back(vecGroupFirst);
+		olstCellEdge.insert(olstCellEdge.end(),vecLstCellCurveGrouped.begin()+1,vecLstCellCurveGrouped.end()-1);
+	}
+	else
+	{
+		olstCellEdge.assign(vecLstCellCurveGrouped.begin(),vecLstCellCurveGrouped.end());
+	}
+	return rc;
+}
+
+//描述：根据输入的曲面获取所有的边界，相切的cell算作一根边界
+//输入：vector<CATCell_var> 曲面cell的列表，CATIProduct_var 所有元素所在的Product，vector<CATCell_var> 曲线cell的列表
+//输出：vector<vector<CATCell_var>> olstCellEdge
+//返回：HRESULT
+HRESULT GeneralClass::GetBordersFromSurface(CATGeoFactory *ipGeoFactory, CATTopData *ipTopData, vector<CATCell_var> ivecCellSurface, vector<CATCell_var> ivecCellCurve, vector<vector<CATCell_var>> &olstCellEdge)
+{
+	HRESULT rc = S_OK;
+	//
+	if (ipGeoFactory == NULL || ipTopData ==NULL)
+	{
+		return E_FAIL;
+	}
+	//
+	if (ivecCellSurface.size()==0 || ivecCellCurve.size()==0)
+	{
+		return E_FAIL;
+	}
+	//取输入的curve的任意一个1维cell的两个端点作为后续比较的起始点
+	CATMathPoint mathPt1, mathPt2;
+	rc = GetPointsFromCurveCell(ivecCellCurve[0],mathPt1,mathPt2);
+	if (FAILED(rc))
+	{
+		return E_FAIL;
+	}
+	//获取输入的Surface的所有的2维cell，因为有可能选择的面包含多个面cell，需要把面中间的curvecell删除
+	//循环把每个surfacecell转成body
+	CATLISTP(CATCell) lstCellOfCurve;
+	for (int i=0; i<ivecCellSurface.size(); i++)
+	{
+		CATBody *pBody = CreateBodyFromCell(ipGeoFactory,ivecCellSurface[i],2);
+		if (pBody == NULL)
+		{
+			continue;
+		}
+		//获得每个surfacebody的1维cell
+		CATLISTP(CATCell) lstCellDim1;
+		pBody->GetAllCells(lstCellDim1,1);
+		lstCellOfCurve.Append(lstCellDim1);
+	}
+	//获取每个curvecell的两个端点
+	vector<vector<CATMathPoint>> vecLstPointStartEnd;
+	vector<CATCell_var> vecCellCurve;
+	for (int i=1; i<= lstCellOfCurve.Size(); i++)
+	{
+		CATMathPoint mathPtStart, mathPtEnd;
+		rc = GetPointsFromCurveCell(lstCellOfCurve[i],mathPtStart,mathPtEnd);
+		if (FAILED(rc))
+		{
+			continue;
+		}
+		vector<CATMathPoint> vecPoint;
+		vecPoint.push_back(mathPtStart);
+		vecPoint.push_back(mathPtEnd);
+
+		//
+		vecLstPointStartEnd.push_back(vecPoint);
+		vecCellCurve.push_back(lstCellOfCurve[i]);
+	}
+	//把列表内部相同重复的curvecell和对应的端点都删除
+	vector<vector<CATMathPoint>> vecLstPointNoDuplicate;
+	vector<CATCell_var> vecCellCurveNoDuplicate;
+	for (int i=0; i<vecLstPointStartEnd.size(); i++)
+	{
+		bool bEqual = false;
+		CATMathPoint mathPtStart,mathPtEnd;
+		mathPtStart = vecLstPointStartEnd[i][0];
+		mathPtEnd = vecLstPointStartEnd[i][1];
+		for (int j=0; j<vecLstPointStartEnd.size(); j++)
+		{
+			if (i==j)
+			{
+				continue;
+			}
+			CATMathPoint mathPtTemp1,mathPtTemp2;
+			mathPtTemp1 = vecLstPointStartEnd[j][0];
+			mathPtTemp2 = vecLstPointStartEnd[j][1];
+			if (CheckPointsEqual(mathPtStart,mathPtTemp1,mathPtTemp2)&&CheckPointsEqual(mathPtEnd,mathPtTemp1,mathPtTemp2))
+			{
+				bEqual = true;
+				break;
+			}
+		}
+		if (!bEqual)
+		{
+			vector<CATMathPoint> vecPoint;
+			vecPoint.push_back(mathPtStart);
+			vecPoint.push_back(mathPtEnd);
+			vecLstPointNoDuplicate.push_back(vecPoint);
+			vecCellCurveNoDuplicate.push_back(vecCellCurve[i]);
+			bEqual = false;
+		}
+
+	}
+	if (vecCellCurveNoDuplicate.size() == 0 || vecLstPointNoDuplicate.size() == 0)
+	{
+		return E_FAIL;
+	}
+	//根据mathPt1,mathPt2在vector中找到对应的序号，获得对应的curvecell和两个端点
+	vector<CATMathPoint> vecPoint;
+	int iIndexInitial = -1;
+	for (int i=0; i<vecLstPointNoDuplicate.size(); i++)
+	{
+		CATMathPoint mathPtStart,mathPtEnd;
+		mathPtStart = vecLstPointNoDuplicate[i][0];
+		mathPtEnd = vecLstPointNoDuplicate[i][1];
+		if (CheckPointsEqual(mathPtStart,mathPt1,mathPt2)&&CheckPointsEqual(mathPtEnd,mathPt1,mathPt2))
+		{
+			iIndexInitial = i;
+			vecPoint.push_back(mathPtEnd);
+			vecPoint.push_back(mathPtStart);	//由于后面的计算连续性从ptstart开始，因此把它放在vector第二位，第一位要留给和最终的vector的最后一位的比较
+			break;
+		}
+	}
+	if (iIndexInitial == -1)
+	{
+		return E_FAIL;
+	}
+	//取任意一个端点开始，计算与它相连的元素
+	CATMathPoint mathPtInitial(vecPoint[1]);
+	CATMathPoint mathPtLast(vecPoint[0]);
+	//先把起始元素加入
+	vector<vector<CATMathPoint>> vecLstPointConnected;
+	vector<CATCell_var> vecCellCurveConnected;
+	vecLstPointConnected.push_back(vecPoint);
+	vecCellCurveConnected.push_back(vecCellCurveNoDuplicate[iIndexInitial]);
+	//循环判断相连元素
+	int i=0;
+	while (vecLstPointConnected.size()<vecLstPointNoDuplicate.size())
+	{
+		if (iIndexInitial == i)
+		{
+			i++;
+			continue;
+		}
+		CATMathPoint mathPtTemp1 = vecLstPointNoDuplicate[i][0];
+		CATMathPoint mathPtTemp2 = vecLstPointNoDuplicate[i][1];
+		if (CheckPointsEqual(mathPtInitial,mathPtTemp1,mathPtTemp2))
+		{
+			vector<CATMathPoint> vecPtTemp;
+			vecPtTemp.push_back(mathPtTemp1);
+			vecPtTemp.push_back(mathPtTemp2);
+			vecLstPointConnected.push_back(vecPtTemp);
+			vecCellCurveConnected.push_back(vecCellCurveNoDuplicate[i]);
+			//起始判断点移动到下一个不相同的点
+			mathPtInitial = mathPtTemp2;
+			iIndexInitial = i;
+			i = 0;
+			continue;
+		}
+		i++;
+	}
+	if (vecLstPointNoDuplicate.size() != vecLstPointConnected.size())
+	{
+		return E_FAIL;
+	}
+	//判断下vector的首末端点是否相连，正常情况应该是相连的
+	int iCount = vecLstPointConnected.size();
+	if (vecLstPointConnected[0][0].DistanceTo(vecLstPointConnected[iCount-1][1])>TOLCURVEGAP)
+	{
+		return E_FAIL;
+	}
+	//根据相切情况重新分组，把所有的相切的curve分到一组
+	vector<vector<CATCell_var>> vecLstCellCurveGrouped;
+	vector<CATCell_var> vecCellCurveTangent;
+	int iResultTangency;
+	vecCellCurveTangent.push_back(vecCellCurveConnected[0]);	//先把第一个加进去
+	for (int i=0;i<vecCellCurveConnected.size()-1;i++)
+	{
+		iResultTangency = CheckTwoCurvesTangency(ipGeoFactory,ipTopData,vecCellCurveConnected[i],vecLstPointConnected[i][1],vecCellCurveConnected[i+1],vecLstPointConnected[i+1][0]);
+		if (-1 == iResultTangency)
+		{
+			return E_FAIL;
+		}
+		else if (0 == iResultTangency)
+		{
+			vecLstCellCurveGrouped.push_back(vecCellCurveTangent);
+			vecCellCurveTangent.clear();
+			vecCellCurveTangent.push_back(vecCellCurveConnected[i+1]);
+		}
+		else if (1 == iResultTangency)
+		{
+			vecCellCurveTangent.push_back(vecCellCurveConnected[i+1]);
+		}
+	}
+	vecLstCellCurveGrouped.push_back(vecCellCurveTangent);	//循环退出后，把原始列表最后的一次循环得到的中间过程的vector再次加入结果vector即可，这样数量就对了
+	//
+	//判断vector的第一组的第一个和最后一组的最后一个的相切情况
+	CATCell_var spCellFirst = vecLstCellCurveGrouped[0][0];
+	int iGroup = vecLstCellCurveGrouped.size();
+	int iCountLastGroup = vecLstCellCurveGrouped[iGroup-1].size();
+	CATCell_var spCellLast = vecLstCellCurveGrouped[iGroup-1][iCountLastGroup-1];
+	iResultTangency = CheckTwoCurvesTangency(ipGeoFactory,ipTopData,spCellFirst,vecLstPointConnected[0][0],spCellLast,vecLstPointConnected[iCount-1][1]);
+	if (-1 == iResultTangency)
+	{
+		return E_FAIL;
+	}
+	else if (1 == iResultTangency)	//如果第一个和最后一个curve相切，则把原来的第一组加到最后一组的最后，删掉原来的第一组，再把最后一组插到第一组的位置
+	{
+		vector<CATCell_var> vecGroupFirst;
+		vecGroupFirst.insert(vecGroupFirst.end(),vecLstCellCurveGrouped[iGroup-1].begin(),vecLstCellCurveGrouped[iGroup-1].end());
+		vecGroupFirst.insert(vecGroupFirst.end(),vecLstCellCurveGrouped[0].begin(),vecLstCellCurveGrouped[0].end());
+		olstCellEdge.push_back(vecGroupFirst);
+		olstCellEdge.insert(olstCellEdge.end(),vecLstCellCurveGrouped.begin()+1,vecLstCellCurveGrouped.end()-1);
+	}
+	else
+	{
+		olstCellEdge.assign(vecLstCellCurveGrouped.begin(),vecLstCellCurveGrouped.end());
+	}
+	return rc;
+}
+
+//从curve的cell中获取两个端点
+HRESULT GeneralClass::GetPointsFromCurveCell(CATCell_var ispCellOfCurve, CATMathPoint &omathPt1, CATMathPoint &omathPt2)
+{
+	HRESULT rc = S_OK;
+	if (ispCellOfCurve == NULL_var)
+	{
+		return E_FAIL;
+	}
+	CATEdge_var spEdgeTemp = ispCellOfCurve; 
+	if(spEdgeTemp==NULL_var)
+	{
+		return E_FAIL;
+	}
+	CATVertex*  oStartVertex=NULL;
+	CATVertex*  oEndVertex=NULL;
+	spEdgeTemp->GetVertices(&oStartVertex, &oEndVertex);
+	if (oEndVertex==NULL||oStartVertex==NULL)
+	{
+		cout<<"GetVertices Failed"<<endl;
+		return E_FAIL; 
+	}
+	CATPoint * pStartPoint=oStartVertex->GetPoint( );
+	CATPoint * pEndPoint=oEndVertex->GetPoint( );
+	if (pStartPoint==NULL||pEndPoint==NULL)
+	{
+		cout<<"GetPoint Failed"<<endl;
+		return E_FAIL; 
+	}
+	CATMathPoint sStartPoint ;
+	pStartPoint->GetMathPoint(sStartPoint);
+	CATMathPoint sEndPoint ;
+	pEndPoint->GetMathPoint(sEndPoint);
+
+	//
+	omathPt1 = sStartPoint;
+	omathPt2 = sEndPoint;
+	return rc;
+}
+
+//检查1个点是否和参考的2个点中的其中一个点相同，如果相同，把相同的那个参考点放在ref1的位置
+CATBoolean GeneralClass::CheckPointsEqual(CATMathPoint imathPt1, CATMathPoint &iomathPtRef1, CATMathPoint &iomathPtRef2)
+{
+	double dblDistance1 = imathPt1.DistanceTo(iomathPtRef1);
+	double dblDistance2 = imathPt1.DistanceTo(iomathPtRef2);
+	if (dblDistance1<=TOLCURVEGAP)
+	{
+		return TRUE;
+	}
+	else if (dblDistance2<=TOLCURVEGAP)
+	{
+		//ref交换
+		CATMathPoint ptTemp = iomathPtRef1;
+		iomathPtRef1 = iomathPtRef2;
+		iomathPtRef2 = ptTemp;
+		return TRUE;
+	}
+	else
+	{
+		return FALSE;
+	}
+	
+}
+
+
+//描述：检查两根线在给定的两点处的一阶导数是否相同，相同则代表相切-----------转为CATCurve的start和end有可能会大于原来的边界端点，该方法不合适
+//输入：CATCell_var 曲线1，CATMathPoint 曲线1上的一点，CATCell_var 曲线2，CATMathPoint 曲线2上的一点
+//输出：
+//返回：int -1代表判断过程中出错，0代表不相切，1代表相切
+int GeneralClass::CheckTwoCurvesTangency(CATCell_var ispCellCurve1,CATCell_var ispCellCurve2)
+{
+	//
+	CATCurve_var spCurve1 = GetCurveFromCell(ispCellCurve1);
+	CATCurve_var spCurve2 = GetCurveFromCell(ispCellCurve2);
+	if (spCurve1 == NULL_var || spCurve2 == NULL_var)
+	{
+		return -1;
+	}
+	//根据输入的端点
+	CATCrvParam crvParm1,crvParm2,crvParmStart1,crvParmEnd1,crvParmStart2,crvParmEnd2;
+
+	spCurve1->GetStartLimit(crvParmStart1);
+	spCurve1->GetEndLimit(crvParmEnd1);
+	CATMathPoint mathPt1Crv1 = spCurve1->EvalPoint(crvParmStart1);
+	CATMathPoint mathPt2Crv1 = spCurve1->EvalPoint(crvParmEnd1);
+
+	spCurve2->GetStartLimit(crvParmStart2);
+	spCurve2->GetEndLimit(crvParmEnd2);
+	CATMathPoint mathPt1Crv2 = spCurve2->EvalPoint(crvParmStart2);
+	CATMathPoint mathPt2Crv2 = spCurve2->EvalPoint(crvParmEnd2);
+
+	//找到紧挨着的两点所对应的parm
+	if (mathPt1Crv1.DistanceTo(mathPt1Crv2)<=0.005)
+	{
+		crvParm1 = crvParmStart1;
+		crvParm2 = crvParmStart2;
+	}
+	else if (mathPt1Crv1.DistanceTo(mathPt2Crv2)<=0.005)
+	{
+		crvParm1 = crvParmStart1;
+		crvParm2 = crvParmEnd2;
+	}
+	else if (mathPt2Crv1.DistanceTo(mathPt1Crv2)<=0.005)
+	{
+		crvParm1 = crvParmEnd1;
+		crvParm2 = crvParmStart2;
+	}
+	else if (mathPt2Crv1.DistanceTo(mathPt2Crv2)<=0.005)
+	{
+		crvParm1 = crvParmEnd1;
+		crvParm2 = crvParmEnd2;
+	}
+	else
+	{
+		return -1;
+	}
+	//分别求出该点在两根线上的一阶导数
+	CATMathVector VectorTangentCurve1 = spCurve1->EvalFirstDeriv(crvParm1);
+	CATMathVector VectorTangentCurve2 = spCurve2->EvalFirstDeriv(crvParm2);
+	//判断是否平行
+	CATAngle angleVector = VectorTangentCurve1.GetAngleTo(VectorTangentCurve2);
+	if ((angleVector>0.0017)&&(angleVector<(CATPI-0.0017)))	//0.0017rad 约等于 0.1度
+	{
+		return 0;
+	}
+	else
+	{
+		return 1;
+	}
+
+}
+
+//描述：检查两根线在给定的两点处的一阶导数是否相同，相同则代表相切-------CATCurve::CATSolutionDiagnostic 枚举值判断不靠谱!!!
+//输入：CATCell_var 曲线1，CATMathPoint 曲线1上的一点，CATCell_var 曲线2，CATMathPoint 曲线2上的一点
+//输出：
+//返回：int -1代表判断过程中出错，0代表不相切，1代表相切
+int GeneralClass::CheckTwoCurvesTangency(CATCell_var ispCellCurve1,CATMathPoint iptCurve1,CATCell_var ispCellCurve2,CATMathPoint iptCurve2)
+{
+	//
+	CATCurve_var spCurve1 = GetCurveFromCell(ispCellCurve1);
+	CATCurve_var spCurve2 = GetCurveFromCell(ispCellCurve2);
+	if (spCurve1 == NULL_var || spCurve2 == NULL_var)
+	{
+		return -1;
+	}
+	//
+	CATCrvLimits limitsCurve1,limitsCurve2;
+	spCurve1->GetLimits(limitsCurve1);
+	spCurve2->GetLimits(limitsCurve2);
+	//
+	CATCrvParam parmCurve1,parmCurve2;
+	CATCurve::CATSolutionDiagnostic solution1 = spCurve1->GetParam(iptCurve1,parmCurve1,limitsCurve1);
+	CATCurve::CATSolutionDiagnostic solution2 = spCurve2->GetParam(iptCurve2,parmCurve2,limitsCurve2);
+	if ((CATCurve::SingleSolution != solution1) || (CATCurve::SingleSolution != solution2))
+	{
+		return -1;
+	}
+	//分别求出该点在两根线上的一阶导数
+	CATMathVector VectorTangentCurve1 = spCurve1->EvalFirstDeriv(parmCurve1);
+	CATMathVector VectorTangentCurve2 = spCurve2->EvalFirstDeriv(parmCurve2);
+	//判断是否平行
+	CATAngle angleVector = VectorTangentCurve1.GetAngleTo(VectorTangentCurve2);
+	if ((angleVector>0.0017)&&(angleVector<(CATPI-0.0017)))	//0.0017rad 约等于 0.1度
+	{
+		return 0;
+	}
+	else
+	{
+		return 1;
+	}
+}
+
+//描述：检查两根线在给定的两点处的切线的方向是否相同或者相反
+//输入：CATGeoFactory 几何工厂，CATTopData Topdata,CATCell_var 曲线1，CATMathPoint 曲线1上的一点，CATCell_var 曲线2，CATMathPoint 曲线2上的一点
+//输出：
+//返回：int -1代表判断过程中出错，0代表不相切，1代表相切
+int GeneralClass::CheckTwoCurvesTangency(CATGeoFactory *ipGeoFactory,CATTopData *ipTopData,CATCell_var ispCellCurve1,CATMathPoint iptCurve1,CATCell_var ispCellCurve2,CATMathPoint iptCurve2)
+{
+	if (ipGeoFactory==NULL || ipTopData==NULL || ispCellCurve1==NULL_var||ispCellCurve2==NULL_var)
+	{
+		return -1;
+	}
+	//先把curve cell转成body
+	CATBody *pBodyCurve1 = CreateBodyFromCell(ipGeoFactory,ispCellCurve1,1);
+	CATBody *pBodyCurve2 = CreateBodyFromCell(ipGeoFactory,ispCellCurve2,1);
+	if (pBodyCurve1==NULL || pBodyCurve2 == NULL)
+	{
+		return -1;
+	}
+	//把mathpoint转成body
+	CATBody *pBodyPtCurve1 =::CATCreateTopPointXYZ( ipGeoFactory,ipTopData,iptCurve1.GetX(),iptCurve1.GetY(),iptCurve1.GetZ());
+	CATBody *pBodyPtCurve2 =::CATCreateTopPointXYZ( ipGeoFactory,ipTopData,iptCurve2.GetX(),iptCurve2.GetY(),iptCurve2.GetZ());
+	if (pBodyPtCurve1==NULL || pBodyPtCurve2==NULL)
+	{
+		return -1;
+	}
+	//过点创建curve的切线
+	CATBody *pBodyLine1 = ::CATCreateTopLineTangentToWire(ipGeoFactory,ipTopData,pBodyPtCurve1,pBodyCurve1,100);
+	CATBody *pBodyLine2 = ::CATCreateTopLineTangentToWire(ipGeoFactory,ipTopData,pBodyPtCurve2,pBodyCurve2,100);
+	if (pBodyLine1==NULL||pBodyLine2==NULL)
+	{
+		return -1;
+	}
+	//算出两根直线的方向
+	CATMathVector dirLine1,dirLine2;
+	CATLISTV(CATMathPoint) lstPt;
+	GetMathPtFromBody(pBodyLine1,lstPt);
+	if (lstPt.Size()!=2)
+	{
+		return -1;
+	}
+	dirLine1 = lstPt[1]-lstPt[2];
+	lstPt.RemoveAll();
+	GetMathPtFromBody(pBodyLine2,lstPt);
+	if (lstPt.Size()!=2)
+	{
+		return -1;
+	}
+	dirLine2 = lstPt[1]-lstPt[2];
+	//判断是否平行
+	CATAngle angleVector = dirLine1.GetAngleTo(dirLine2);
+	if ((angleVector>TOLTANGENCY)&&(angleVector<(CATPI-TOLTANGENCY)))	//0.0017rad 约等于 0.1度
+	{
+		return 0;
+	}
+	else
+	{
+		return 1;
+	}
+}
+
+//从CATCell转到CATCurve
+CATCurve_var GeneralClass::GetCurveFromCell(CATCell_var ispCellCurve)
+{
+	CATCurve_var spCurve = NULL_var;
+	CATEdge_var spEdge=ispCellCurve;
+	if(spEdge == NULL_var)
+	{
+		return spCurve;
+	}
+	CATEdgeCurve_var spEdgeCurve = spEdge ->GetCurve(NULL);
+	if(spEdgeCurve == NULL_var)
+	{ 
+		return spCurve; 
+	}
+	spCurve=spEdgeCurve->GetRefCurve();
+	return spCurve;
+}
+
+//描述：根据2维surfacecell和对应的1维curvecell在实体body上找到相邻的cell，并且同时判断是否相切
+//输入：CATBody_var 实体body，vector<CATCell_var> Surface的cell列表，vector<CATCell_var> 曲线的cell列表，
+//输出：vector<CATCell_var> 相邻的曲面的cell列表
+//返回：int -1代表错误，0代表不相切，1代表相切
+int GeneralClass::GetNeighborCellList(CATGeoFactory *ipGeoFactory, CATTopData *ipTopData, CATBody_var ispBodySolid,vector<CATCell_var> ivecCellSurface,vector<CATCell_var> ivecCellCurve,vector<CATCell_var> &ovecCellSurfaceNeighbor)
+{
+	int iTangency = 1;
+	if (ispBodySolid == NULL_var)
+	{
+		return -1;
+	}
+	if (ivecCellSurface.size()==0 || ivecCellCurve.size()==0)
+	{
+		return -1;
+	}
+	//获取所有neighborcell
+	for (int i=0;i<ivecCellSurface.size();i++)
+	{
+		for (int j=0; j<ivecCellCurve.size();j++)
+		{
+			CATCell_var spCellNeighbor = NULL_var;
+			try
+			{
+				spCellNeighbor = ivecCellSurface[i]->GetNeighborCell(ivecCellCurve[j],ispBodySolid);
+			}
+			catch (...)
+			{
+				continue;
+			}
+			if (spCellNeighbor != NULL_var)
+			{
+				ovecCellSurfaceNeighbor.push_back(spCellNeighbor);
+				if (1 != CheckTwoSurfaceTangencyInOnePoint(ipGeoFactory,ipTopData,ivecCellSurface[i],spCellNeighbor,ivecCellCurve[j]))
+				{
+					iTangency = 0;	//只要有一个面和相邻面不相切，就认为总体都不相切
+				}
+			}
+		}
+	}
+	//去重
+	for (int i = 0; i<ovecCellSurfaceNeighbor.size(); i++)
+	{
+		for (int j = ovecCellSurfaceNeighbor.size()-1; j>i; j--)
+		{
+			if (ovecCellSurfaceNeighbor[i] == ovecCellSurfaceNeighbor[j])
+			{
+				ovecCellSurfaceNeighbor.erase(ovecCellSurfaceNeighbor.begin()+j);
+			}
+		}
+	}
+	return iTangency;
+}
+
+//描述：检查两个曲面在共线上的任意一点的法线的方向是否相同或者相反
+//输入：CATGeoFactory 几何工厂，CATTopData Topdata,CATCell_var 曲面1，CATCell_var 曲面2，CATCell_var 共线的曲线
+//输出：
+//返回：int -1代表判断过程中出错，0代表不相切，1代表相切
+int GeneralClass::CheckTwoSurfaceTangencyInOnePoint(CATGeoFactory *ipGeoFactory, CATTopData *ipTopData, CATCell_var ispCellSurface1,CATCell_var ispCellSurface2,CATCell_var ispCellCurveMutual)
+{
+	if (ipGeoFactory==NULL || ipTopData==NULL || ispCellSurface1==NULL_var||ispCellSurface2==NULL_var||ispCellCurveMutual==NULL_var)
+	{
+		return -1;
+	}
+	//把surface cell转成body
+	CATBody *pBodySurface1 = CreateBodyFromCell(ipGeoFactory,ispCellSurface1,2);
+	CATBody *pBodySurface2 = CreateBodyFromCell(ipGeoFactory,ispCellSurface2,2);
+	//把curve cell转成body
+	CATBody *pBodyCurve = CreateBodyFromCell(ipGeoFactory,ispCellCurveMutual,1);
+	if (pBodySurface1==NULL||pBodySurface2==NULL||pBodyCurve==NULL)
+	{
+		return -1;
+	}
+	//curve上任取一点
+	CATLISTV(CATMathPoint) lstPt;
+	GetMathPtFromBody(pBodyCurve,lstPt);
+	if (lstPt.Size() ==0)
+	{
+		return -1;
+	}
+	CATBody *pBodyPtOnCurve =::CATCreateTopPointXYZ( ipGeoFactory,ipTopData,lstPt[1].GetX(),lstPt[1].GetY(),lstPt[1].GetZ());
+	if (pBodyPtOnCurve == NULL)
+	{
+		return -1;
+	}
+	//过该点分别作两个曲面的法线
+	CATBody *pBodyNormalLine1 = CATCreateTopLineNormalToShell(ipGeoFactory,ipTopData,pBodyPtOnCurve,pBodySurface1,10);
+	CATBody *pBodyNormalLine2 = CATCreateTopLineNormalToShell(ipGeoFactory,ipTopData,pBodyPtOnCurve,pBodySurface2,10);
+	if (pBodyNormalLine1==NULL||pBodyNormalLine2==NULL)
+	{
+		return -1;
+	}
+	//
+	//算出两根直线的方向
+	lstPt.RemoveAll();
+	CATMathVector dirLine1,dirLine2;
+	GetMathPtFromBody(pBodyNormalLine1,lstPt);
+	if (lstPt.Size()!=2)
+	{
+		return -1;
+	}
+	dirLine1 = lstPt[1]-lstPt[2];
+	lstPt.RemoveAll();
+	GetMathPtFromBody(pBodyNormalLine2,lstPt);
+	if (lstPt.Size()!=2)
+	{
+		return -1;
+	}
+	dirLine2 = lstPt[1]-lstPt[2];
+	//判断是否平行
+	CATAngle angleVector = dirLine1.GetAngleTo(dirLine2);
+	if ((angleVector>TOLTANGENCY)&&(angleVector<(CATPI-TOLTANGENCY)))	//0.0017rad 约等于 0.1度
+	{
+		return 0;
+	}
+	else
+	{
+		return 1;
+	}
+}
+
+//
+CATBoolean GeneralClass::CheckG0Connection(CATGeoFactory *ipGeoFactory,CATTopData *ipTopData,CATBody_var ispBody1,CATBody_var ispBody2)
+{
+	CATLISTP(CATBody) lstBody = NULL;
+	lstBody.Append(ispBody1);
+	lstBody.Append(ispBody2);
+	//把这些body组合起来
+	ListPOfCATBody * HListOfCurve=&lstBody;
+	CATHybAssemble * pHybAssemble=CATCreateTopAssemble(ipGeoFactory, ipTopData, HListOfCurve);
+	if (pHybAssemble==NULL)
+	{
+		return FALSE;
+	}
+	//
+	pHybAssemble->SetTolerance(TOLSURFACEGAP);	//该公差值为接合连续的最大公差值，超过这个尺寸就会认为没有接合连续
+	//
+	pHybAssemble->Run();
+	CATBody*pResultBody= pHybAssemble->GetResult();
+	delete pHybAssemble; 
+	pHybAssemble = NULL;
+	if (pResultBody!=NULL)
+	{
+		CATLISTP(CATDomain) lstDomain;
+		pResultBody->GetAllDomains(2,3,lstDomain);
+		if (lstDomain.Size()==1)
+		{
+			return TRUE;
+		}
+	}
+	return FALSE;
+
 }

@@ -41,6 +41,7 @@ YFAirventXMLM		\
 CATGeometricOperators \
 GUIDVPMInterfaces	\
 CATMechanicalModeler	\
+CATBasicTopologicalOpe \
 
 # System dependant variables
 #

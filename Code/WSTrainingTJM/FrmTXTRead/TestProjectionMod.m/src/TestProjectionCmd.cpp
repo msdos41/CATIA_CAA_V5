@@ -31,11 +31,14 @@ TestProjectionCmd::TestProjectionCmd() :
   CATStateCommand ("TestProjectionCmd", CATDlgEngOneShot, CATCommandModeExclusive) 
 //  Valid states are CATDlgEngOneShot and CATDlgEngRepeat
   ,_Indication(NULL)
+  ,_pGeneralCls(NULL)
 {
 	_pDlg = NULL;
 	_pDlg = new TestProjectionDlg();
 	_pDlg->Build();
 	_pDlg->SetVisibility(CATDlgShow);
+
+	_pGeneralCls = new GeneralClass();
 
 	_pPointAgent = NULL;
 	_pPointFieldAgent = NULL;
@@ -91,8 +94,14 @@ TestProjectionCmd::~TestProjectionCmd()
    }
 
    _pEditor = NULL;
+   _pHSO->Empty();
    _pHSO = NULL;
 
+   if (_pGeneralCls != NULL)
+   {
+	   delete _pGeneralCls;
+	   _pGeneralCls = NULL;
+   }
 }
 
 
@@ -120,7 +129,7 @@ void TestProjectionCmd::BuildGraph()
 
 	AddAnalyseNotificationCB(_pDlg,
 		_pDlg->GetDiaOKNotification(),
-		(CATCommandMethod)&TestProjectionCmd::ActionOK,
+		(CATCommandMethod)&TestProjectionCmd::ActionOK2,
 		NULL);
 	//PointField
 	_pPointFieldAgent = new CATDialogAgent("Select Point");
@@ -132,13 +141,15 @@ void TestProjectionCmd::BuildGraph()
 									  _pDlg->GetSelectorListSolid()->GetListSelectNotification());
 	//选择Point
 	_pPointAgent = new CATFeatureImportAgent("Select Point");
-	_pPointAgent->AddElementType("CATIGSMPoint");
-	//_pPointAgent->AddElementType("CATCurve");
+	//_pPointAgent->AddElementType("CATIGSMPoint");
+	_pPointAgent->AddElementType("CATSurface");
 	_pPointAgent->SetBehavior(CATDlgEngWithPrevaluation|CATDlgEngWithCSO|CATDlgEngOneShot);
 
 	//选择Solid
 	_pSolidAgent = new CATFeatureImportAgent("Select Solid");
-	_pSolidAgent->AddElementType("CATIMechanicalTool");
+	_pSolidAgent->AddElementType("CATCurve");
+	//_pSolidAgent->AddElementType("CATSurface");
+	//_pSolidAgent->AddElementType("CATIMechanicalTool");
 	//_pSolidAgent->AddElementType("CATIMfBiDimResult");
 	_pSolidAgent->SetBehavior(CATDlgEngWithPrevaluation|CATDlgEngWithCSO|CATDlgEngOneShot);
 
@@ -214,6 +225,91 @@ void TestProjectionCmd::ActionOK(void * data)
 	return;
 }
 
+void TestProjectionCmd::ActionOK2(void * data)
+{
+	if (_spiSpecPoint != NULL_var && _spiSpecSolid != NULL_var)
+	{
+		//获取GeoFactory
+		CATSoftwareConfiguration * pConfig = new CATSoftwareConfiguration();//配置指针
+		CATTopData * topdata =new CATTopData(pConfig, NULL);//topdata
+
+		CATIPrtContainer_var ospiCont=NULL_var;
+		CATGeoFactory*  pGeoFactory=_pGeneralCls->GetProductGeoFactoryAndPrtCont(_spiProductPoint,ospiCont);
+
+		vector<vector<CATCell_var>> vecLstCellEdge;
+		vector<CATCell_var> vecCellSurface, vecCellCurve;
+		CATBody_var spBodySurface = _pGeneralCls->GetBodyFromFeature(_spiSpecPoint);
+		CATBody_var spBodyCurve = _pGeneralCls->GetBodyFromFeature(_spiSpecSolid);
+		if (spBodySurface!=NULL_var && spBodyCurve!=NULL_var)
+		{
+			CATLISTP(CATCell) lstCell;
+			spBodySurface->GetAllCells(lstCell,2);
+			for (int i=1; i<=lstCell.Size(); i++)
+			{
+				vecCellSurface.push_back(lstCell[i]);
+			}
+			lstCell.RemoveAll();
+			spBodyCurve->GetAllCells(lstCell,1);
+			for (int i=1; i<=lstCell.Size(); i++)
+			{
+				vecCellCurve.push_back(lstCell[i]);
+			}
+
+			HRESULT rc = _pGeneralCls->GetBordersFromSurface(pGeoFactory,topdata,vecCellSurface,vecCellCurve,vecLstCellEdge);
+			if (FAILED(rc))
+			{
+				return;
+			}
+			cout<<"Border Size: "<<vecLstCellEdge.size()<<endl;
+			//
+			vector<CATCell_var> vecCellSurfaceNeighbor;
+			int iTangency = _pGeneralCls->GetNeighborCellList(pGeoFactory,topdata,_spBodyMechTool,vecCellSurface,vecLstCellEdge[0],vecCellSurfaceNeighbor);
+			//
+			if (iTangency ==1)
+			{
+				_pGeneralCls->SetHighlightCells(_spBodyMechTool,vecCellSurfaceNeighbor,2);
+			}
+		}
+		//HRESULT rc = _pGeneralCls->GetBordersFromSurface(_spiSpecPoint,_spiProductPoint,_spiSpecSolid,vecLstCellEdge);
+		//if (FAILED(rc))
+		//{
+		//	return;
+		//}
+		//cout<<"Border Size: "<<vecLstCellEdge.size()<<endl;
+	}
+	return;
+}
+
+void TestProjectionCmd::ActionOK3(void * data)
+{
+	if (_spiSpecPoint != NULL_var && _spiSpecSolid != NULL_var)
+	{
+		//获取GeoFactory
+		CATSoftwareConfiguration * pConfig = new CATSoftwareConfiguration();//配置指针
+		CATTopData * topdata =new CATTopData(pConfig, NULL);//topdata
+
+		CATIPrtContainer_var ospiCont=NULL_var;
+		CATGeoFactory*  pGeoFactory=_pGeneralCls->GetProductGeoFactoryAndPrtCont(_spiProductPoint,ospiCont);
+
+		vector<vector<CATCell_var>> vecLstCellEdge;
+		vector<CATCell_var> vecCellSurface, vecCellCurve;
+		CATBody_var spBodySurface = _pGeneralCls->GetBodyFromFeature(_spiSpecPoint);
+		CATBody_var spBodyCurve = _pGeneralCls->GetBodyFromFeature(_spiSpecSolid);
+		if (spBodySurface!=NULL_var && spBodyCurve!=NULL_var)
+		{
+			CATBoolean bConnection = _pGeneralCls->CheckG0Connection(pGeoFactory,topdata,spBodySurface,spBodyCurve);
+			if (bConnection)
+			{
+				cout<<"G0 Connected"<<endl;
+			}
+			else
+			{
+				cout<<"NOT G0 Connected"<<endl;
+			}
+		}
+	}
+}
+
 //
 void TestProjectionCmd::ActionSelectPoint()
 {
@@ -239,6 +335,13 @@ void TestProjectionCmd::ActionSelectPoint()
 	_pDlg->GetSelectorListPoint()->SetLine(strAlias,-1,CATDlgDataAdd);
 	//
 	SetHighlight(_pPointAgent);
+	//获取实体body
+	CATPathElement *pPath = _pPointAgent->GetValue();
+	//
+	CATISpecObject_var spiSpecMechTool = _pGeneralCls->GetMechanicalToolFromPath(pPath);
+
+	_spBodyMechTool = _pGeneralCls->GetBodyFromFeature(spiSpecMechTool);
+
 	//
 	_pPointAgent->InitializeAcquisition();
 	//
@@ -418,6 +521,7 @@ void TestProjectionCmd::SelectElementUpdate(CATFeatureImportAgent *pFeatAgent,CA
 			return;
 		}
 		ospProductSeletion = spPartObject;
+		return;
 	}
 	ospProductSeletion = pProduct;
 }

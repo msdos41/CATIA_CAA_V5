@@ -31,6 +31,7 @@ CATGitInterfaces  \
 KnowledgeItf  \
 CATTopologicalOperators  \
 CATBasicTopologicalOpe  \
+GeneralClassMod	\
 
 # System dependant variables
 #

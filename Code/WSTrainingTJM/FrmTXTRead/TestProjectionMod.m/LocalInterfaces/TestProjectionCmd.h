@@ -22,6 +22,7 @@
 #include "CATBoolean.h"
 
 #include "TestProjectionDlg.h"
+#include "GeneralClass.h"
 #include "CATFeatureImportAgent.h"
 #include "CATDialogAgent.h"
 #include "CATISpecObject.h"
@@ -146,6 +147,8 @@ class TestProjectionCmd: public CATStateCommand
   //HRESULT ActionCreateProjection(CATISpecObject_var ispiSpecElement, CATISpecObject_var ispiSpecSupport);
   HRESULT ActionCreateProjection(CATISpecObject_var ispiSpecElement, CATIProduct_var ispiProductElement, CATISpecObject_var ispiSpecSupport, CATIProduct_var ispiProductSupport);
   CATMathTransformation GetMatrixTransformation(CATIProduct_var ispCurrentProduct,CATIProduct_var ispTargetProduct);
+  void ActionOK2(void * data);
+  void ActionOK3(void * data);
 private:
 
   CATIndicationAgent	* _Indication;
@@ -171,6 +174,10 @@ private:
   CATIProduct_var	_spiProductPoint;
 
   CATIProduct_var	_spiProductSolid;
+
+  GeneralClass			*_pGeneralCls;
+
+  CATBody_var		_spBodyMechTool;
 };
 
 //----------------------------------------------------------------------

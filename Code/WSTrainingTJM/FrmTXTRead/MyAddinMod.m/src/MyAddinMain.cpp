@@ -76,6 +76,7 @@ void MyAddinMain::CreateCommands ()
 	new MyAddinHdr("TestCrvRadius","TestCrvRadiusMod","TestCrvRadiusCmd", (void*)NULL);
 	new MyAddinHdr("TestTempPoint","TestTempPointMod","TestTempPointCmd", (void*)NULL);
 	new MyAddinHdr("TestMultiList","TestMultiListMod","TestMultiListCmd", (void*)NULL);
+	new MyAddinHdr("TestUIChange","TestUIChangeMod","TestUIChangeCmd", (void*)NULL);
 }
 
 //-----------------------------------------------------------------------------
@@ -168,7 +169,9 @@ CATCmdContainer * MyAddinMain::CreateToolbars ()
 	SetAccessCommand(pTestMultiList,"TestMultiList");
 	SetAccessNext(pTestTempPoint,pTestMultiList);
 
-
+	NewAccess(CATCmdStarter,pTestUIChange,TestUIChange);
+	SetAccessCommand(pTestUIChange,"TestUIChange");
+	SetAccessNext(pTestMultiList,pTestUIChange);
 
 	//NewAccess(CATCmdStarter,pDrwAnnotation,DrwAnnotation);
 	//SetAccessCommand(pDrwAnnotation,"DrwAnnotation");

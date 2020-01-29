@@ -139,10 +139,10 @@ void TestMultiListCmd::BuildGraph()
 		(CATCommandMethod)&TestMultiListCmd::ExitCmd,
 		NULL);
 
-	AddAnalyseNotificationCB(_pDlg,
-		_pDlg->GetDiaOKNotification(),
-		(CATCommandMethod)&TestMultiListCmd::ExitCmd,
-		NULL);
+	//AddAnalyseNotificationCB(_pDlg,
+	//	_pDlg->GetDiaOKNotification(),
+	//	(CATCommandMethod)&TestMultiListCmd::ActionShowMoreUI,
+	//	NULL);
 
 	//SurfaceÑ¡Ôñ
 	_pSurfaceAgent = new CATFeatureImportAgent("Select Surface");
@@ -210,6 +210,15 @@ CATBoolean TestMultiListCmd::ActionOne( void *data )
 CATBoolean TestMultiListCmd::ExitCmd(void * data)
 {
 	this->RequestDelayedDestruction();
+	return TRUE;
+}
+
+CATBoolean TestMultiListCmd::ActionShowMoreUI(void * data)
+{
+	_pDlg->_Frame001 = new CATDlgFrame(_pDlg, "Frame001", CATDlgGridLayout);
+	_pDlg->_Frame001 -> SetGridConstraints(0, 2, 1, 1, 4);
+	_pDlg->SetHorizontalAttachment(0,CATDlgTopOrLeft,_pDlg->_Frame001,NULL);
+	_pDlg->SetVerticalAttachment(2,CATDlgTopOrLeft,_pDlg->_Frame001,NULL);
 	return TRUE;
 }
 

@@ -64,6 +64,7 @@ class TestMultiListCmd: public CATStateCommand
   void ActionSelectCurve();
   void TransToCurve();
   void TransToSurface();
+  CATBoolean ActionShowMoreUI(void * data);
 private:
 
 	  TestMultiListDlg		*_pDlg;

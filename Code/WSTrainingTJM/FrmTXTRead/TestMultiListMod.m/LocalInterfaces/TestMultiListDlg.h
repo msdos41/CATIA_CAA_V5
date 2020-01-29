@@ -44,18 +44,24 @@ class TestMultiListDlg: public CATDlgDialog
 
   void Build ();
   CATDlgMultiList* GetMultiListSelect();
-
+  CATDlgFrame * GetFrame();
+  CATBoolean ActionShowMoreUI(void * data);
+  CATDlgFrame*      _Frame001;
   protected:
 
   private:
 
 
 //CAA2 WIZARD WIDGET DECLARATION SECTION
+ CATDlgFrame*      _Frame002;
+ CATDlgFrame*      _Frame003;
  CATDlgMultiList*      _MultiListSelect;
 //END CAA2 WIZARD WIDGET DECLARATION SECTION
 
 
 //END CAA2 WIZARD WIDGET DECLARATION SECTION
+
+ CATBoolean			_bMoreUI;
 };
 
 //----------------------------------------------------------------------

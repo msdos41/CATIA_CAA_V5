@@ -1,12 +1,26 @@
 // DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
 CATDlgDialog TestMultiListDlg
 {
-  STYLE = CATDlgWndBtnClose|CATDlgWndTitleBarHelp|CATDlgGridLayout;
+  STYLE = CATDlgWndBtnOKCancel|CATDlgWndTitleBarHelp|CATDlgGridLayout;
+}
+
+CATDlgFrame Frame002
+{
+  FATHER = TestMultiListDlg;
+  STYLE = CATDlgGridLayout;
+  GRID = { 0, 1, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgFrame Frame003
+{
+  FATHER = TestMultiListDlg;
+  STYLE = CATDlgGridLayout;
+  GRID = { 0, 0, 1, 1, CATGRID_4SIDES };
 }
 
 CATDlgMultiList MultiListSelect
 {
-  FATHER = TestMultiListDlg;
+  FATHER = Frame003;
   CC = 3;
   VCC = 3;
   COLWTH = { 1, 20, 2, 20 };

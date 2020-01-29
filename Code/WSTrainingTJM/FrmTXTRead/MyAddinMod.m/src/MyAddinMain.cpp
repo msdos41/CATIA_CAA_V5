@@ -77,6 +77,7 @@ void MyAddinMain::CreateCommands ()
 	new MyAddinHdr("TestTempPoint","TestTempPointMod","TestTempPointCmd", (void*)NULL);
 	new MyAddinHdr("TestMultiList","TestMultiListMod","TestMultiListCmd", (void*)NULL);
 	new MyAddinHdr("TestUIChange","TestUIChangeMod","TestUIChangeCmd", (void*)NULL);
+	new MyAddinHdr("TestProgressBar","TestProgressBarMod","TestProgressBarCmd", (void*)NULL);
 }
 
 //-----------------------------------------------------------------------------
@@ -173,9 +174,9 @@ CATCmdContainer * MyAddinMain::CreateToolbars ()
 	SetAccessCommand(pTestUIChange,"TestUIChange");
 	SetAccessNext(pTestMultiList,pTestUIChange);
 
-	//NewAccess(CATCmdStarter,pDrwAnnotation,DrwAnnotation);
-	//SetAccessCommand(pDrwAnnotation,"DrwAnnotation");
-	//SetAccessChild(pMyTlb,pDrwAnnotation);
+	NewAccess(CATCmdStarter,pTestProgressBar,TestProgressBar);
+	SetAccessCommand(pTestProgressBar,"TestProgressBar");
+	SetAccessNext(pTestUIChange,pTestProgressBar);
 
 	AddToolbarView(pMyTlb,1,Left);
     return pMyTlb;

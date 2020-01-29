@@ -52,7 +52,7 @@ TestTempPointCmd::TestTempPointCmd() :
 	_pViewerFeedbackManager = new YFAirventViewerFeedbackManager();
 	_pViewerFeedbackManager->SetViewerFeedbackOn();
 
-	TestHighLight();
+	//TestHighLight();
 
 	cout<<"Size in CATHSO: "<<_pHSO->GetSize()<<endl;
 }
@@ -150,7 +150,7 @@ void TestTempPointCmd::BuildGraph()
 
 	AddTransition( pDlgStateSurface, pDlgStateSurface, 
 		IsOutputSetCondition (_pSurfaceAgent),
-		Action ((ActionMethod) &TestTempPointCmd::ActionSelect2));
+		Action ((ActionMethod) &TestTempPointCmd::ActionSelect));
 
 }
 

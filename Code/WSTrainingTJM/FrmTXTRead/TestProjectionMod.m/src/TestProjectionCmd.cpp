@@ -268,6 +268,16 @@ void TestProjectionCmd::ActionOK2(void * data)
 			if (iTangency ==1)
 			{
 				_pGeneralCls->SetHighlightCells(_spBodyMechTool,vecCellSurfaceNeighbor,2);
+				for (int i=0;i<vecCellSurfaceNeighbor.size();i++)
+				{
+					CATCell_var spCell = vecCellSurfaceNeighbor[i];
+					CATIAlias_var spiAlias = spCell;
+					if (spiAlias != NULL_var)
+					{
+						CATUnicodeString strAlias = spiAlias->GetAlias();
+						cout<<strAlias<<endl;
+					}
+				}
 			}
 		}
 		//HRESULT rc = _pGeneralCls->GetBordersFromSurface(_spiSpecPoint,_spiProductPoint,_spiSpecSolid,vecLstCellEdge);
@@ -345,6 +355,19 @@ void TestProjectionCmd::ActionSelectPoint()
 
 	_spBodyMechTool = _pGeneralCls->GetBodyFromFeature(spiSpecMechTool);
 
+	//
+	CATBaseUnknown *pBU = NULL;
+	CATIProduct_var spiProd = NULL_var;
+	_pGeneralCls->TransferSelectToBU(_pPointAgent,pBU,spiProd);
+	if (pBU != NULL)
+	{
+		CATIBRepAccess *pBRepAccess = NULL;
+		HRESULT rc = pBU -> QueryInterface(IID_CATIBRepAccess, (void**) & pBRepAccess);
+		if (SUCCEEDED(rc)&&pBRepAccess!=NULL)
+		{
+			CATBody_var spBody = pBRepAccess->GetSelectingBody();
+		}
+	}
 	//
 	_pPointAgent->InitializeAcquisition();
 	//

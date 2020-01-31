@@ -82,7 +82,9 @@ _SelectorListSurface -> SetGridConstraints(1, 1, 1, 1, CATGRID_4SIDES);
 
 //CAA2 WIZARD CALLBACK DECLARATION SECTION
 //END CAA2 WIZARD CALLBACK DECLARATION SECTION
-
+CATUnicodeString strDefault = "No selection";
+_SelectorListLine->SetLine(strDefault,-1,CATDlgDataAdd);
+_SelectorListSurface->SetLine(strDefault,-1,CATDlgDataAdd);
 }
 
 CATDlgSelectorList* TestToolingDlg::GetSelectorListLine()

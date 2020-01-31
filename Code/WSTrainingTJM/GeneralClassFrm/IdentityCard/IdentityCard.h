@@ -42,3 +42,4 @@ AddPrereqComponent("GeometricOperators",Public);
 AddPrereqComponent("VPMInterfaces",Public);
 AddPrereqComponent("MechanicalModeler",Public);
 AddPrereqComponent("BasicTopologicalOpe",Public);
+AddPrereqComponent("GSMInterfaces",Public);

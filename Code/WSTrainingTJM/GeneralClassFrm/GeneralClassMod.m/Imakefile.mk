@@ -42,6 +42,7 @@ CATGeometricOperators \
 GUIDVPMInterfaces	\
 CATMechanicalModeler	\
 CATBasicTopologicalOpe \
+CATGitInterfaces \
 
 # System dependant variables
 #

@@ -77,6 +77,8 @@
 #include "CATMecModAutoServices.h"
 #include "CATIMfGeometryAccess.h"
 #include "CATIPersistentSubElement.h"
+#include "CATIMechanicalRootFactory.h"
+#include "CATIDatumFactory.h"
 
 //ObjectModelerBase 
 #include "CATInit.h"
@@ -214,6 +216,8 @@
 #include "CATCreateTopProject.h"
 #include "CATHybProject.h"
 #include "CATDynMassProperties3D.h"
+#include "CATTopReflectLine.h"
+#include "CATCreateTopReflectLine.h"
 
 //InfInterfaces
 #include "CATIADocument.h"
@@ -232,6 +236,9 @@
 
 //ObjectModelerSystem
 #include "CORBAAnyDef.h"
+
+//GSMInterfaces 
+#include "CATIGSMProceduralView.h"
 
 //
 #include <map>
@@ -655,6 +662,9 @@ class ExportedByGeneralClassMod GeneralClass: public CATBaseUnknown
   CATBoolean CheckG0Connection(CATGeoFactory *ipGeoFactory,CATTopData *ipTopData,CATLISTP(CATBody) ilstBody);
   //检查两个曲面在共线上的任意一点的法线的方向是否相同或者相反
   int CheckTwoSurfaceTangencyInOnePoint(CATGeoFactory *ipGeoFactory, CATTopData *ipTopData, CATCell_var ispCellSurface1,CATCell_var ispCellSurface2,CATCell_var ispCellCurveMutual);
+  HRESULT CreateNewPrtTool(CATIProduct_var ispiProd,CATUnicodeString istrName,CATISpecObject_var &ospiSpecPrtTool);
+  HRESULT CreateNewGeoSet(CATIProduct_var ispiProd,CATUnicodeString istrName,CATISpecObject_var &ospiSpecGeoSet);
+  HRESULT InsertObjOnTree(CATIProduct_var ispProd,CATISpecObject_var ispiSpecGeoSet,CATUnicodeString istrObjName,CATBody *ipBody, CATISpecObject_var &ospiSpecObj);
 };
 
 //-----------------------------------------------------------------------

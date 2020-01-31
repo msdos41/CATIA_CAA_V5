@@ -26,13 +26,28 @@ CATCreateClass( TestToolingCmd);
 TestToolingCmd::TestToolingCmd() :
   CATStateCommand ("TestToolingCmd", CATDlgEngOneShot, CATCommandModeExclusive) 
 //  Valid states are CATDlgEngOneShot and CATDlgEngRepeat
-,_pSelAAgent(NULL),_pSelAFieldAgent(NULL)
-,_pSelBAgent(NULL),_pSelBFieldAgent(NULL)
+,_pGeneralCls(NULL)
+,_pEditor(NULL)
+,_pHSO(NULL)
 {
 	_pDlg = NULL;
 	_pDlg = new TestToolingDlg();
 	_pDlg->Build();
 	_pDlg->SetVisibility(CATDlgShow);
+
+	_pSelAAgent = NULL;
+	_pSelBAgent = NULL;
+	_pSelAFieldAgent = NULL;
+	_pSelBFieldAgent = NULL;
+
+	_pGeneralCls = new GeneralClass();
+
+	_pEditor = CATFrmEditor::GetCurrentEditor();
+
+	if (NULL!=_pEditor)
+	{
+		_pHSO = _pEditor->GetHSO();
+	}
 }
 
 //-------------------------------------------------------------------------
@@ -45,6 +60,21 @@ TestToolingCmd::~TestToolingCmd()
 		_pDlg->RequestDelayedDestruction();
 		_pDlg = NULL;
 	}
+
+	if (_pGeneralCls != NULL)
+	{
+		delete _pGeneralCls;
+		_pGeneralCls = NULL;
+	}
+
+	if (_pEditor != NULL)
+	{
+		_pEditor->RequestDelayedDestruction();
+		_pEditor = NULL;
+	}
+
+	_pHSO->Empty();
+	_pHSO = NULL;
 
 	if (_pSelAAgent != NULL)
 	{
@@ -80,22 +110,22 @@ void TestToolingCmd::BuildGraph()
 	//对话框
 	AddAnalyseNotificationCB(_pDlg,
 		_pDlg->GetDiaCLOSENotification(),
-		(CATCommandMethod)&TestToolingCmd::ActionCancel,
+		(CATCommandMethod)&TestToolingCmd::ActionExit,
 		NULL);
 
 	AddAnalyseNotificationCB(_pDlg,
 		_pDlg->GetWindCloseNotification(),
-		(CATCommandMethod)&TestToolingCmd::ActionCancel,
+		(CATCommandMethod)&TestToolingCmd::ActionExit,
 		NULL);
 
 	AddAnalyseNotificationCB(_pDlg,
 		_pDlg->GetDiaCANCELNotification(),
-		(CATCommandMethod)&TestToolingCmd::ActionCancel,
+		(CATCommandMethod)&TestToolingCmd::ActionExit,
 		NULL);
 
 	AddAnalyseNotificationCB(_pDlg,
 		_pDlg->GetDiaOKNotification(),
-		(CATCommandMethod)&TestToolingCmd::ActionOK2,
+		(CATCommandMethod)&TestToolingCmd::ActionOK,
 		NULL);
 	//PointField
 	_pSelAFieldAgent = new CATDialogAgent("Select A");
@@ -108,7 +138,7 @@ void TestToolingCmd::BuildGraph()
 	//选择Point
 	_pSelAAgent = new CATFeatureImportAgent("Select A");
 	//_pPointAgent->AddElementType("CATIGSMPoint");
-	_pSelAAgent->AddElementType("CATLine");
+	_pSelAAgent->AddElementType("CATCurve");
 	_pSelAAgent->SetBehavior(CATDlgEngWithPrevaluation|CATDlgEngWithCSO|CATDlgEngOneShot);
 
 	//选择Solid
@@ -133,19 +163,19 @@ void TestToolingCmd::BuildGraph()
 	//
 	AddTransition(pSelAState,pSelAState,
 		IsOutputSetCondition(_pSelAAgent),
-		Action((ActionMethod)& TestToolingCmd::ActionSelectPoint));
+		Action((ActionMethod)& TestToolingCmd::selectCurveFunc));
 
 	AddTransition(pSelBState,pSelBState,
 		IsOutputSetCondition(_pSelBAgent),
-		Action((ActionMethod)& TestToolingCmd::ActionSelectSolid));
+		Action((ActionMethod)& TestToolingCmd::selectSurfaceFunc));
 
 	AddTransition(pSelAState,pSelBState,
 		IsOutputSetCondition(_pSelBFieldAgent),
-		Action((ActionMethod)& TestToolingCmd::SwitchToSolidSelect));
+		Action((ActionMethod)& TestToolingCmd::TransToSelectB));
 
 	AddTransition(pSelBState,pSelAState,
 		IsOutputSetCondition(_pSelAFieldAgent),
-		Action((ActionMethod)& TestToolingCmd::SwitchToPointSelect));
+		Action((ActionMethod)& TestToolingCmd::TransToSelectA));
 
 	////选中高亮
 	//AddAnalyseNotificationCB(_pDlg->GetSelectorListPoint(),
@@ -169,4 +199,132 @@ CATBoolean TestToolingCmd::ActionOne( void *data )
   // ------------------------------------------------------
 
   return TRUE;
+}
+
+CATBoolean TestToolingCmd::ActionExit(void * data)
+{
+	RequestDelayedDestruction();
+	return TRUE;
+}
+
+CATBoolean TestToolingCmd::ActionOK(void * data)
+{
+	if (_spBUSelectA ==NULL_var || _spBUSelectB==NULL_var)
+	{
+		return FALSE;
+	}
+	//获取工厂
+	CATSoftwareConfiguration * pConfig = new CATSoftwareConfiguration();//配置指针
+	CATTopData * topdata =new CATTopData(pConfig, NULL);//topdata
+	CATIPrtContainer_var ospiCont=NULL_var;
+	CATGeoFactory*  pGeoFactory=_pGeneralCls->GetProductGeoFactoryAndPrtCont(_spiProdSelA,ospiCont);
+	if (topdata == NULL || pGeoFactory == NULL)
+	{
+		return FALSE;
+	}
+	//
+	CATMathPoint pt1,pt2;
+	_pGeneralCls->GetPointFromCurve(_spBUSelectA,pt1,pt2);
+	CATMathVector vecDir = pt1 - pt2;
+	vecDir.Normalize();
+	//
+	CATBody_var spBodySurface = _pGeneralCls->GetBodyFromFeature(_spBUSelectB);
+	if (spBodySurface == NULL_var)
+	{
+		return FALSE;
+	}
+	//
+	CATTopReflectLine *pTopReflectLine = NULL;
+	CATTry
+	{
+		pTopReflectLine = CATCreateTopReflectLine(pGeoFactory,spBodySurface,vecDir,0.5*CATPI,topdata);
+		if (pTopReflectLine==NULL)
+		{
+			return FALSE;
+		}
+		pTopReflectLine->Run();
+	}
+	CATCatch(CATError , pError)
+	{
+		return FALSE;
+	}
+	CATEndTry
+
+	CATBody *pBodyResult = pTopReflectLine->GetResult();
+	if (pBodyResult == NULL)
+	{
+		return FALSE;
+	}
+	//
+	CATISpecObject_var spiSpecGeoSet = NULL_var;
+	HRESULT rc = _pGeneralCls->CreateNewGeoSet(_spiProdSelA,"Created_By_CAA",spiSpecGeoSet);
+	if (FAILED(rc)||spiSpecGeoSet==NULL_var)
+	{
+		return FALSE;
+	}
+	CATISpecObject_var spiSpecReflectLine = NULL_var;
+	rc = _pGeneralCls->InsertObjOnTree(_spiProdSelA,spiSpecGeoSet,"Curve",pBodyResult,spiSpecReflectLine);
+	if (FAILED(rc)||spiSpecReflectLine==NULL_var)
+	{
+		return FALSE;
+	}
+	return TRUE;
+}
+
+void TestToolingCmd::selectCurveFunc(void * data)
+{
+	CATBaseUnknown *pBUSelect = NULL;
+	CATIProduct_var spiProdSelect = NULL_var;
+	_pGeneralCls->TransferSelectToBU(_pSelAAgent,pBUSelect,spiProdSelect);
+	if (pBUSelect == NULL || spiProdSelect == NULL_var)
+	{
+		_pSelAAgent->InitializeAcquisition();
+		return;
+	}
+	_pDlg->GetSelectorListLine()->ClearLine();
+	CATUnicodeString strAlias = _pGeneralCls->GetNameFromBaseUnknownFunc(pBUSelect);
+	_pDlg->GetSelectorListLine()->SetLine(strAlias,-1,CATDlgDataAdd);
+	int iTabRow = 0;
+	_pDlg->GetSelectorListLine()->SetSelect(&iTabRow,1);
+	//
+	_spBUSelectA = pBUSelect;
+	_spiProdSelA = spiProdSelect;
+	//
+	_pSelAAgent->InitializeAcquisition();
+}
+
+void TestToolingCmd::selectSurfaceFunc(void * data)
+{
+	CATBaseUnknown *pBUSelect = NULL;
+	CATIProduct_var spiProdSelect = NULL_var;
+	_pGeneralCls->TransferSelectToBU(_pSelBAgent,pBUSelect,spiProdSelect);
+	if (pBUSelect == NULL || spiProdSelect == NULL_var)
+	{
+		_pSelBAgent->InitializeAcquisition();
+		return;
+	}
+	_pDlg->GetSelectorListSurface()->ClearLine();
+	CATUnicodeString strAlias = _pGeneralCls->GetNameFromBaseUnknownFunc(pBUSelect);
+	_pDlg->GetSelectorListSurface()->SetLine(strAlias,-1,CATDlgDataAdd);
+	int iTabRow = 0;
+	_pDlg->GetSelectorListSurface()->SetSelect(&iTabRow,1);
+
+	//
+	_spBUSelectB = pBUSelect;
+	//
+	_pSelBAgent->InitializeAcquisition();
+}
+
+void TestToolingCmd::TransToSelectA(void * data)
+{
+	_pSelAFieldAgent->InitializeAcquisition();
+	_pSelBFieldAgent->InitializeAcquisition();
+	_pDlg->GetSelectorListSurface()->ClearSelect();
+}
+
+void TestToolingCmd::TransToSelectB(void * data)
+{
+	_pSelAFieldAgent->InitializeAcquisition();
+	_pSelBFieldAgent->InitializeAcquisition();
+	_pDlg->GetSelectorListLine()->ClearSelect();
 }

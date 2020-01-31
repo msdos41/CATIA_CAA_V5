@@ -16,7 +16,27 @@ JS0GROUP JS0FM DI0PANV2 CATApplicationFrame  \
 CATMathematics CATDialogEngine 
 # END WIZARD EDITION ZONE
 
-LINK_WITH = $(WIZARD_LINK_MODULES)
+LINK_WITH = $(WIZARD_LINK_MODULES)	\
+GeneralClassMod	\
+CATMechanicalModelerUI  \
+CATMecModInterfaces  \
+CATObjectModelerBase   \
+CATProductStructure1  \
+CATObjectSpecsModeler  \
+CATGeometricObjects  \
+CATNewTopologicalObjects  \
+CATMeasureGeometryInterfaces  \
+CATViz  \
+CATInteractiveInterfaces  \
+CATGitInterfaces  \
+KnowledgeItf  \
+CATTopologicalOperators  \
+CATBasicTopologicalOpe  \
+GUIDVPMInterfaces	\
+YFAirventViewFeedbackM	\
+YFDatumTempM	\
+CATMechanicalModeler	\
+CATVisualization	\
 
 # System dependant variables
 #

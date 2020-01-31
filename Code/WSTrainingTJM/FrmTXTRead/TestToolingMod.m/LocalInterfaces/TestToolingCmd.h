@@ -21,6 +21,7 @@
 #include "CATStateCommand.h"
 #include "CATBoolean.h"
 #include "TestToolingDlg.h"
+#include "GeneralClass.h"
 
 class CATIndicationAgent;
 
@@ -56,22 +57,35 @@ class TestToolingCmd: public CATStateCommand
      * Action associated to state transitions.
      */
   virtual CATBoolean  ActionOne(void * data);
-
-  private:
+  void selectCurveFunc(void * data);
+  void selectSurfaceFunc(void * data);
+  void TransToSelectA(void * data);
+  void TransToSelectB(void * data);
+  CATBoolean ActionExit(void * data);
+  CATBoolean ActionOK(void * data);
+private:
 
 	  TestToolingDlg		*_pDlg;
 
-	  CATFrmEditor * _pEditor;
+	  CATFrmEditor			*_pEditor;
 
-	  CATHSO * _pHSO;
+	  CATHSO				*_pHSO;
+
+	  GeneralClass			*_pGeneralCls;
 
 	  CATFeatureImportAgent * _pSelAAgent;
 
 	  CATFeatureImportAgent * _pSelBAgent;
 
-	  CATDialogAgent * _pSelAFieldAgent;
+	  CATDialogAgent		* _pSelAFieldAgent;
 
-	  CATDialogAgent * _pSelBFieldAgent;
+	  CATDialogAgent		* _pSelBFieldAgent;
+
+	  CATBaseUnknown_var	_spBUSelectA;
+
+	  CATBaseUnknown_var	_spBUSelectB;
+
+	  CATIProduct_var		_spiProdSelA;
 
 };
 

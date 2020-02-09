@@ -37,6 +37,7 @@ YFAirventViewFeedbackM	\
 YFDatumTempM	\
 CATMechanicalModeler	\
 CATVisualization	\
+CATGeometricOperators \
 
 # System dependant variables
 #

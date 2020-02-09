@@ -224,6 +224,81 @@ HRESULT YFGetLicServerIP(char **ocharIPAddr, int &oiPort)
 
 	return rc;
 }
+
+//描述：跳出提示框Warning
+//输入：CATUnicodeString提示内容，CATUnicodeString提示类型
+//输出：void
+//返回：void
+void GeneralClass::MessageOutputWarning (CATUnicodeString iString,CATUnicodeString iTopString)
+{
+	CATApplicationFrame *pApplication = CATApplicationFrame::GetFrame(); 
+	if (NULL != pApplication) 
+	{
+		CATDlgWindow * pMainWindow = pApplication->GetMainWindow();
+		CATDlgNotify *pNotifyDlg = new CATDlgNotify(pMainWindow, "............", CATDlgNfyWarning);
+		if(NULL != pNotifyDlg) 
+		{
+			pNotifyDlg->DisplayBlocked(iString,iTopString);
+			pNotifyDlg->RequestDelayedDestruction();
+		}
+	}
+}
+
+//描述：跳出提示框Error
+//输入：CATUnicodeString提示内容，CATUnicodeString提示类型
+//输出：void
+//返回：void
+void GeneralClass::MessageOutputError (CATUnicodeString iString,CATUnicodeString iTopString)
+{
+	CATApplicationFrame *pApplication = CATApplicationFrame::GetFrame(); 
+	if (NULL != pApplication) 
+	{
+		CATDlgWindow * pMainWindow = pApplication->GetMainWindow();
+		CATDlgNotify *pNotifyDlg = new CATDlgNotify(pMainWindow, "............", CATDlgNfyError);
+		if(NULL != pNotifyDlg) 
+		{
+			pNotifyDlg->DisplayBlocked(iString,iTopString);
+			pNotifyDlg->RequestDelayedDestruction();
+		}
+	}
+}
+
+//描述：跳出提示框Info
+//输入：CATUnicodeString提示内容，CATUnicodeString提示类型
+//输出：void
+//返回：void
+void GeneralClass::MessageOutputInfo (CATUnicodeString iString,CATUnicodeString iTopString)
+{
+	CATApplicationFrame *pApplication = CATApplicationFrame::GetFrame(); 
+	if (NULL != pApplication) 
+	{
+		CATDlgWindow * pMainWindow = pApplication->GetMainWindow();
+		CATDlgNotify *pNotifyDlg = new CATDlgNotify(pMainWindow, "............", CATDlgNfyInformation);
+		if(NULL != pNotifyDlg) 
+		{
+			pNotifyDlg->DisplayBlocked(iString,iTopString);
+			pNotifyDlg->RequestDelayedDestruction();
+		}
+	}
+}
+
+//描述：跳出提示框
+//输入：CATUnicodeString提示内容
+//输出：CATBoolean
+//返回：CATBoolean
+CATBoolean GeneralClass::CreateMsgBoxOptOKCancel(CATUnicodeString usMsg)
+{
+	//cout<<"** CreatMsgBoxOptNotice:"<<usMsg.ConvertToChar()<<endl;
+	CATBoolean bl=TRUE;
+	CATDlgNotify* warning = new CATDlgNotify(CATApplicationFrame::GetFrame()->GetMainWindow(), "CURRENT_NOTICE", CATDlgNfyOKCancel);
+	CATUnicodeString title="Notice";
+	if(warning->DisplayBlocked(usMsg, title)==1)
+		bl=TRUE;
+	else
+		bl=FALSE;
+	warning->RequestDelayedDestruction();
+	return bl;
+}
  
 //获得根文档
 HRESULT GeneralClass::GetRootProductUpdate(CATIProduct_var &ospiRootProduct)
@@ -8933,4 +9008,77 @@ HRESULT GeneralClass::InsertObjOnTree(CATIProduct_var ispProd,CATISpecObject_var
 		}
 		ospiSpecObj = spiTempSpec;
 		return rc;
+}
+
+//
+HRESULT GeneralClass::GetSurfaceFromBody(CATBody_var ispBody, CATLISTP(CATSurface) &olstSurface)
+{
+	HRESULT rc = S_OK;
+	if (ispBody==NULL_var)
+	{
+		return E_FAIL;
+	}
+	//
+	CATLISTP(CATCell) lstCell;
+	ispBody->GetAllCells(lstCell,2);
+	if (lstCell.Size()==0)
+	{
+		return E_FAIL;
+	}
+	for (int i=1;i<=lstCell.Size();i++)
+	{
+		CATFace_var spFace = lstCell[i];
+		if (spFace==NULL_var)
+		{
+			continue;
+		}
+		CATSurface_var spSurface = spFace->GetSurface();
+		if (spSurface==NULL_var)
+		{
+			continue;
+		}
+		olstSurface.Append(spSurface);
+	}
+	return rc;
+}
+
+//
+HRESULT GeneralClass::GetBodyFromCurve(CATCurve *ipCurve, CATGeoFactory *ipGeoFactory,CATTopData *ipTopData,CATBody *&opBody)
+{
+	HRESULT rc = S_OK;
+	//
+	if (ipCurve==NULL || ipGeoFactory==NULL || ipTopData==NULL)
+	{
+		return E_FAIL;
+	}
+	//
+	CATCrvLimits crvLimits;
+	ipCurve->GetLimits(crvLimits) ;
+
+	short iOrient = 1;
+	CATTopWire *pTopWire = CATCreateTopWire(ipGeoFactory,ipTopData,1,&ipCurve,&crvLimits,&iOrient);
+	if (pTopWire==NULL)
+	{
+		cout<<"CATCreateTopWire Failed"<<endl;
+		return E_FAIL;
+	}
+
+	pTopWire->Run();
+
+	CATBody*pBodyCurve=NULL;
+	pBodyCurve = pTopWire->GetResult();
+	if (pBodyCurve==NULL)
+	{
+		cout<<"pTopPlaneBody==NULL"<<endl;
+		return E_FAIL;
+	}
+	if (pTopWire!=NULL)
+	{
+		delete pTopWire;
+		pTopWire = NULL;
+	}
+	//
+	opBody = pBodyCurve;
+
+	return rc;
 }

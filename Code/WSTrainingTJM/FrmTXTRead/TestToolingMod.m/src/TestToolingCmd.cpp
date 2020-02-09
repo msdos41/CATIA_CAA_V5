@@ -67,11 +67,7 @@ TestToolingCmd::~TestToolingCmd()
 		_pGeneralCls = NULL;
 	}
 
-	if (_pEditor != NULL)
-	{
-		_pEditor->RequestDelayedDestruction();
-		_pEditor = NULL;
-	}
+	_pEditor = NULL;
 
 	_pHSO->Empty();
 	_pHSO = NULL;
@@ -125,7 +121,7 @@ void TestToolingCmd::BuildGraph()
 
 	AddAnalyseNotificationCB(_pDlg,
 		_pDlg->GetDiaOKNotification(),
-		(CATCommandMethod)&TestToolingCmd::ActionOK,
+		(CATCommandMethod)&TestToolingCmd::ActionOK3,
 		NULL);
 	//PointField
 	_pSelAFieldAgent = new CATDialogAgent("Select A");
@@ -237,20 +233,33 @@ CATBoolean TestToolingCmd::ActionOK(void * data)
 	CATTopReflectLine *pTopReflectLine = NULL;
 	CATTry
 	{
-		pTopReflectLine = CATCreateTopReflectLine(pGeoFactory,spBodySurface,vecDir,0.5*CATPI,topdata);
+		pTopReflectLine = CATCreateTopReflectLine(pGeoFactory,spBodySurface,vecDir,CATPIBY2,topdata);
 		if (pTopReflectLine==NULL)
 		{
 			return FALSE;
 		}
-		pTopReflectLine->Run();
+		pTopReflectLine->OptimizeDomainStructure();
+	//CATTry
+	//{
+		int iValue = pTopReflectLine->Run();
+		cout<<"Run Value: "<<iValue<<endl;
 	}
-	CATCatch(CATError , pError)
+	CATCatch(CATMfErrUpdate , pUpdateError)
 	{
 		return FALSE;
 	}
-	CATEndTry
+	CATCatch(CATError , error)
+	{
+		delete pTopReflectLine;
+		pTopReflectLine = NULL;
+		CATReturnError(error);
+		return FALSE;
+	}
+	CATEndTry;
 
 	CATBody *pBodyResult = pTopReflectLine->GetResult();
+	delete pTopReflectLine;
+	pTopReflectLine = NULL;
 	if (pBodyResult == NULL)
 	{
 		return FALSE;
@@ -264,6 +273,125 @@ CATBoolean TestToolingCmd::ActionOK(void * data)
 	}
 	CATISpecObject_var spiSpecReflectLine = NULL_var;
 	rc = _pGeneralCls->InsertObjOnTree(_spiProdSelA,spiSpecGeoSet,"Curve",pBodyResult,spiSpecReflectLine);
+	if (FAILED(rc)||spiSpecReflectLine==NULL_var)
+	{
+		return FALSE;
+	}
+	return TRUE;
+}
+
+CATBoolean TestToolingCmd::ActionOK2(void * data)
+{
+	if (_spBUSelectA ==NULL_var || _spBUSelectB==NULL_var)
+	{
+		return FALSE;
+	}
+	//获取工厂
+	CATSoftwareConfiguration * pConfig = new CATSoftwareConfiguration();//配置指针
+	CATTopData * topdata =new CATTopData(pConfig, NULL);//topdata
+	CATIPrtContainer_var ospiCont=NULL_var;
+	CATGeoFactory*  pGeoFactory=_pGeneralCls->GetProductGeoFactoryAndPrtCont(_spiProdSelA,ospiCont);
+	if (topdata == NULL || pGeoFactory == NULL)
+	{
+		return FALSE;
+	}
+	//
+	CATMathPoint pt1,pt2;
+	_pGeneralCls->GetPointFromCurve(_spBUSelectA,pt1,pt2);
+	CATMathVector vecDir = pt1 - pt2;
+	vecDir.Normalize();
+	CATMathDirection mathDir(vecDir);
+	//
+	CATBody_var spBodySurface = _pGeneralCls->GetBodyFromFeature(_spBUSelectB);
+	if (spBodySurface == NULL_var)
+	{
+		return FALSE;
+	}
+	CATLISTP(CATSurface) lstSurface;
+	HRESULT rc = _pGeneralCls->GetSurfaceFromBody(spBodySurface,lstSurface);
+	for (int i=1;i<=lstSurface.Size();i++)
+	{
+		CATReflectCurve *pReflectCurve = NULL;
+		CATCurve *pCurve = NULL;
+		pReflectCurve = CATCreateReflectCurve(pGeoFactory,pConfig,lstSurface[i],mathDir,0.5*CATPI);
+		if (pReflectCurve==NULL)
+		{
+			continue;
+		}
+		CATTry
+		{
+			pReflectCurve->Run();
+			
+		}
+		CATCatch(CATError , error)
+		{
+			delete pReflectCurve;
+			pReflectCurve = NULL;
+			CATReturnError(error);
+			continue;
+		}
+		CATEndTry;
+
+		CATLONG32 lNum = pReflectCurve->GetNumberOfPCurves();
+		if (0==lNum)
+		{
+			continue;
+		}
+		pReflectCurve->BeginningCurve();
+		CATPCurve *pPCurve = pReflectCurve->GetPCurve();
+		
+		pCurve = pReflectCurve->GetCurve();
+		delete pReflectCurve;
+		pReflectCurve = NULL;
+		if (pCurve == NULL)
+		{
+			continue;
+		}
+		CATBody *pBodyResult = NULL;
+		rc = _pGeneralCls->GetBodyFromCurve(pCurve,pGeoFactory,topdata,pBodyResult);
+		if (FAILED(rc)||pBodyResult==NULL)
+		{
+			continue;
+		}
+		//
+		CATISpecObject_var spiSpecGeoSet = NULL_var;
+		HRESULT rc = _pGeneralCls->CreateNewGeoSet(_spiProdSelA,"Created_By_CAA",spiSpecGeoSet);
+		if (FAILED(rc)||spiSpecGeoSet==NULL_var)
+		{
+			continue;
+		}
+		CATISpecObject_var spiSpecReflectLine = NULL_var;
+		rc = _pGeneralCls->InsertObjOnTree(_spiProdSelA,spiSpecGeoSet,"Curve",pBodyResult,spiSpecReflectLine);
+		if (FAILED(rc)||spiSpecReflectLine==NULL_var)
+		{
+			continue;
+		}
+	}
+	return TRUE;
+}
+
+CATBoolean TestToolingCmd::ActionOK3(void * data)
+{
+	if (_spBUSelectA ==NULL_var || _spBUSelectB==NULL_var)
+	{
+		return FALSE;
+	}
+	//
+	CATBody *pBodyReflect = NULL;
+	CATBoolean bReflect = GetReflectCurves(_spiProdSelA,_spBUSelectA,_spBUSelectB,pBodyReflect);
+	if (pBodyReflect==NULL)
+	{
+		_pGeneralCls->MessageOutputWarning("No reflect curve result.","Warning");
+		return TRUE;
+	}
+	CATISpecObject_var spiSpecGeoSet = NULL_var;
+	HRESULT rc = _pGeneralCls->CreateNewGeoSet(_spiProdSelA,"Created_By_CAA",spiSpecGeoSet);
+	if (FAILED(rc)||spiSpecGeoSet==NULL_var)
+	{
+		return FALSE;
+	}
+	CATISpecObject_var spiSpecReflectLine = NULL_var;
+	rc = _pGeneralCls->InsertObjOnTree(_spiProdSelA,spiSpecGeoSet,"Curve",pBodyReflect,spiSpecReflectLine);
 	if (FAILED(rc)||spiSpecReflectLine==NULL_var)
 	{
 		return FALSE;
@@ -327,4 +455,103 @@ void TestToolingCmd::TransToSelectB(void * data)
 	_pSelAFieldAgent->InitializeAcquisition();
 	_pSelBFieldAgent->InitializeAcquisition();
 	_pDlg->GetSelectorListLine()->ClearSelect();
+}
+
+CATBoolean TestToolingCmd::GetReflectCurves(CATIProduct_var ispiProd, CATBaseUnknown_var ispBULine, CATBaseUnknown_var ispBUSurface,CATBody* &opBodyReflect)
+{
+	//获取工厂
+	CATSoftwareConfiguration * pConfig = new CATSoftwareConfiguration();//配置指针
+	CATTopData * topdata =new CATTopData(pConfig, NULL);//topdata
+	CATIPrtContainer_var ospiCont=NULL_var;
+	CATGeoFactory*  pGeoFactory=_pGeneralCls->GetProductGeoFactoryAndPrtCont(ispiProd,ospiCont);
+	if (topdata == NULL || pGeoFactory == NULL)
+	{
+		return FALSE;
+	}
+	//根据curve获取方向
+	CATMathPoint pt1,pt2;
+	_pGeneralCls->GetPointFromCurve(_spBUSelectA,pt1,pt2);
+	CATMathVector vecDir = pt1 - pt2;
+	vecDir.Normalize();
+	CATMathDirection mathDir(vecDir);
+	//根据surface获取body
+	CATBody_var spBodySurface = _pGeneralCls->GetBodyFromFeature(ispBUSurface);
+	if (spBodySurface == NULL_var)
+	{
+		return FALSE;
+	}
+	/*
+	//先用CATCreateReflectCurve判断有没有反射线的结果
+	CATBoolean bFind = FALSE;
+	CATLISTP(CATSurface) lstSurface;
+	HRESULT rc = _pGeneralCls->GetSurfaceFromBody(spBodySurface,lstSurface);
+	for (int i=1;i<=lstSurface.Size();i++)
+	{
+		CATReflectCurve *pReflectCurve = NULL;
+		CATCurve *pCurve = NULL;
+		pReflectCurve = CATCreateReflectCurve(pGeoFactory,pConfig,lstSurface[i],mathDir,CATPIBY2-0.001);
+		if (pReflectCurve==NULL)
+		{
+			continue;
+		}
+		//CATTry
+		//{
+		//	pReflectCurve->Run();
+		//}
+		//CATCatch(CATError , error)
+		//{
+		//	delete pReflectCurve;
+		//	pReflectCurve = NULL;
+		//	CATReturnError(error);
+		//	continue;
+		//}
+		//CATEndTry;
+
+		CATLONG32 lNum = pReflectCurve->GetNumberOfPCurves();
+		if (0<lNum)
+		{
+			bFind = TRUE;
+			break;
+		}
+	}
+	*/
+	//如果有结果，用CATCreateTopReflectLine求出结果
+	if (1)
+	{
+		CATTopReflectLine *pTopReflectLine = NULL;
+		pTopReflectLine = CATCreateTopReflectLine(pGeoFactory,spBodySurface,vecDir,CATPIBY2,topdata);
+		if (pTopReflectLine==NULL)
+		{
+			return FALSE;
+		}
+		pTopReflectLine->OptimizeDomainStructure();
+		CATTry
+		{
+			int iValue = pTopReflectLine->Run();
+			cout<<"Run Value: "<<iValue<<endl;
+		}
+		CATCatch(CATMfErrUpdate , pUpdateError)
+		{
+			return FALSE;
+		}
+		CATCatch(CATError , error)
+		{
+			delete pTopReflectLine;
+			pTopReflectLine = NULL;
+			CATReturnError(error);
+			return FALSE;
+		}
+		CATEndTry;
+
+		CATBody *pBodyResult = pTopReflectLine->GetResult();
+		delete pTopReflectLine;
+		pTopReflectLine = NULL;
+		if (pBodyResult == NULL)
+		{
+			return FALSE;
+		}
+		//
+		opBodyReflect = pBodyResult;
+	}
+	return TRUE;
 }

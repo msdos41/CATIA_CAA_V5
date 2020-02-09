@@ -63,6 +63,9 @@ class TestToolingCmd: public CATStateCommand
   void TransToSelectB(void * data);
   CATBoolean ActionExit(void * data);
   CATBoolean ActionOK(void * data);
+  CATBoolean ActionOK2(void * data);
+  CATBoolean GetReflectCurves(CATIProduct_var ispiProd, CATBaseUnknown_var ispBULine, CATBaseUnknown_var ispBUSurface,CATBody* &opBodyReflect);
+  CATBoolean ActionOK3(void * data);
 private:
 
 	  TestToolingDlg		*_pDlg;

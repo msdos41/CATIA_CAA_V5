@@ -120,6 +120,7 @@
 #include "CATSurLimits.h"
 #include "CATTransfoManager.h"
 #include "CATCrvLimits.h"
+#include "CATListOfCATSurfaces.h"
 
 //DraftingInterfaces
 #include "CATIGenerSpec.h"
@@ -218,6 +219,7 @@
 #include "CATDynMassProperties3D.h"
 #include "CATTopReflectLine.h"
 #include "CATCreateTopReflectLine.h"
+#include "CATTopWire.h"
 
 //InfInterfaces
 #include "CATIADocument.h"
@@ -230,6 +232,8 @@
 //GeometricOperators
 #include "CATCreateLocalAnalysisD.h"
 #include "CATLocalAnalysis2D.h"
+#include "CATCreateReflectCurve.h"
+#include "CATReflectCurve.h"
 
 //VPMInterfaces
 #include "CATIVpmAFLAffectedObject.h"
@@ -665,6 +669,12 @@ class ExportedByGeneralClassMod GeneralClass: public CATBaseUnknown
   HRESULT CreateNewPrtTool(CATIProduct_var ispiProd,CATUnicodeString istrName,CATISpecObject_var &ospiSpecPrtTool);
   HRESULT CreateNewGeoSet(CATIProduct_var ispiProd,CATUnicodeString istrName,CATISpecObject_var &ospiSpecGeoSet);
   HRESULT InsertObjOnTree(CATIProduct_var ispProd,CATISpecObject_var ispiSpecGeoSet,CATUnicodeString istrObjName,CATBody *ipBody, CATISpecObject_var &ospiSpecObj);
+  HRESULT GetSurfaceFromBody(CATBody_var ispBody, CATLISTP(CATSurface) &olstSurface);
+  HRESULT GetBodyFromCurve(CATCurve *ipCurve, CATGeoFactory *ipGeoFactory,CATTopData *ipTopData,CATBody *&opBody);
+  void MessageOutputWarning (CATUnicodeString iString,CATUnicodeString iTopString);
+  void MessageOutputError (CATUnicodeString iString,CATUnicodeString iTopString);
+  void MessageOutputInfo (CATUnicodeString iString,CATUnicodeString iTopString);
+  CATBoolean CreateMsgBoxOptOKCancel(CATUnicodeString usMsg);
 };
 
 //-----------------------------------------------------------------------

@@ -41,7 +41,7 @@ TestCrossDocCmd::TestCrossDocCmd() :
 	_pDlg = NULL;
 	_pDlg = new TestCrossDocDlg();
 	_pDlg->Build();
-	//_pDlg->SetVisibility(CATDlgShow);
+	_pDlg->SetVisibility(CATDlgShow);
 
 	_pGeneralCls = new GeneralClass();
 

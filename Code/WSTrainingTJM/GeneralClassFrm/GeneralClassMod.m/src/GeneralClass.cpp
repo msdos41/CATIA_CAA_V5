@@ -224,6 +224,81 @@ HRESULT YFGetLicServerIP(char **ocharIPAddr, int &oiPort)
 
 	return rc;
 }
+
+//描述：跳出提示框Warning
+//输入：CATUnicodeString提示内容，CATUnicodeString提示类型
+//输出：void
+//返回：void
+void GeneralClass::MessageOutputWarning (CATUnicodeString iString,CATUnicodeString iTopString)
+{
+	CATApplicationFrame *pApplication = CATApplicationFrame::GetFrame(); 
+	if (NULL != pApplication) 
+	{
+		CATDlgWindow * pMainWindow = pApplication->GetMainWindow();
+		CATDlgNotify *pNotifyDlg = new CATDlgNotify(pMainWindow, "............", CATDlgNfyWarning);
+		if(NULL != pNotifyDlg) 
+		{
+			pNotifyDlg->DisplayBlocked(iString,iTopString);
+			pNotifyDlg->RequestDelayedDestruction();
+		}
+	}
+}
+
+//描述：跳出提示框Error
+//输入：CATUnicodeString提示内容，CATUnicodeString提示类型
+//输出：void
+//返回：void
+void GeneralClass::MessageOutputError (CATUnicodeString iString,CATUnicodeString iTopString)
+{
+	CATApplicationFrame *pApplication = CATApplicationFrame::GetFrame(); 
+	if (NULL != pApplication) 
+	{
+		CATDlgWindow * pMainWindow = pApplication->GetMainWindow();
+		CATDlgNotify *pNotifyDlg = new CATDlgNotify(pMainWindow, "............", CATDlgNfyError);
+		if(NULL != pNotifyDlg) 
+		{
+			pNotifyDlg->DisplayBlocked(iString,iTopString);
+			pNotifyDlg->RequestDelayedDestruction();
+		}
+	}
+}
+
+//描述：跳出提示框Info
+//输入：CATUnicodeString提示内容，CATUnicodeString提示类型
+//输出：void
+//返回：void
+void GeneralClass::MessageOutputInfo (CATUnicodeString iString,CATUnicodeString iTopString)
+{
+	CATApplicationFrame *pApplication = CATApplicationFrame::GetFrame(); 
+	if (NULL != pApplication) 
+	{
+		CATDlgWindow * pMainWindow = pApplication->GetMainWindow();
+		CATDlgNotify *pNotifyDlg = new CATDlgNotify(pMainWindow, "............", CATDlgNfyInformation);
+		if(NULL != pNotifyDlg) 
+		{
+			pNotifyDlg->DisplayBlocked(iString,iTopString);
+			pNotifyDlg->RequestDelayedDestruction();
+		}
+	}
+}
+
+//描述：跳出提示框
+//输入：CATUnicodeString提示内容
+//输出：CATBoolean
+//返回：CATBoolean
+CATBoolean GeneralClass::CreateMsgBoxOptOKCancel(CATUnicodeString usMsg)
+{
+	//cout<<"** CreatMsgBoxOptNotice:"<<usMsg.ConvertToChar()<<endl;
+	CATBoolean bl=TRUE;
+	CATDlgNotify* warning = new CATDlgNotify(CATApplicationFrame::GetFrame()->GetMainWindow(), "CURRENT_NOTICE", CATDlgNfyOKCancel);
+	CATUnicodeString title="Notice";
+	if(warning->DisplayBlocked(usMsg, title)==1)
+		bl=TRUE;
+	else
+		bl=FALSE;
+	warning->RequestDelayedDestruction();
+	return bl;
+}
  
 //获得根文档
 HRESULT GeneralClass::GetRootProductUpdate(CATIProduct_var &ospiRootProduct)
@@ -8679,4 +8754,331 @@ CATBoolean GeneralClass::CheckG0Connection(CATGeoFactory *ipGeoFactory,CATTopDat
 		}
 	}
 	return FALSE;
+}
+
+//在零件根目录下下创建PrtTool
+HRESULT GeneralClass::CreateNewPrtTool(CATIProduct_var ispiProd,CATUnicodeString istrName,CATISpecObject_var &ospiSpecPrtTool)
+{
+	HRESULT rc = S_OK;
+	if (ispiProd == NULL_var)
+	{
+		return E_FAIL;
+	}
+	CATIProduct_var spiProdRef = ispiProd->GetReferenceProduct();
+	if (spiProdRef == NULL_var)
+	{
+		return E_FAIL;
+	}
+	CATILinkableObject *piLinkableObjOnChild = NULL;
+	rc = spiProdRef->QueryInterface(IID_CATILinkableObject,(void**)&piLinkableObjOnChild);
+	if (FAILED(rc))
+	{
+		return E_FAIL;
+	}
+	CATDocument *pDocOnChild = NULL;
+	pDocOnChild = piLinkableObjOnChild->GetDocument();
+	if (NULL == pDocOnChild)
+	{
+		return E_FAIL;
+	}
+	CATIContainerOfDocument_var spContOfDocOnChild = pDocOnChild;
+	CATIContainer *piSpecContainerOnChild = NULL;
+	rc = spContOfDocOnChild->GetSpecContainer(piSpecContainerOnChild);
+	if (FAILED(rc))
+	{
+		return E_FAIL;
+	}
+	CATIPrtContainer *piPrtContainerOnChild = NULL;
+	rc = piSpecContainerOnChild->QueryInterface(IID_CATIPrtContainer,(void**)&piPrtContainerOnChild);
+	piSpecContainerOnChild->Release();
+	if (FAILED(rc))
+	{
+		return E_FAIL;
+	}
+	CATIPrtPart_var spPartOnChild = piPrtContainerOnChild->GetPart();
+	piPrtContainerOnChild->Release();
+	if (NULL_var == spPartOnChild)
+	{
+		return E_FAIL;
+	}
+	//
+	CATIMechanicalRootFactory_var spMechRootFactory = piSpecContainerOnChild;
+	if (spMechRootFactory == NULL_var)
+	{
+		return E_FAIL;
+	}
+	//
+	CATISpecObject_var spiSpecPrtTool = spMechRootFactory->CreatePRTTool(istrName,spPartOnChild);
+	if (spiSpecPrtTool == NULL_var)
+	{
+		return E_FAIL;
+	}
+	//
+	spPartOnChild->SetCurrentFeature(spiSpecPrtTool);
+	ospiSpecPrtTool = spiSpecPrtTool;
+	return rc;
+}
+
+//在零件根目录下创建GeoSet，创建前先判断是否已经存在
+HRESULT GeneralClass::CreateNewGeoSet(CATIProduct_var ispiProd,CATUnicodeString istrName,CATISpecObject_var &ospiSpecGeoSet)
+{
+	HRESULT rc = S_OK;
+	if (ispiProd == NULL_var)
+	{
+		return E_FAIL;
+	}
+	CATIProduct_var ispiProdRef = ispiProd->GetReferenceProduct();
+	if (ispiProdRef==NULL_var)
+	{
+		return E_FAIL;
+	}
+	CATILinkableObject *piLinkableObjOnChild = NULL;
+	rc = ispiProdRef->QueryInterface(IID_CATILinkableObject,(void**)&piLinkableObjOnChild);
+	if (FAILED(rc))
+	{
+		return E_FAIL;
+	}
+	CATDocument *pDocOnChild = NULL;
+	pDocOnChild = piLinkableObjOnChild->GetDocument();
+	if (NULL == pDocOnChild)
+	{
+		return E_FAIL;
+	}
+	CATIContainerOfDocument_var spContOfDocOnChild = pDocOnChild;
+	CATIContainer *piSpecContainerOnChild = NULL;
+	rc = spContOfDocOnChild->GetSpecContainer(piSpecContainerOnChild);
+	if (FAILED(rc))
+	{
+		return E_FAIL;
+	}
+	CATIPrtContainer *piPrtContainerOnChild = NULL;
+	rc = piSpecContainerOnChild->QueryInterface(IID_CATIPrtContainer,(void**)&piPrtContainerOnChild);
+	piSpecContainerOnChild->Release();
+	if (FAILED(rc))
+	{
+		return E_FAIL;
+	}
+	CATIPrtPart_var spPartOnChild = piPrtContainerOnChild->GetPart();
+	piPrtContainerOnChild->Release();
+	if (NULL_var == spPartOnChild)
+	{
+		return E_FAIL;
+	}
+	//先判断有没有RPS几何图形集
+	CATIPartRequest *pPartAsRequest = NULL;
+	rc = spPartOnChild->QueryInterface(IID_CATIPartRequest, (void**)&pPartAsRequest);
+	if (FAILED(rc))
+	{
+		return E_FAIL;
+	}
+	//遍历所有GS
+	CATLISTV(CATBaseUnknown_var) lstGeomSet = NULL;
+	pPartAsRequest->GetSurfBodies("", lstGeomSet);
+	//如果没有GS或者没有给名字，则直接建立
+	CATISpecObject_var spChildTool = NULL_var;
+	if (lstGeomSet == NULL || istrName == "")
+	{
+		//获得几何图形集创建的父级，该处为最外层根下
+		CATISpecObject_var spParentTool = spPartOnChild;
+		//
+		CATIMechanicalRootFactory_var spMechRootFactory = piSpecContainerOnChild;
+		//
+		//CATISpecObject_var spChildTool = NULL_var;
+		rc = spMechRootFactory->CreateGeometricalSet(istrName,spParentTool,spChildTool,-1);
+		if (FAILED(rc))
+		{
+			return E_FAIL;
+		}
+		//定义到新建的几何图形集下
+		spPartOnChild->SetCurrentFeature(spChildTool);
+	}
+	//有GS，则遍历GS，并判断是否已经含有该名字的几何图形集
+	else
+	{
+		CATBoolean boolExistGS = FALSE;
+		for (int i=1; i <= lstGeomSet.Size(); i++)
+		{
+			CATBaseUnknown_var spCurrentSet = lstGeomSet[i];
+			if (spCurrentSet == NULL_var)
+			{
+				continue;
+			}
+			CATIAlias_var spAliasOnCurrentSet = spCurrentSet;
+			CATUnicodeString strAliasOnCurrentSet = spAliasOnCurrentSet->GetAlias();
+			//如果存在，则直接定义到该图形集
+			if (strAliasOnCurrentSet == istrName)
+			{
+				spChildTool = spCurrentSet;
+				spPartOnChild->SetCurrentFeature(spChildTool);
+				boolExistGS = TRUE;
+				break;
+			}
+		}
+		//不存在，则新建图形集
+		if (boolExistGS == FALSE)
+		{
+			//获得几何图形集创建的父级，该处为最外层根下
+			CATISpecObject_var spParentTool = spPartOnChild;
+			//
+			CATIMechanicalRootFactory_var spMechRootFactory = piSpecContainerOnChild;
+			//
+			//CATISpecObject_var spChildTool = NULL_var;
+			rc = spMechRootFactory->CreateGeometricalSet(istrName,spParentTool,spChildTool,-1);
+			if (FAILED(rc))
+			{
+				return E_FAIL;
+			}
+			//定义到新建的几何图形集下
+			spPartOnChild->SetCurrentFeature(spChildTool);
+		}
+	}
+	ospiSpecGeoSet = spChildTool;
+	return rc;
+}
+
+//在模型树上的指定GeoSet中插入新建的对象
+HRESULT GeneralClass::InsertObjOnTree(CATIProduct_var ispProd,CATISpecObject_var ispiSpecGeoSet,CATUnicodeString istrObjName,CATBody *ipBody, CATISpecObject_var &ospiSpecObj)
+{
+	HRESULT rc = S_OK;
+	//
+	if (ispProd == NULL_var || ipBody == NULL_var)
+	{
+		return E_FAIL;
+	}
+	//
+	CATSoftwareConfiguration * pConfig = new CATSoftwareConfiguration();//配置指针
+	CATTopData * topdata =new CATTopData(pConfig, NULL);//topdata
+
+	CATIPrtContainer_var ospiCont=NULL_var;
+	CATGeoFactory*  pGeoFactory=GetProductGeoFactoryAndPrtCont(ispProd,ospiCont);
+	if (ospiCont==NULL_var||pGeoFactory==NULL)
+	{
+		cout<<"GetProductGeoFactoryAndPrtCont Failed"<<endl;
+		return E_FAIL;
+	}
+	//
+	CATIDatumFactory *piDatumFactory =NULL;
+	ospiCont->QueryInterface(IID_CATIDatumFactory,(void**) &piDatumFactory);
+	if (piDatumFactory==NULL)
+	{
+		cout<<"QI CATIDatumFactory Failed"<<endl;
+		return E_FAIL;
+	}
+	//特征化
+	CATISpecObject * pTempSpec = NULL;
+	rc=piDatumFactory->InstanciateDatum(ipBody,pTempSpec);
+	if (pTempSpec==NULL_var)
+	{
+		return E_FAIL;
+	}
+
+	CATISpecObject_var spiTempSpec = pTempSpec;
+	CATTry
+	{
+		spiTempSpec ->Update();
+	}
+	CATCatch(CATMfErrUpdate , pUpdateError)
+	{
+		return E_FAIL;
+	}
+	CATCatch(CATError , pError)
+	{
+		return E_FAIL;
+	}
+	CATEndTry
+		//重命名
+		if (istrObjName != "")
+		{
+			CATIAlias_var spiAlias = spiTempSpec;
+			if (spiAlias != NULL_var)
+			{
+				spiAlias->SetAlias(istrObjName);
+			}
+		}
+		//插入模型树中，放在该GeoSet下
+		CATIGSMProceduralView_var spiProceduralView = spiTempSpec;
+		if (NULL_var != spiProceduralView )
+		{
+			rc = spiProceduralView->InsertInProceduralView(ispiSpecGeoSet);
+		}
+		//
+		if (ispiSpecGeoSet != NULL_var)
+		{
+			ispiSpecGeoSet->Update();
+		}
+		ospiSpecObj = spiTempSpec;
+		return rc;
+}
+
+//
+HRESULT GeneralClass::GetSurfaceFromBody(CATBody_var ispBody, CATLISTP(CATSurface) &olstSurface)
+{
+	HRESULT rc = S_OK;
+	if (ispBody==NULL_var)
+	{
+		return E_FAIL;
+	}
+	//
+	CATLISTP(CATCell) lstCell;
+	ispBody->GetAllCells(lstCell,2);
+	if (lstCell.Size()==0)
+	{
+		return E_FAIL;
+	}
+	for (int i=1;i<=lstCell.Size();i++)
+	{
+		CATFace_var spFace = lstCell[i];
+		if (spFace==NULL_var)
+		{
+			continue;
+		}
+		CATSurface_var spSurface = spFace->GetSurface();
+		if (spSurface==NULL_var)
+		{
+			continue;
+		}
+		olstSurface.Append(spSurface);
+	}
+	return rc;
+}
+
+//
+HRESULT GeneralClass::GetBodyFromCurve(CATCurve *ipCurve, CATGeoFactory *ipGeoFactory,CATTopData *ipTopData,CATBody *&opBody)
+{
+	HRESULT rc = S_OK;
+	//
+	if (ipCurve==NULL || ipGeoFactory==NULL || ipTopData==NULL)
+	{
+		return E_FAIL;
+	}
+	//
+	CATCrvLimits crvLimits;
+	ipCurve->GetLimits(crvLimits) ;
+
+	short iOrient = 1;
+	CATTopWire *pTopWire = CATCreateTopWire(ipGeoFactory,ipTopData,1,&ipCurve,&crvLimits,&iOrient);
+	if (pTopWire==NULL)
+	{
+		cout<<"CATCreateTopWire Failed"<<endl;
+		return E_FAIL;
+	}
+
+	pTopWire->Run();
+
+	CATBody*pBodyCurve=NULL;
+	pBodyCurve = pTopWire->GetResult();
+	if (pBodyCurve==NULL)
+	{
+		cout<<"pTopPlaneBody==NULL"<<endl;
+		return E_FAIL;
+	}
+	if (pTopWire!=NULL)
+	{
+		delete pTopWire;
+		pTopWire = NULL;
+	}
+	//
+	opBody = pBodyCurve;
+
+	return rc;
 }

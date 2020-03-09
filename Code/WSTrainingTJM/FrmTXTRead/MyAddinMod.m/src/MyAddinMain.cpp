@@ -79,6 +79,7 @@ void MyAddinMain::CreateCommands ()
 	new MyAddinHdr("TestUIChange","TestUIChangeMod","TestUIChangeCmd", (void*)NULL);
 	new MyAddinHdr("TestProgressBar","TestProgressBarMod","TestProgressBarCmd", (void*)NULL);
 	new MyAddinHdr("TestTooling","TestToolingMod","TestToolingCmd", (void*)NULL);
+	new MyAddinHdr("TestCATIAReference","TestCATIAReferenceMod","TestCATIAReferenceCmd", (void*)NULL);
 }
 
 //-----------------------------------------------------------------------------
@@ -182,6 +183,10 @@ CATCmdContainer * MyAddinMain::CreateToolbars ()
 	NewAccess(CATCmdStarter,pTestTooling,TestTooling);
 	SetAccessCommand(pTestTooling,"TestTooling");
 	SetAccessNext(pTestProgressBar,pTestTooling);
+
+	NewAccess(CATCmdStarter,pTestCATIARef,TestCATIAReference);
+	SetAccessCommand(pTestCATIARef,"TestCATIAReference");
+	SetAccessNext(pTestTooling,pTestCATIARef);
 
 	AddToolbarView(pMyTlb,1,Left);
     return pMyTlb;

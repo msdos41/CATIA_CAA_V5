@@ -380,7 +380,6 @@ class ExportedByGeneralClassMod GeneralClass: public CATBaseUnknown
 
   ////根据选择对象的路径，找到所属的最高一级的实体body
   CATISpecObject_var GetMechanicalToolFromPath(CATPathElement *ipPath);
-
   //获得输入节点下的所有存储信息
   HRESULT YFGetSpecAttrInfo(CATISpecObject_var ispiSpecOnObject);
 

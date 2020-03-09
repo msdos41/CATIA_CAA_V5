@@ -1,0 +1,21 @@
+// DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
+CATDlgDialog TestCATIAReferenceDlg
+{
+  STYLE = CATDlgWndBtnOKApplyClose|CATDlgGridLayout;
+}
+
+CATDlgLabel Label001
+{
+  FATHER = TestCATIAReferenceDlg;
+  GRID = { 0, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgSelectorList SelectorListSurface
+{
+  FATHER = TestCATIAReferenceDlg;
+  TH = 1;
+  TW = 25;
+  GRID = { 0, 1, 1, 1, CATGRID_4SIDES };
+}
+
+// END WIZARD REPLACEMENT ZONE

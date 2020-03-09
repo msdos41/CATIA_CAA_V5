@@ -514,6 +514,7 @@ CATISpecObject_var TestCATIAReferenceCmd::GetSpecFromBaseUnknownFunc(CATBaseUnkn
 	return spiSpecOfObj;
 }
 
+//在字符串中根据指定的间距插入指定字符串，主要用于测试CAA获取的字符转换到Macro获取的字符，每隔512个字符长度会插入" & "
 CATUnicodeString TestCATIAReferenceCmd::InsertStringsIntoString(CATUnicodeString istrBase,int iStep,CATUnicodeString istrInsert)
 {
 	CATUnicodeString ostrResult = "";

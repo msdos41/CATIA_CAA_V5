@@ -25,6 +25,8 @@
 #include "GeneralClass.h"
 #include "YFAirventViewerFeedbackManager.h"
 #include "DumITempPoint.h"
+#include "DumITempArrow.h"
+#include "DumITempPlane.h"
 
 class CATIndicationAgent;
 
@@ -65,6 +67,7 @@ class TestTempPointCmd: public CATStateCommand
   HRESULT FindMechanicalToolFromPath(CATPathElement *ipPath);
   void TestHighLight();
   void ActionSelect2(void * data);
+  void ActionSelectCurve(void * data);
 private:
 
 	  TestTempPointDlg		*_pDlg;

@@ -136,8 +136,8 @@ void TestTempPointCmd::BuildGraph()
 
 	//Surface选择
 	_pSurfaceAgent = new CATFeatureImportAgent("Select Surface");
-	_pSurfaceAgent->SetElementType("CATSurface");
-	//_pSurfaceAgent->SetElementType("CATCurve");
+	//_pSurfaceAgent->SetElementType("CATSurface");
+	_pSurfaceAgent->SetElementType("CATCurve");
 	_pSurfaceAgent->SetBehavior(CATDlgEngWithPrevaluation|CATDlgEngWithCSO|CATDlgEngWithPSOHSO|CATDlgEngOneShot);
 
 	_pSurfaceFieldAgent = new CATDialogAgent("Select Surface Field");
@@ -150,7 +150,7 @@ void TestTempPointCmd::BuildGraph()
 
 	AddTransition( pDlgStateSurface, pDlgStateSurface, 
 		IsOutputSetCondition (_pSurfaceAgent),
-		Action ((ActionMethod) &TestTempPointCmd::ActionSelect));
+		Action ((ActionMethod) &TestTempPointCmd::ActionSelectCurve));
 
 }
 
@@ -216,6 +216,69 @@ void TestTempPointCmd::ActionSelect(void * data)
 	//PrintVariousInfo(pBUSelect);
 
 	_pSurfaceAgent->InitializeAcquisition();
+}
+
+//选取curve，然后在中点处显示temparrow和tempplane
+void TestTempPointCmd::ActionSelectCurve(void * data)
+{
+	//
+	_pHSO->Empty();
+	_pISO->Empty();
+
+	//
+	CATBaseUnknown *pBUSelect = NULL;
+	CATPathElement *pPath = _pSurfaceAgent->GetValue();
+	pBUSelect = _pSurfaceAgent->GetElementValue(pPath);
+
+	CATUnicodeString strAlias = _pGeneralCls->GetNameFromBaseUnknownFunc(pBUSelect);
+
+	_pDlg->GetSelectorListSelect()->ClearLine();
+
+	_pDlg->GetSelectorListSelect()->SetLine(strAlias,-1,CATDlgDataAdd);
+
+	int iTabRow = 0;
+	_pDlg->GetSelectorListSelect()->SetSelect(&iTabRow,1);
+
+	
+	//算出原点和方向
+	CATMathPoint ptOrigin;
+	CATMathDirection mathDirNormal,mathDirX,mathDirY;
+	CATBody_var spBodyCurve = _pGeneralCls->GetBodyFromFeature(pBUSelect);
+	if (spBodyCurve!=NULL_var)
+	{
+		CATLISTV(CATMathPoint) lstPt;
+		_pGeneralCls->GetMathPtFromBody(spBodyCurve,lstPt);
+		ptOrigin = 0.5*(lstPt[1]+lstPt[2]);
+		mathDirNormal = lstPt[2] - lstPt[1];
+	}
+	CATMathPlane mathPlane(ptOrigin,mathDirNormal);
+	mathDirX = mathPlane.GetFirstDirection();
+	mathDirY = mathPlane.GetSecondDirection();
+
+	//模型上画出temp arrow，CATISO高亮
+	DumITempArrow *piTempArrow = NULL;
+	HRESULT rc = ::CATInstantiateComponent("DumTempArrowComp", IID_DumITempArrow, (void**)&piTempArrow);
+	if (SUCCEEDED(rc) && piTempArrow != NULL)
+	{
+		piTempArrow->SetDatas(&ptOrigin,&mathDirNormal);
+		CATISpecObject_var spiSpecTempArrow = piTempArrow;
+		_pISO->AddElement(spiSpecTempArrow);
+	}
+
+	//模型上画出temp plane，CATISO高亮
+	DumITempPlane *piTempPlane = NULL;
+	rc = ::CATInstantiateComponent("DumTempPlaneComp", IID_DumITempPlane, (void**)&piTempPlane);
+	if (SUCCEEDED(rc) && piTempPlane != NULL)
+	{
+		piTempPlane->SetDatas(&ptOrigin,&mathDirX,&mathDirY);
+		CATISpecObject_var spiSpecTempPlane = piTempPlane;
+		_pISO->AddElement(spiSpecTempPlane);
+	}
+
+	_pGeneralCls->SetHighlight(pBUSelect,_pEditor,_pHSO);
+
+	_pSurfaceAgent->InitializeAcquisition();
+
 }
 
 void TestTempPointCmd::ActionSelect2(void * data)

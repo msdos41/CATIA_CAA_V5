@@ -341,8 +341,7 @@ class ExportedByGeneralClassMod GeneralClass: public CATBaseUnknown
   HRESULT GetMathPlane(CATBaseUnknown_var ispiSpecObject,CATMathPlane &MathPlane);
 
   //从所选的BU转换到CATBody
-  CATBody_var GetBodyFromFeature( CATBaseUnknown_var& ispFeature );
-
+  CATBody_var GetBodyFromFeature( CATBaseUnknown_var ispFeature );
   //从指定目录下获得CATPart文件的根节点
   HRESULT GetRootPartFromResourceFile(CATUnicodeString istrFilePath,CATBoolean ibDocReadOnly,CATIPrtPart_var &ospiRootPrtPart);
 

@@ -823,7 +823,7 @@ HRESULT GeneralClass::GetMathPlane(CATBaseUnknown_var ispiSpecObject,CATMathPlan
 }
 
 // 通过特征获取Body
-CATBody_var GeneralClass::GetBodyFromFeature( CATBaseUnknown_var& ispFeature ) 
+CATBody_var GeneralClass::GetBodyFromFeature( CATBaseUnknown_var ispFeature ) 
 { 
 	//cout<<"GetBodyFromFeature...."<<endl;
 	CATBody_var spBody = NULL_var; 

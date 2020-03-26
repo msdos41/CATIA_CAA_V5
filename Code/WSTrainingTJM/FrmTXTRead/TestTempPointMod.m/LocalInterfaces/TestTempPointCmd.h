@@ -96,13 +96,21 @@ private:
 
 	  CATPathElementAgent				* _pSelectTempArrowAgent;
 
-	  DumITempArrow						*_pTempArrow;
+	  DumITempArrow						*_piTempArrow;
 
-	  DumITempFace						*_pTempFace;
+	  DumITempFace						*_piTempFace;
 
 	  CATMathPoint						_moveEndPoint;
 
+	  CATMathPoint						_moveEndPointExpand1;
+
 	  CATMathVector						_moveEndDir;
+
+	  CATLISTV(CATMathPoint)			_lstCornerPoints;
+
+	  DumITempArrow						*_piTempArrowExpand1;
+
+	  int								_intManipulateType;
 
 
 

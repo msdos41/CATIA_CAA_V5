@@ -61,6 +61,10 @@
 #include "CATIModelEvents.h"
 #include "CATModifyVisProperties.h"
 
+//VisualizationBase
+#include "CAT3DBagRep.h"
+#include "CAT3DManipulator.h"
+
 //MecModInterfaces
 #include "CATIPrtContainer.h"
 #include "CATIMfBRep.h"
@@ -243,6 +247,7 @@
 
 //GSMInterfaces 
 #include "CATIGSMProceduralView.h"
+#include "CATIGSMPlane.h"
 
 //
 #include <map>

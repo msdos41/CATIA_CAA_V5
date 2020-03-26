@@ -59,6 +59,8 @@ HRESULT DumTempFaceComp::SetDatas(CATLISTV(CATMathPoint) lstMathVertices,CATMath
 	_normalDir = iMathNormal;
 	_mathPoint1 = lstMathVertices[1];
 	_mathPoint2 = lstMathVertices[3];
+	_lstCornerPoints.RemoveAll();
+	_lstCornerPoints = lstMathVertices;
 	hr =Update3DFace(lstMathVertices,iMathNormal,iTransparent,iRed,iGreen,iBlue);
 	return hr;
 }
@@ -88,6 +90,13 @@ HRESULT DumTempFaceComp::GetCenterPoint(CATMathPoint& iCenterPoint)
 	iCenterPoint.SetX((_mathPoint1.GetX()+_mathPoint2.GetX())/2);
 	iCenterPoint.SetY((_mathPoint1.GetY()+_mathPoint2.GetY())/2);
 	iCenterPoint.SetZ((_mathPoint1.GetZ()+_mathPoint2.GetZ())/2);
+	return S_OK;
+}
+
+HRESULT DumTempFaceComp::GetCornerPoints(CATLISTV(CATMathPoint) &olstCornerPoints)
+{
+	olstCornerPoints.RemoveAll();
+	olstCornerPoints = _lstCornerPoints;
 	return S_OK;
 }
 

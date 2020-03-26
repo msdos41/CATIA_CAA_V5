@@ -64,6 +64,7 @@ class ExportedByYFDatumTempM DumITempFace: public CATBaseUnknown
 	 virtual HRESULT GetGraphicRepresentation (CATRep **  oRep ) = 0;
 	 virtual HRESULT GetNormalDir(CATMathVector& ioMathNormal) = 0;
 	 virtual HRESULT GetCenterPoint(CATMathPoint& iCenterPoint)=0;
+	 virtual HRESULT GetCornerPoints(CATLISTV(CATMathPoint) &olstCornerPoints)=0;
 };
 CATDeclareHandler(DumITempFace,CATBaseUnknown);
 //------------------------------------------------------------------

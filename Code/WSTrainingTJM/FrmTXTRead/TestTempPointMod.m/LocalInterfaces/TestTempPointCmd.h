@@ -27,6 +27,7 @@
 #include "DumITempPoint.h"
 #include "DumITempArrow.h"
 #include "DumITempPlane.h"
+#include "DumITempFace.h"
 
 class CATIndicationAgent;
 
@@ -68,6 +69,9 @@ class TestTempPointCmd: public CATStateCommand
   void TestHighLight();
   void ActionSelect2(void * data);
   void ActionSelectCurve(void * data);
+  void ActionDragArrow(void * data);
+  CATBoolean MoveArrow(CATCommand * iCommand,CATNotification * iNotification,CATCommandClientData iUsefulData);
+  CATBoolean EndArrow(CATCommand * iCommand,CATNotification * iNotification,CATCommandClientData iUsefulData);
 private:
 
 	  TestTempPointDlg		*_pDlg;
@@ -89,6 +93,16 @@ private:
 	  CATLISTV(CATBaseUnknown_var)		_lstBUSurface;
 
 	  CATLISTP(CATCell)					_lstCellSelect;
+
+	  CATPathElementAgent				* _pSelectTempArrowAgent;
+
+	  DumITempArrow						*_pTempArrow;
+
+	  DumITempFace						*_pTempFace;
+
+	  CATMathPoint						_moveEndPoint;
+
+	  CATMathVector						_moveEndDir;
 
 
 

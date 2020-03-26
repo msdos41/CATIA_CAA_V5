@@ -31,6 +31,9 @@ TestTempPointCmd::TestTempPointCmd() :
 ,_pSurfaceAgent(NULL),_pSurfaceFieldAgent(NULL)
 ,_lstBUSurface(NULL)
 ,_lstCellSelect(NULL)
+,_pSelectTempArrowAgent(NULL)
+,_pTempArrow(NULL)
+,_pTempFace(NULL)
 {
 	_pDlg = NULL;
 	_pDlg = new TestTempPointDlg();
@@ -78,6 +81,12 @@ TestTempPointCmd::~TestTempPointCmd()
 	{
 		_pSurfaceFieldAgent->RequestDelayedDestruction();
 		_pSurfaceFieldAgent = NULL;
+	}
+
+	if (_pSelectTempArrowAgent != NULL)
+	{
+		_pSelectTempArrowAgent->RequestDelayedDestruction();
+		_pSelectTempArrowAgent = NULL;
 	}
 
 	_pISO->Empty();
@@ -144,13 +153,23 @@ void TestTempPointCmd::BuildGraph()
 	_pSurfaceFieldAgent->AcceptOnNotify(_pDlg->GetSelectorListSelect(),
 		_pDlg->GetSelectorListSelect()->GetListSelectNotification());
 
+	//临时元素箭头的选择
+	_pSelectTempArrowAgent = new CATPathElementAgent("Select Temp Arrow");
+	_pSelectTempArrowAgent->AddElementType("DumITempArrow");
+	_pSelectTempArrowAgent->SetBehavior(CATDlgEngWithPrevaluation|CATDlgEngWithCSO|CATDlgEngOneShot);	
+
 	CATDialogState *pDlgStateSurface = GetInitialState("Select");
 	pDlgStateSurface->AddDialogAgent(_pSurfaceAgent);
 	pDlgStateSurface->AddDialogAgent(_pSurfaceFieldAgent);
+	pDlgStateSurface->AddDialogAgent(_pSelectTempArrowAgent);
 
 	AddTransition( pDlgStateSurface, pDlgStateSurface, 
 		IsOutputSetCondition (_pSurfaceAgent),
 		Action ((ActionMethod) &TestTempPointCmd::ActionSelectCurve));
+
+	AddTransition( pDlgStateSurface, pDlgStateSurface, 
+		IsOutputSetCondition (_pSelectTempArrowAgent),
+		Action ((ActionMethod) &TestTempPointCmd::ActionDragArrow));
 
 }
 
@@ -250,11 +269,31 @@ void TestTempPointCmd::ActionSelectCurve(void * data)
 		_pGeneralCls->GetMathPtFromBody(spBodyCurve,lstPt);
 		ptOrigin = 0.5*(lstPt[1]+lstPt[2]);
 		mathDirNormal = lstPt[2] - lstPt[1];
+
+		/*
+		//test if Plane has 2-dimension cell
+		CATLISTP(CATCell) lstCell;
+		spBodyCurve->GetAllCells(lstCell,2);
+		cout<<lstCell.Size()<<endl;
+
+		CATISpecObject_var spiSpecSelect = _pGeneralCls->GetSpecFromBaseUnknownFunc(pBUSelect);
+		if (spiSpecSelect!=NULL_var)
+		{
+			cout<<(spiSpecSelect->GetName())<<endl;
+			CATIGSMPlane_var spiGSMPlane = spiSpecSelect;
+			if (spiGSMPlane!=NULL_var)
+			{
+				cout<<"The selection is Plane"<<endl;
+			}
+		}
+		*/
 	}
 	CATMathPlane mathPlane(ptOrigin,mathDirNormal);
 	mathDirX = mathPlane.GetFirstDirection();
 	mathDirY = mathPlane.GetSecondDirection();
 
+	
+	
 	//模型上画出temp arrow，CATISO高亮
 	DumITempArrow *piTempArrow = NULL;
 	HRESULT rc = ::CATInstantiateComponent("DumTempArrowComp", IID_DumITempArrow, (void**)&piTempArrow);
@@ -262,9 +301,11 @@ void TestTempPointCmd::ActionSelectCurve(void * data)
 	{
 		piTempArrow->SetDatas(&ptOrigin,&mathDirNormal);
 		CATISpecObject_var spiSpecTempArrow = piTempArrow;
-		_pISO->AddElement(spiSpecTempArrow);
+		_pTempArrow = piTempArrow;
+		_pISO->AddElement(_pTempArrow);
 	}
 
+	/*
 	//模型上画出temp plane，CATISO高亮
 	DumITempPlane *piTempPlane = NULL;
 	rc = ::CATInstantiateComponent("DumTempPlaneComp", IID_DumITempPlane, (void**)&piTempPlane);
@@ -275,10 +316,155 @@ void TestTempPointCmd::ActionSelectCurve(void * data)
 		_pISO->AddElement(spiSpecTempPlane);
 	}
 
+	*/
+
+	//
+	//CATMathVector vectorH(mathDirX);
+	//CATMathVector vectorV(mathDirY);
+	CATMathVector vectorH;
+	CATMathVector vectorV;
+	mathPlane.GetFirstDirection(vectorH);
+	mathPlane.GetSecondDirection(vectorV);
+	vectorH.Normalize();
+	vectorV.Normalize();
+	CATMathPoint pt1,pt2,pt3,pt4;
+	pt1 = ptOrigin+vectorH*100;
+	pt1 = pt1+vectorV*100;
+	pt2 = ptOrigin+vectorH*100;
+	pt2 = pt2-vectorV*100;
+	pt3 = ptOrigin-vectorH*100;
+	pt3 = pt3-vectorV*100;
+	pt4 = ptOrigin-vectorH*100;
+	pt4 = pt4+vectorV*100;
+	CATLISTV(CATMathPoint) lstPt;
+	lstPt.Append(pt1);
+	lstPt.Append(pt2);
+	lstPt.Append(pt3);
+	lstPt.Append(pt4);
+	DumITempFace *piTempFace = NULL;
+	rc = ::CATInstantiateComponent("DumTempFaceComp", IID_DumITempFace, (void**)&piTempFace);
+	if (SUCCEEDED(rc) && piTempFace != NULL)
+	{
+		piTempFace->SetDatas(lstPt,CATMathVector(mathDirNormal),1,0,0,0);
+		//CATBaseUnknown *pBUTempFace = NULL;
+		//if (SUCCEEDED(piTempFace->QueryInterface(IID_CATBaseUnknown,(void**)&pBUTempFace)))
+		//{
+		//	_pISO->AddElement(pBUTempFace);
+		//}
+		_pTempFace = piTempFace;
+		_pISO->AddElement(_pTempFace);
+
+	}
 	_pGeneralCls->SetHighlight(pBUSelect,_pEditor,_pHSO);
 
 	_pSurfaceAgent->InitializeAcquisition();
 
+}
+
+void TestTempPointCmd::ActionDragArrow(void * data)
+{
+	if (_pTempArrow!=NULL)
+	{
+		CATMathPoint oOrigin;
+		CATMathDirection moveDir;
+		_pTempArrow->GetPosition(&oOrigin,&moveDir);
+		CATRep *pRep = NULL;
+		_pTempArrow->GetGraphicRepresentation(&pRep);
+
+		//获得临时面的Rep，并赋值给_p3DBagRep
+		CAT3DBagRep *p3DBagRep = (CAT3DBagRep *)pRep;
+
+		//定义_manipulator，并确定其移动方式为：direction(沿着某方向移动)
+		CAT3DManipulator *p3DManipulator = new CAT3DManipulator(this, "DragArrow", p3DBagRep, CAT3DManipulator::DirectionTranslation);
+
+		//设置_manipulator的position和移动方向（将箭头方向设为移动方向）
+		CATMathAxis mathAxis;
+		mathAxis.SetOrigin(oOrigin);
+		p3DManipulator->SetPosition(mathAxis);
+		p3DManipulator->SetTranslationDirection(moveDir);
+
+		//定义响应函数，分别为移动过程相应函数（GetCATManipulate，MoveArrow）和移动结束相应函数（GetCATEndManipulate， EndArrow）
+		AddAnalyseNotificationCB (p3DManipulator, p3DManipulator->GetCATManipulate(), (CATCommandMethod)&TestTempPointCmd::MoveArrow, (void **)NULL);
+		AddAnalyseNotificationCB (p3DManipulator, p3DManipulator->GetCATEndManipulate(), (CATCommandMethod)&TestTempPointCmd::EndArrow, (void **)NULL);
+
+	}
+
+	_pSelectTempArrowAgent->InitializeAcquisition();
+
+
+}
+
+CATBoolean TestTempPointCmd::MoveArrow(CATCommand * iCommand,CATNotification * iNotification,CATCommandClientData iUsefulData)
+{
+	CATMathAxis Position = ((CAT3DManipulator *)iCommand)->GetPosition();
+
+	CATMathPoint oOriginMove;
+	Position.GetOrigin(oOriginMove);
+	oOriginMove.Dump();
+
+	//先清空ISO
+	_pISO->RemoveElement(_pTempArrow);
+	_pISO->RemoveElement(_pTempFace);
+
+	//重新更新Arrow和Face
+	CATMathPoint oOrigin;
+	CATMathDirection moveDir;
+	_pTempArrow->GetPosition(&oOrigin,&moveDir);
+	_pTempArrow->SetDatas(&oOriginMove,&moveDir);
+
+	CATMathVector vectorDir = oOriginMove - oOrigin;
+	CATLISTV(CATMathPoint) lstCornerPoints;
+	_pTempFace->GetCornerPoints(lstCornerPoints);
+	if (lstCornerPoints.Size()==4)
+	{
+		for (int i=1;i<=4;i++)
+		{
+			lstCornerPoints[i] = lstCornerPoints[i] + vectorDir;
+		}
+		_pTempFace->SetDatas(lstCornerPoints,moveDir,1,0,0,0);
+	}
+	
+
+	//
+	_pISO->AddElement(_pTempArrow);
+	_pISO->AddElement(_pTempFace);
+
+	_moveEndPoint = oOriginMove;
+	_moveEndDir = vectorDir;
+
+	return TRUE;
+}
+
+CATBoolean TestTempPointCmd::EndArrow(CATCommand * iCommand,CATNotification * iNotification,CATCommandClientData iUsefulData)
+{
+	//先清空ISO
+	_pISO->RemoveElement(_pTempArrow);
+	_pISO->RemoveElement(_pTempFace);
+
+	//重新更新Arrow和Face
+	CATMathPoint oOrigin;
+	CATMathDirection moveDir;
+	_pTempArrow->GetPosition(&oOrigin,&moveDir);
+	_pTempArrow->SetDatas(&_moveEndPoint,&moveDir);
+
+	CATMathVector vectorDir = _moveEndDir;
+	CATLISTV(CATMathPoint) lstCornerPoints;
+	_pTempFace->GetCornerPoints(lstCornerPoints);
+	if (lstCornerPoints.Size()==4)
+	{
+		for (int i=1;i<=4;i++)
+		{
+			lstCornerPoints[i] = lstCornerPoints[i] + vectorDir;
+		}
+		_pTempFace->SetDatas(lstCornerPoints,moveDir,1,0,0,0);
+	}
+	
+
+	//
+	_pISO->AddElement(_pTempArrow);
+	_pISO->AddElement(_pTempFace);
+	
+	return TRUE;
 }
 
 void TestTempPointCmd::ActionSelect2(void * data)

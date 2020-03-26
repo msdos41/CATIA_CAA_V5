@@ -18,7 +18,7 @@
 CATImplementClass(DumETempFaceInstance,
                   DataExtension,
                   CATBaseUnknown,
-                  PipTempFaceComp );
+                  DumTempFaceComp );
  
 
 //-----------------------------------------------------------------------------

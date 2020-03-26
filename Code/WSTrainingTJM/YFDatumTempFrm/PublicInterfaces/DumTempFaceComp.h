@@ -60,6 +60,7 @@ class ExportedByYFDatumTempM DumTempFaceComp: public CATModelForRep3D
 	 HRESULT GetGraphicRepresentation (CATRep **  oRep );
 	 HRESULT GetNormalDir(CATMathVector& ioMathNormal);
 	 HRESULT GetCenterPoint(CATMathPoint& iCenterPoint);
+	 HRESULT GetCornerPoints(CATLISTV(CATMathPoint) &olstCornerPoints);
 
   private:
   // The copy constructor and the equal operator must not be implemented
@@ -69,10 +70,12 @@ class ExportedByYFDatumTempM DumTempFaceComp: public CATModelForRep3D
 
   HRESULT Update3DFace(CATLISTV(CATMathPoint) lstMathVertices,CATMathVector iMathNormal,
 					   int iTransparent,int iRed,int iGreen,int iBlue);
-
+  
   CATMathVector _normalDir;
   CATMathPoint _mathPoint1;
   CATMathPoint _mathPoint2;
+
+  CATLISTV(CATMathPoint) _lstCornerPoints;
 
 };
 

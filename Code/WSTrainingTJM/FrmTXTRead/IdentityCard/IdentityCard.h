@@ -53,3 +53,4 @@ AddPrereqComponent("VPMInterfaces",Public);
 AddPrereqComponent("YFDatumTempFrm",Public);
 AddPrereqComponent("YFAirventViewFeedbackFrm",Public);
 AddPrereqComponent("GeometricOperators",Public);
+AddPrereqComponent("Tessellation",Public);

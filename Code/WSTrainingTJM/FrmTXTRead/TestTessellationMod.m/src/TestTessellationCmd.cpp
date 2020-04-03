@@ -31,6 +31,8 @@ TestTessellationCmd::TestTessellationCmd() :
 ,_pSurfaceAgent(NULL),_pSurfaceFieldAgent(NULL)
 ,_pHSO(NULL),_pISO(NULL)
 ,_pEditor(NULL)
+,_pViewer(NULL)
+,_p3DBagRep(NULL)
 {
 	_pDlg = new TestTessellationDlg();
 	_pDlg->Build();
@@ -44,6 +46,13 @@ TestTessellationCmd::TestTessellationCmd() :
 		_pHSO = _pEditor->GetHSO();
 		_pISO = _pEditor->GetISO();
 	}
+
+	CATFrmLayout *pFrmLayout = CATFrmLayout::GetCurrentLayout();
+	CATFrmWindow *pFrmWindow=pFrmLayout->GetCurrentWindow();
+	_pViewer=pFrmWindow->GetViewer();
+
+	_p3DBagRep = new CAT3DBagRep();
+
 }
 
 //-------------------------------------------------------------------------
@@ -82,6 +91,17 @@ TestTessellationCmd::~TestTessellationCmd()
 
 	_pHSO->Empty();
 	_pHSO = NULL;
+
+	
+
+	if (_p3DBagRep!=NULL)
+	{
+		_p3DBagRep->Empty();
+		delete _p3DBagRep;
+		_p3DBagRep = NULL;
+	}
+
+	_pViewer=NULL;
 }
 
 
@@ -210,7 +230,7 @@ HRESULT TestTessellationCmd::CreateTessellation(CATBaseUnknown_var ispBUElement)
 	{
 		return E_FAIL;
 	}
-	CAT3DBagRep* pBagRep = NULL;
+	CAT3DBagRep* pBagRep = new CAT3DBagRep();
 	//Tessleate the body
 	double iStep   = 1;
 	double sag=	10;
@@ -236,6 +256,8 @@ HRESULT TestTessellationCmd::CreateTessellation(CATBaseUnknown_var ispBUElement)
 	}
 	//Run the CATCellTessellator
 	pTessellator->Run();
+
+
 
 	//CATISpecObject_var spLine;
 	// For every face.
@@ -309,6 +331,13 @@ HRESULT TestTessellationCmd::CreateTessellation(CATBaseUnknown_var ispBUElement)
 		cout<<"==> Vertex number: "<<iNum<<endl;
 		*/
 
+
+		//Create GP for every three points.
+		CAT3DCustomRep * pSurfacicRep = new CAT3DCustomRep();
+		CATGraphicAttributeSet ag;
+		int red,green,blue;
+		ag.SetType(2);
+		ag.SetColor(TRUECOLOR);
 		
 		if (NULL!=pStrips)		//注：strip点的顺序为从一端开始z字型
 		{
@@ -380,6 +409,34 @@ HRESULT TestTessellationCmd::CreateTessellation(CATBaseUnknown_var ispBUElement)
 
 				pStrips->GoToNext();
 				iNumStrips++;
+
+				//循环创建三角形face GP
+				for (int j=0;j<nbs-2;j++)
+				{
+					int triangleArraySize = 3;
+					int triangle[3];	//三角形面的3个顶点，每个顶点对应vertices列表里面的x坐标的序号，然后会依次往后推出y和z，因为xyz都放在一个列表中，所以是3倍的关系
+					triangle[0] = 3*aNuPts[j];
+					triangle[1] = 3*aNuPts[j+1];
+					triangle[2] = 3*aNuPts[j+2];
+					//Create the GP
+					CAT3DFaceGP *faceGP=NULL;
+					faceGP = new CAT3DFaceGP(vertices,verticesArraySize,normals,normalsArraySize,triangle,triangleArraySize,NULL,0,NULL,NULL,0,NULL,
+											NULL,3,GET_VERTICES|GET_NORMALS,NULL);
+					if (NULL==faceGP)
+					{
+						cout << "==> Create CAT3DFaceGP error !" << endl;
+						continue;
+					}
+					red = 0;
+					green = 0;
+					blue = 0;
+					ag.SetColorRGBA(red,green,blue,255);
+
+					//
+					pSurfacicRep->AddGP(faceGP,ag);
+
+				}
+				
 			}
 			delete [] aNuPts;
 			aNuPts = NULL;
@@ -518,8 +575,51 @@ HRESULT TestTessellationCmd::CreateTessellation(CATBaseUnknown_var ispBUElement)
 		//	if (NULL== pBagRep) pBagRep = new CAT3DBagRep();
 		//	pBagRep->AddChild(*pRep);
 		//}
+
+		CAT3DRep *p3DRep = pSurfacicRep;
+
+		_p3DBagRep->AddChild(*p3DRep);
+
+		if (NULL!=aCoord)
+		{
+			delete []aCoord;
+		}
+		if (NULL!=aNormal)
+		{
+			delete []aNormal;
+		}
 	}
 	delete pTessellator;   pTessellator = NULL;
+
+
+	//Display the surface by real model.
+	if( _p3DBagRep == NULL )
+	{
+		return E_FAIL;
+	}
+
+	////Remove the old CATRep
+	//CATI3DGeometricalElement_var spGeoEle=ispBUElement;
+	//CATI3DGeoVisu_var spGeoVis = spGeoEle;
+	//if( spGeoVis == NULL_var ) {
+	//	cout << "==> Get CATI3DGeoVisu error !" << endl;
+	//	return E_FAIL;
+	//}
+	//CATRep *pOldRep=spGeoVis->GiveRep();
+	//if( pOldRep == NULL ) {
+	//	cout << "==> Get CATRep error !" << endl;
+	//	return E_FAIL;
+	//}
+	//CATRep *pParentRep = pOldRep->GetRepParents(0);
+	//pParentRep->RemoveChild(*pOldRep);
+
+	//We can noshow the old CATRep
+	//pOldRep->SetShowMode(1,0);
+
+	//Show the new CATRep.
+	
+	_pViewer->AddRep(_p3DBagRep);  
+	_pViewer->Draw();
 
 	return rc;
 }

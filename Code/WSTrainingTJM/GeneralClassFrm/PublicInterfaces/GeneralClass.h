@@ -60,10 +60,14 @@
 #include "CATIVisProperties.h"
 #include "CATIModelEvents.h"
 #include "CATModifyVisProperties.h"
+#include "CATI3DGeoVisu.h"
+#include "CATViewer.h"
 
 //VisualizationBase
 #include "CAT3DBagRep.h"
 #include "CAT3DManipulator.h"
+#include "CAT3DCustomRep.h"
+#include "CAT3DFaceGP.h"
 
 //MecModInterfaces
 #include "CATIPrtContainer.h"
@@ -83,6 +87,7 @@
 #include "CATIPersistentSubElement.h"
 #include "CATIMechanicalRootFactory.h"
 #include "CATIDatumFactory.h"
+#include "CATI3DGeometricalElement.h"
 
 //ObjectModelerBase 
 #include "CATInit.h"
@@ -189,6 +194,8 @@
 #include "CATFrmEditor.h"
 #include "CATApplicationFrame.h"
 #include "CATI3DCamera.h"
+#include "CATFrmLayout.h"
+#include "CATFrmWindow.h"
 
 //Mathematics
 #include "CATSoftwareConfiguration.h"

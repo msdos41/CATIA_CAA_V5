@@ -75,6 +75,7 @@ class TestTessellationCmd: public CATStateCommand
   CATBoolean ActionOK(void * data);
   void ActionSurfaceSelect(void * data);
   HRESULT CreateTessellation(CATBaseUnknown_var ispBUElement);
+  HRESULT CreateTessellation(CATBaseUnknown_var ispBUElement,CAT3DRep *&op3DRep);
 private:
 
 	  TestTessellationDlg			*_pDlg;
@@ -92,6 +93,10 @@ private:
 	  CATISO						*_pISO;
 
 	  CATFrmEditor					*_pEditor;
+
+	  CATViewer						*_pViewer;
+
+	  CAT3DBagRep					*_p3DBagRep;
 
 };
 

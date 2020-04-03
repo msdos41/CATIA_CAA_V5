@@ -37,6 +37,7 @@ ProductStructureItf	\
 GSMItf	\
 CATTessellation		\
 YFDatumTempM	\
+CATVisualization	\
 
 # System dependant variables
 #

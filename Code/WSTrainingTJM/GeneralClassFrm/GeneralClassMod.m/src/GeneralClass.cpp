@@ -225,6 +225,113 @@ HRESULT YFGetLicServerIP(char **ocharIPAddr, int &oiPort)
 	return rc;
 }
 
+int GetResourcePath(CATUnicodeString istrFileName,CATUnicodeString istrFilePath,CATUnicodeString &oPath)
+{
+	// \\resources\\GlawayResources\\ShipResources\\PipingSupport\\Configs
+
+	const char * cValue = "CATInstallPath";
+	char * strPath = NULL;
+	CATLibStatus sStatus = CATGetEnvValue(cValue,&strPath);
+	if ((sStatus ==CATLibError)||(strPath==NULL))
+	{
+		CATUnicodeString strWarnMessage = CAAUStringBuildFromChar("No Environment Parameter : YFAIResourcePath");
+		CATUnicodeString strWarnTitle = "Notice";
+		CATDlgNotify* pNotifyDlg = new CATDlgNotify((CATApplicationFrame::GetApplicationFrame())->GetMainWindow(), strWarnTitle.ConvertToChar(),CATDlgNfyWarning);
+		if (NULL != pNotifyDlg)
+		{
+			pNotifyDlg->DisplayBlocked(strWarnMessage ,strWarnTitle);
+			pNotifyDlg->RequestDelayedDestruction(); 
+			pNotifyDlg = NULL;
+		}
+		return -1;
+	}
+
+	//istrFilePath="resources\\GlawayResources\\ShipResources\\PipingSupport\\Configs";
+	CATUnicodeString strUsPath(CATFindPath(CATUnicodeString(istrFilePath),strPath));
+	if(strUsPath == "")
+	{
+		CATUnicodeString strWarnMessage = CAAUStringBuildFromChar("No Folder : resources");
+		CATUnicodeString strWarnTitle = "Notice";
+		CATDlgNotify* pNotifyDlg = new CATDlgNotify((CATApplicationFrame::GetApplicationFrame())->GetMainWindow(), strWarnTitle.ConvertToChar(),CATDlgNfyWarning);
+		if (NULL != pNotifyDlg)
+		{
+			pNotifyDlg->DisplayBlocked(strWarnMessage ,strWarnTitle);
+			pNotifyDlg->RequestDelayedDestruction(); 
+			pNotifyDlg = NULL;
+		}
+		return  -1;
+	}
+
+	strUsPath.Append("\\");
+	strUsPath.Append(istrFileName);
+
+	if((_access(strUsPath, 0))== -1 )
+	{
+		CATUnicodeString strWarnMessage = CAAUStringBuildFromChar("No File : resources\\GlawayResources\\ShipResources\\PipingSupport\\Configs");
+		strWarnMessage.Append("\\");
+		strWarnMessage.Append(istrFileName);
+		CATUnicodeString strWarnTitle = "Notice";
+		CATDlgNotify* pNotifyDlg = new CATDlgNotify((CATApplicationFrame::GetApplicationFrame())->GetMainWindow(), strWarnTitle.ConvertToChar(),CATDlgNfyWarning);
+		if (NULL != pNotifyDlg)
+		{
+			pNotifyDlg->DisplayBlocked(strWarnMessage ,strWarnTitle);
+			pNotifyDlg->RequestDelayedDestruction(); 
+			pNotifyDlg = NULL;
+		}
+
+		return  -1;
+	}
+
+	oPath = strUsPath;
+
+	return 1;
+}
+
+int CreateResourcePath(CATUnicodeString istrFileName,CATUnicodeString istrFilePath,CATUnicodeString &oPath)
+{
+	// \\resources\\GlawayResources\\ShipResources\\PipingSupport\\Configs
+
+	const char * cValue = "CATInstallPath";
+	char * strPath = NULL;
+	CATLibStatus sStatus = CATGetEnvValue(cValue,&strPath);
+	if ((sStatus ==CATLibError)||(strPath==NULL))
+	{
+		CATUnicodeString strWarnMessage = CAAUStringBuildFromChar("No Environment Parameter : CATInstallPath");
+		CATUnicodeString strWarnTitle = "Notice";
+		CATDlgNotify* pNotifyDlg = new CATDlgNotify((CATApplicationFrame::GetApplicationFrame())->GetMainWindow(), strWarnTitle.ConvertToChar(),CATDlgNfyWarning);
+		if (NULL != pNotifyDlg)
+		{
+			pNotifyDlg->DisplayBlocked(strWarnMessage ,strWarnTitle);
+			pNotifyDlg->RequestDelayedDestruction(); 
+			pNotifyDlg = NULL;
+		}
+		return -1;
+	}
+
+	//istrFilePath="resources\\GlawayResources\\ShipResources\\PipingSupport\\Configs";
+	CATUnicodeString strUsPath(CATFindPath(CATUnicodeString(istrFilePath),strPath));
+	if(strUsPath == "")
+	{
+		CATUnicodeString strWarnMessage = CAAUStringBuildFromChar("No Folder : resources");
+		CATUnicodeString strWarnTitle = "Notice";
+		CATDlgNotify* pNotifyDlg = new CATDlgNotify((CATApplicationFrame::GetApplicationFrame())->GetMainWindow(), strWarnTitle.ConvertToChar(),CATDlgNfyWarning);
+		if (NULL != pNotifyDlg)
+		{
+			pNotifyDlg->DisplayBlocked(strWarnMessage ,strWarnTitle);
+			pNotifyDlg->RequestDelayedDestruction(); 
+			pNotifyDlg = NULL;
+		}
+		return  -1;
+	}
+
+	strUsPath.Append("\\");
+	strUsPath.Append(istrFileName);
+
+	oPath = strUsPath;
+
+	return 1;
+}
+
 //描述：跳出提示框Warning
 //输入：CATUnicodeString提示内容，CATUnicodeString提示类型
 //输出：void
@@ -6208,7 +6315,7 @@ void GeneralClass::GetColumnContents(CATUnicodeString strInputSheetPath,
 //输入：CATUnicodeString文件名称
 //输出：CATUnicodeString文件路径
 //返回：int
-int GeneralClass::GetResourcePath(CATUnicodeString istrFileName,CATUnicodeString &oPath)
+int GeneralClass::YFGetResourcePath(CATUnicodeString istrFileName,CATUnicodeString &oPath)
 {
 	const char * cValue = "YFAIResourcePath";
 	char * strPath = NULL;
@@ -6293,7 +6400,7 @@ HRESULT GeneralClass::GetFeatureNamesFromXML(CATUnicodeString istrFileName, CATL
 	YFAirventXMLClass *pXmlCls = new YFAirventXMLClass();
 	//打开xml文件
 	CATUnicodeString strPath = "";
-	int iFindPath = GetResourcePath(istrFileName,strPath);
+	int iFindPath = YFGetResourcePath(istrFileName,strPath);
 	if (iFindPath == -1)
 	{
 		return E_FAIL;
@@ -6367,7 +6474,7 @@ HRESULT GeneralClass::GetParmNamesAndTolFromXML(CATUnicodeString istrFileName, C
 	YFAirventXMLClass *pXmlCls = new YFAirventXMLClass();
 	//打开xml文件
 	CATUnicodeString strPath = "";
-	int iFindPath = GetResourcePath(istrFileName,strPath);
+	int iFindPath = YFGetResourcePath(istrFileName,strPath);
 	if (iFindPath == -1)
 	{
 		return E_FAIL;
@@ -6461,7 +6568,7 @@ HRESULT GeneralClass::GetScaleFromXML(CATUnicodeString istrFileName, vector<CATL
 	YFAirventXMLClass *pXmlCls = new YFAirventXMLClass();
 	//打开xml文件
 	CATUnicodeString strPath = "";
-	int iFindPath = GetResourcePath(istrFileName,strPath);
+	int iFindPath = YFGetResourcePath(istrFileName,strPath);
 	if (iFindPath == -1)
 	{
 		return E_FAIL;

@@ -42,6 +42,8 @@
 #include "CATISpecAttrKey.h"
 #include "CATLISTV_CATISpecAttrKey.h"
 #include "CATISpecAttribute.h"
+#include "CATICatalog.h"
+#include "CATCatalogFactoryServices.h"
 
 //InteractiveInterfaces 
 #include "CATIBuildPath.h"
@@ -279,6 +281,8 @@ HRESULT ExportedByGeneralClassMod GetIPAddrFromTxt(char **ocharIPAddr);
 HRESULT ExportedByGeneralClassMod YFGetLicServerIP(char **ocharIPAddr);
 HRESULT ExportedByGeneralClassMod YFGetLicServerIP(char **ocharIPAddr, int &oiPort);
 
+ExportedByGeneralClassMod int GetResourcePath(CATUnicodeString istrFileName,CATUnicodeString istrFilePath,CATUnicodeString &oPath);
+ExportedByGeneralClassMod int CreateResourcePath(CATUnicodeString istrFileName,CATUnicodeString istrFilePath,CATUnicodeString &oPath);
 struct POINT2D{
 
 	double Coord[2];
@@ -553,7 +557,7 @@ class ExportedByGeneralClassMod GeneralClass: public CATBaseUnknown
   HRESULT GetBoundingPtsFromInertia(CATIProduct_var ispiProd,vector<CATMathPoint> &olstBoundingPts);
 
   //从xml中读取
-  int GetResourcePath(CATUnicodeString istrFileName,CATUnicodeString &oPath);
+  int YFGetResourcePath(CATUnicodeString istrFileName,CATUnicodeString &oPath);
   HRESULT GetFeatureNamesFromXML(CATUnicodeString istrFileName, CATListOfCATUnicodeString &olstFeatureNames);
   HRESULT GetParmNamesAndTolFromXML(CATUnicodeString istrFileName, CATListOfCATUnicodeString &olstFeatureNames);
   //从xml中获取比例
@@ -685,6 +689,7 @@ class ExportedByGeneralClassMod GeneralClass: public CATBaseUnknown
   void MessageOutputError (CATUnicodeString iString,CATUnicodeString iTopString);
   void MessageOutputInfo (CATUnicodeString iString,CATUnicodeString iTopString);
   CATBoolean CreateMsgBoxOptOKCancel(CATUnicodeString usMsg);
+  
 };
 
 //-----------------------------------------------------------------------

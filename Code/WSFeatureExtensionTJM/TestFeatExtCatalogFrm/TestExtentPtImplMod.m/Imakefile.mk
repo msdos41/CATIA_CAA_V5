@@ -15,7 +15,8 @@ WIZARD_LINK_MODULES = JS0GROUP \
 JS0GROUP JS0FM TestExtendPtInterfacesUUID  \
 TestExtendPtItfCPP  \
 AC0SPBAS ObjectSpecsModelerUUID  \
-ApplicationFrame CATAfrUUID 
+ApplicationFrame CATAfrUUID  \
+CATInteractiveInterfaces InteractiveInterfacesUUID 
 # END WIZARD EDITION ZONE
 
 LINK_WITH = $(WIZARD_LINK_MODULES)	\

@@ -52,8 +52,24 @@ TIE_CATIEdit( TstEPointEdit);
 //-----------------------------------------------------------------------------
 CATCommand * TstEPointEdit::Activate (CATPathElement *  iPath)
 {
-
-   return NULL;
+	CATCommand *pCommand=NULL;
+	CATBaseUnknown_var spBUEditedTstPoint;
+	if (NULL!=iPath)
+	{
+		spBUEditedTstPoint = iPath->SearchObject(TstIPoint::ClassName());
+	}
+	if (NULL_var!=spBUEditedTstPoint)
+	{
+		TstIPoint *piTstIPoint=NULL;
+		HRESULT rc = spBUEditedTstPoint->QueryInterface(IID_TstIPoint,(void**)&piTstIPoint);
+		if (SUCCEEDED(rc)&&piTstIPoint!=NULL)
+		{
+			pCommand = new TestExtentPtCmd(piTstIPoint);
+			piTstIPoint->Release();
+			piTstIPoint=NULL;
+		}
+	}
+   return pCommand;
 }
 
 //-----------------------------------------------------------------------------

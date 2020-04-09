@@ -19,6 +19,7 @@ AddPrereqComponent("System",Protected);
 AddPrereqComponent("TestExtendPtInterfaces",Protected);
 AddPrereqComponent("ObjectSpecsModeler",Public);
 AddPrereqComponent("ApplicationFrame",Protected);
+AddPrereqComponent("InteractiveInterfaces",Protected);
 // END WIZARD EDITION ZONE
 AddPrereqComponent("ObjectModelerBase",Public);
 AddPrereqComponent("MecModInterfaces ",Public);

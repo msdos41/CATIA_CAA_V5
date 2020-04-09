@@ -82,6 +82,7 @@ void MyAddinMain::CreateCommands ()
 	new MyAddinHdr("TestCATIAReference","TestCATIAReferenceMod","TestCATIAReferenceCmd", (void*)NULL);
 	new MyAddinHdr("TestTessellation","TestTessellationMod","TestTessellationCmd", (void*)NULL);
 	new MyAddinHdr("TestFeatureExtension","TestFeatureExtensionMod","TestFeatureExtensionCmd", (void*)NULL);
+	new MyAddinHdr("TestSection","TestSectionMod","TestSectionCmd", (void*)NULL);
 }
 
 //-----------------------------------------------------------------------------
@@ -197,6 +198,10 @@ CATCmdContainer * MyAddinMain::CreateToolbars ()
 	NewAccess(CATCmdStarter,pTestFeatureExtension,TestFeatureExtension);
 	SetAccessCommand(pTestFeatureExtension,"TestFeatureExtension");
 	SetAccessNext(pTestTessellation,pTestFeatureExtension);
+
+	NewAccess(CATCmdStarter,pTestSection,TestSection);
+	SetAccessCommand(pTestSection,"TestSection");
+	SetAccessNext(pTestFeatureExtension,pTestSection);
 
 	AddToolbarView(pMyTlb,1,Left);
     return pMyTlb;

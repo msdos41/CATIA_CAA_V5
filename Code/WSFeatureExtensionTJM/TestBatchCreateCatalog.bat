@@ -1,0 +1,1 @@
+C:\CATIA\B19\win_b64\code\bin\CATSTART.exe -run "TestFeatExtCatalogMod.exe" -env TestFeatExt -direnv "C:\Users\Administrator\AppData\Roaming\DassaultSystemes\CATEnv"

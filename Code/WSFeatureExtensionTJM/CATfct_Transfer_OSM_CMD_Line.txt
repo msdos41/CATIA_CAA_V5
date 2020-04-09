@@ -1,0 +1,5 @@
+当第一次用代码生成CATfct后，后续所有的更新都需要用osm来做，不能在代码中更改，否则即使同样的代码，新生成的CATfct和老的内部的id也是不一样的，这样也就无法兼容老数据
+
+CATfct 转为 osm
+CATfctEditorAssistant -client-id TestFeatExtId -generate-osm TestCatalog.CATfct Test.osm
+

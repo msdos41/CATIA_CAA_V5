@@ -1,0 +1,10 @@
+document `TestCatalog.CATfct` {
+	container CATFeatCont #root {
+		catalog_manager `Literals.feat`
+		feature TestExtendPT#2 GSMGeom#2@`CATHybridShape.feat` #startup #backup_startup(FeatureBackUpGeoElem3D#110@`MechMod.feat`) {
+			double ptX #in
+			double ptY #in
+			double ptZ #in
+		}
+	}
+}

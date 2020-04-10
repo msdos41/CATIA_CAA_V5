@@ -26,6 +26,12 @@
 
 #include "CATExtIEdit.h"
 
+#include "TestExtendPtCmd.h"
+#include "CATPathElement.h"
+#include "TstIPoint.h"
+
+
+
 //-----------------------------------------------------------------------
 
 /**

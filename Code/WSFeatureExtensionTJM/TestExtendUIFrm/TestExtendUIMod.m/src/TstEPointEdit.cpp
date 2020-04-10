@@ -17,7 +17,7 @@
 CATImplementClass(TstEPointEdit,
                   DataExtension,
                   CATExtIEdit,
-                  TestExtendPt );
+                  TestExtendPT );
  
 
 //-----------------------------------------------------------------------------
@@ -64,9 +64,9 @@ CATCommand * TstEPointEdit::Activate (CATPathElement *  iPath)
 		HRESULT rc = spBUEditedTstPoint->QueryInterface(IID_TstIPoint,(void**)&piTstIPoint);
 		if (SUCCEEDED(rc)&&piTstIPoint!=NULL)
 		{
-			pCommand = new TestExtentPtCmd(piTstIPoint);
-			piTstIPoint->Release();
-			piTstIPoint=NULL;
+			pCommand = new TestExtendPtCmd(piTstIPoint);
+			//piTstIPoint->Release();	//该处不能释放赋空
+			//piTstIPoint=NULL;
 		}
 	}
    return pCommand;

@@ -27,3 +27,7 @@ AddPrereqComponent("GeometricObjects",Public);
 AddPrereqComponent("NewTopologicalObjects",Public);
 AddPrereqComponent("BasicTopologicalOpe",Public);
 AddPrereqComponent("TestExtendPtInterfaces",Public);
+AddPrereqComponent("ProductStructure",Public);
+AddPrereqComponent("GSMInterfaces",Public);
+AddPrereqComponent("ObjectSpecsModeler",Public);
+AddPrereqComponent("VisualizationBase",Public);

@@ -25,6 +25,9 @@ CATGeometricObjects		\
 CATTopologicalObjects	\
 CATBasicTopologicalOpe	\
 CATMathStream	\
+CATProductStructure1	\
+CATGitInterfaces	\
+CATViz		\
 
 # System dependant variables
 #

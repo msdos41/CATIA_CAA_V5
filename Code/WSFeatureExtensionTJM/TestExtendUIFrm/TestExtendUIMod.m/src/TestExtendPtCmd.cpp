@@ -17,6 +17,9 @@
 #include "CATMathPlane.h"
 
 #include "CATCreateExternalObject.h"
+
+
+
 //CATCreateClass( TestExtendPtCmd);
 CATCreateClassArg(TestExtendPtCmd,TstIPoint);
 
@@ -24,14 +27,26 @@ CATCreateClassArg(TestExtendPtCmd,TstIPoint);
 //-------------------------------------------------------------------------
 // Constructor
 //-------------------------------------------------------------------------
-TestExtendPtCmd::TestExtendPtCmd(TstIPoint *ipiTstIPoint) :
+TestExtendPtCmd::TestExtendPtCmd(TstIPoint *ipiTstIPoint) :	//构造函数需要更改，需要增加对象的输入
   CATStateCommand ("TestExtendPtCmd", CATDlgEngOneShot, CATCommandModeExclusive) 
 //  Valid states are CATDlgEngOneShot and CATDlgEngRepeat
 ,_pDlg(NULL)
+,_pTstIPoint(ipiTstIPoint)
 {
 	_pDlg = new TestExtendPtDlg();
 	_pDlg->Build();
 	_pDlg->SetVisibility(CATDlgShow);
+
+	if (_pTstIPoint!=NULL)	//输入非空，说明是编辑已有的点，界面上显示坐标
+	{
+		double dX,dY,dZ;
+		_pTstIPoint->GetX(dX);
+		_pTstIPoint->GetY(dY);
+		_pTstIPoint->GetZ(dZ);
+		_pDlg->GetEditorFunc(CoordX)->SetValue(dX);
+		_pDlg->GetEditorFunc(CoordY)->SetValue(dY);
+		_pDlg->GetEditorFunc(CoordZ)->SetValue(dZ);
+	}
 }
 
 //-------------------------------------------------------------------------
@@ -44,6 +59,12 @@ TestExtendPtCmd::~TestExtendPtCmd()
 		_pDlg->RequestDelayedDestruction();
 		_pDlg=NULL;
 	}
+
+	if (_pTstIPoint!=NULL)
+	{
+		_pTstIPoint->Release();
+		_pTstIPoint=NULL;
+	}
 }
 
 
@@ -52,7 +73,25 @@ TestExtendPtCmd::~TestExtendPtCmd()
 //-------------------------------------------------------------------------
 void TestExtendPtCmd::BuildGraph()
 {
+	AddAnalyseNotificationCB(_pDlg,
+		_pDlg->GetDiaCLOSENotification(),
+		(CATCommandMethod)&TestExtendPtCmd::ExitCmd,
+		NULL);
 
+	AddAnalyseNotificationCB(_pDlg,
+		_pDlg->GetWindCloseNotification(),
+		(CATCommandMethod)&TestExtendPtCmd::ExitCmd,
+		NULL);
+
+	AddAnalyseNotificationCB(_pDlg,
+		_pDlg->GetDiaCANCELNotification(),
+		(CATCommandMethod)&TestExtendPtCmd::ExitCmd,
+		NULL);
+
+	AddAnalyseNotificationCB(_pDlg,
+		_pDlg->GetDiaOKNotification(),
+		(CATCommandMethod)&TestExtendPtCmd::ActionOK,
+		NULL);
 }
 
 
@@ -65,4 +104,304 @@ CATBoolean TestExtendPtCmd::ActionOne( void *data )
   // ------------------------------------------------------
 
   return TRUE;
+}
+
+CATBoolean TestExtendPtCmd::ExitCmd(void * data)
+{
+	this->RequestDelayedDestruction();
+	return TRUE;
+}
+
+CATBoolean TestExtendPtCmd::ActionOK(void * data)
+{
+	//
+	if (_pTstIPoint==NULL)
+	{
+		this->CreatePoint();
+	}
+	else
+	{
+		this->EditPoint();
+	}
+	return TRUE;
+}
+
+//创建自定义特征
+HRESULT TestExtendPtCmd::CreatePoint()
+{
+	HRESULT rc = S_OK;
+	//获取根节点
+	CATIProduct_var spiProdRoot = NULL_var;
+	rc = this->GetRootProduct(spiProdRoot);
+	if (FAILED(rc)||spiProdRoot==NULL_var)
+	{
+		return E_FAIL;
+	}
+	//获取工厂
+	TstIFactory *piTstFactory = this->GetTstFactory(spiProdRoot);
+	if (piTstFactory==NULL)
+	{
+		return E_FAIL;
+	}
+	//创建GeoSet
+	CATISpecObject_var spiSpecGeoSet = NULL_var;
+	rc = this->CreateNewGeoSet(spiProdRoot,"CAA_Test",spiSpecGeoSet);
+	if (FAILED(rc)||spiSpecGeoSet==NULL_var)
+	{
+		return E_FAIL;
+	}
+	//创建自定义特征
+	double dX,dY,dZ;
+	dX = _pDlg->GetEditorFunc(CoordX)->GetValue();
+	dY = _pDlg->GetEditorFunc(CoordY)->GetValue();
+	dZ = _pDlg->GetEditorFunc(CoordZ)->GetValue();
+	TstIPoint *piTstPoint = NULL;
+	rc = piTstFactory->CreateTstPoint(dX,dY,dZ,&piTstPoint);
+	if (FAILED(rc)||piTstPoint== NULL)
+	{
+		return E_FAIL;
+	}
+	//挂到模型树上
+	CATISpecObject_var spiSpec = piTstPoint;
+	if (spiSpec!=NULL_var)
+	{
+		spiSpec->Update();
+	}
+	CATIGSMProceduralView_var spiProceduralView = spiSpec;
+	if (NULL_var != spiProceduralView )
+	{
+		rc = spiProceduralView->InsertInProceduralView(spiSpecGeoSet);
+	}
+	//
+	spiSpecGeoSet->GetRootFather()->Update();
+
+	return rc;
+}
+//编辑自定义特征
+HRESULT TestExtendPtCmd::EditPoint()
+{
+	HRESULT rc = S_OK;
+
+	//
+	double dX,dY,dZ;
+	dX = _pDlg->GetEditorFunc(CoordX)->GetValue();
+	dY = _pDlg->GetEditorFunc(CoordY)->GetValue();
+	dZ = _pDlg->GetEditorFunc(CoordZ)->GetValue();
+
+	//
+	_pTstIPoint->SetX(dX);
+	_pTstIPoint->SetY(dY);
+	_pTstIPoint->SetZ(dZ);
+
+	//
+	CATISpecObject_var spiSpec = _pTstIPoint;
+	if (spiSpec!=NULL_var)
+	{
+		spiSpec->Update();
+	}
+	return rc;
+}
+
+//在零件根目录下创建GeoSet，创建前先判断是否已经存在
+HRESULT TestExtendPtCmd::CreateNewGeoSet(CATIProduct_var ispiProd,CATUnicodeString istrName,CATISpecObject_var &ospiSpecGeoSet)
+{
+	HRESULT rc = S_OK;
+	if (ispiProd == NULL_var)
+	{
+		return E_FAIL;
+	}
+	CATIProduct_var ispiProdRef = ispiProd->GetReferenceProduct();
+	if (ispiProdRef==NULL_var)
+	{
+		return E_FAIL;
+	}
+	CATILinkableObject *piLinkableObjOnChild = NULL;
+	rc = ispiProdRef->QueryInterface(IID_CATILinkableObject,(void**)&piLinkableObjOnChild);
+	if (FAILED(rc))
+	{
+		return E_FAIL;
+	}
+	CATDocument *pDocOnChild = NULL;
+	pDocOnChild = piLinkableObjOnChild->GetDocument();
+	if (NULL == pDocOnChild)
+	{
+		return E_FAIL;
+	}
+	CATIContainerOfDocument_var spContOfDocOnChild = pDocOnChild;
+	CATIContainer *piSpecContainerOnChild = NULL;
+	rc = spContOfDocOnChild->GetSpecContainer(piSpecContainerOnChild);
+	if (FAILED(rc))
+	{
+		return E_FAIL;
+	}
+	CATIPrtContainer *piPrtContainerOnChild = NULL;
+	rc = piSpecContainerOnChild->QueryInterface(IID_CATIPrtContainer,(void**)&piPrtContainerOnChild);
+	piSpecContainerOnChild->Release();
+	if (FAILED(rc))
+	{
+		return E_FAIL;
+	}
+	CATIPrtPart_var spPartOnChild = piPrtContainerOnChild->GetPart();
+	piPrtContainerOnChild->Release();
+	if (NULL_var == spPartOnChild)
+	{
+		return E_FAIL;
+	}
+	//先判断有没有RPS几何图形集
+	CATIPartRequest *pPartAsRequest = NULL;
+	rc = spPartOnChild->QueryInterface(IID_CATIPartRequest, (void**)&pPartAsRequest);
+	if (FAILED(rc))
+	{
+		return E_FAIL;
+	}
+	//遍历所有GS
+	CATLISTV(CATBaseUnknown_var) lstGeomSet = NULL;
+	pPartAsRequest->GetSurfBodies("", lstGeomSet);
+	//如果没有GS或者没有给名字，则直接建立
+	CATISpecObject_var spChildTool = NULL_var;
+	if (lstGeomSet == NULL || istrName == "")
+	{
+		//获得几何图形集创建的父级，该处为最外层根下
+		CATISpecObject_var spParentTool = spPartOnChild;
+		//
+		CATIMechanicalRootFactory_var spMechRootFactory = piSpecContainerOnChild;
+		//
+		//CATISpecObject_var spChildTool = NULL_var;
+		rc = spMechRootFactory->CreateGeometricalSet(istrName,spParentTool,spChildTool,-1);
+		if (FAILED(rc))
+		{
+			return E_FAIL;
+		}
+		//定义到新建的几何图形集下
+		spPartOnChild->SetCurrentFeature(spChildTool);
+	}
+	//有GS，则遍历GS，并判断是否已经含有该名字的几何图形集
+	else
+	{
+		CATBoolean boolExistGS = FALSE;
+		for (int i=1; i <= lstGeomSet.Size(); i++)
+		{
+			CATBaseUnknown_var spCurrentSet = lstGeomSet[i];
+			if (spCurrentSet == NULL_var)
+			{
+				continue;
+			}
+			CATIAlias_var spAliasOnCurrentSet = spCurrentSet;
+			CATUnicodeString strAliasOnCurrentSet = spAliasOnCurrentSet->GetAlias();
+			//如果存在，则直接定义到该图形集
+			if (strAliasOnCurrentSet == istrName)
+			{
+				spChildTool = spCurrentSet;
+				spPartOnChild->SetCurrentFeature(spChildTool);
+				boolExistGS = TRUE;
+				break;
+			}
+		}
+		//不存在，则新建图形集
+		if (boolExistGS == FALSE)
+		{
+			//获得几何图形集创建的父级，该处为最外层根下
+			CATISpecObject_var spParentTool = spPartOnChild;
+			//
+			CATIMechanicalRootFactory_var spMechRootFactory = piSpecContainerOnChild;
+			//
+			//CATISpecObject_var spChildTool = NULL_var;
+			rc = spMechRootFactory->CreateGeometricalSet(istrName,spParentTool,spChildTool,-1);
+			if (FAILED(rc))
+			{
+				return E_FAIL;
+			}
+			//定义到新建的几何图形集下
+			spPartOnChild->SetCurrentFeature(spChildTool);
+		}
+	}
+	ospiSpecGeoSet = spChildTool;
+	return rc;
+}
+
+//描述：获取当前打开的根节点，包括Part和Product
+//输入：
+//输出：CATIProduct
+//返回：HRESULT
+HRESULT TestExtendPtCmd::GetRootProduct( CATIProduct_var &ospiRootProduct )
+{
+	//获取Document
+	CATFrmEditor *pEditor = CATFrmEditor::GetCurrentEditor();
+	if (pEditor == NULL)
+	{
+		return E_FAIL;
+	}
+	CATDocument *pDoc = pEditor->GetDocument();
+	if (pDoc == NULL)
+	{
+		return E_FAIL;
+	}
+
+	//获取根元素集合的第一个，就是根product,最终要转到CATIProduct
+	CATIDocRoots *piDocRootsOnDoc = NULL;
+	HRESULT rc = pDoc->QueryInterface(IID_CATIDocRoots,(void**)&piDocRootsOnDoc);
+	if (FAILED(rc))
+	{
+		return E_FAIL;
+	}
+	CATListValCATBaseUnknown_var *pRootProducts = piDocRootsOnDoc->GiveDocRoots();
+	CATIProduct_var spRootProduct = NULL_var;
+	if (pRootProducts->Size())
+	{
+		spRootProduct = (*pRootProducts)[1];
+		delete pRootProducts;
+		pRootProducts = NULL;
+	}
+
+	piDocRootsOnDoc->Release();
+
+	ospiRootProduct = spRootProduct;
+
+	////CATIProduct *piProductOnRoot = NULL;
+	//rc = spRootProduct->QueryInterface(IID_CATIProduct, (void**)&opiRootProduct);
+	//if (FAILED(rc) || piDocRootsOnDoc == NULL)
+	//{
+	//	return E_FAIL;
+	//}
+
+	return S_OK;
+}
+
+TstIFactory *TestExtendPtCmd::GetTstFactory(CATIProduct_var ispiProd)
+{
+	TstIFactory *opiTstFactory = NULL;
+
+	//
+	if (ispiProd==NULL_var)
+	{
+		return NULL;
+	}
+	CATIProduct_var spiProdRef = ispiProd->GetReferenceProduct();
+	// Gets a pointer on CATISpecObject.
+	CATILinkableObject_var spiLinkableObject = spiProdRef;
+	if (spiLinkableObject==NULL_var)
+	{
+		return NULL;
+	}
+	// Do not release this pointer
+	CATDocument * pDocument = NULL ;
+	pDocument = spiLinkableObject->GetDocument();
+	if ( NULL != pDocument )
+	{
+		CATInit_var spInit = pDocument;
+		if (spInit!=NULL_var)
+		{
+			CATIPrtContainer *piPrtContainer=(CATIPrtContainer *)spInit->GetRootContainer("CATIPrtContainer");
+			if (piPrtContainer!= NULL)
+			{
+				TstIFactory *piTstFactory =NULL;
+				HRESULT rc = piPrtContainer->QueryInterface(IID_TstIFactory,(void**) &piTstFactory);
+				if (SUCCEEDED(rc)&&piTstFactory!=NULL)
+				{
+					opiTstFactory=piTstFactory;
+				}
+			}
+		}
+	}
+	return opiTstFactory;
 }

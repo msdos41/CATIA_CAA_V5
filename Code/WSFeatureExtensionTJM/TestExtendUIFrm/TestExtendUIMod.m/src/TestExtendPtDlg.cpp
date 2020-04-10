@@ -31,11 +31,17 @@
 TestExtendPtDlg::TestExtendPtDlg() :
   CATDlgDialog ((CATApplicationFrame::GetApplicationFrame())->GetMainWindow(),
 //CAA2 WIZARD CONSTRUCTOR DECLARATION SECTION
-          "TestExtendPtDlg", CATDlgGridLayout
+"TestExtendPtDlg",CATDlgWndBtnOKCancel|CATDlgGridLayout
 //END CAA2 WIZARD CONSTRUCTOR DECLARATION SECTION
                                )
 {
 //CAA2 WIZARD CONSTRUCTOR INITIALIZATION SECTION
+ _Label001 = NULL;
+ _EditorX = NULL;
+ _Label003 = NULL;
+ _EditorY = NULL;
+ _Label005 = NULL;
+ _EditorZ = NULL;
 //END CAA2 WIZARD CONSTRUCTOR INITIALIZATION SECTION
 }
 
@@ -48,6 +54,12 @@ TestExtendPtDlg::~TestExtendPtDlg()
 //     this is done automatically
 //  --------------------------------------------------
 //CAA2 WIZARD DESTRUCTOR DECLARATION SECTION
+ _Label001 = NULL;
+ _EditorX = NULL;
+ _Label003 = NULL;
+ _EditorY = NULL;
+ _Label005 = NULL;
+ _EditorZ = NULL;
 //END CAA2 WIZARD DESTRUCTOR DECLARATION SECTION
 }
 
@@ -59,6 +71,21 @@ void TestExtendPtDlg::Build()
 //  -------------------------------------------------------------------
 
 //CAA2 WIZARD WIDGET CONSTRUCTION SECTION
+ _Label001 = new CATDlgLabel(this, "Label001");
+_Label001 -> SetGridConstraints(0, 0, 1, 1, CATGRID_4SIDES);
+ _EditorX = new CATDlgEditor(this, "EditorX", CATDlgEdtDouble);
+ _EditorX -> SetPrecision( 0 );
+_EditorX -> SetGridConstraints(0, 1, 1, 1, CATGRID_4SIDES);
+ _Label003 = new CATDlgLabel(this, "Label003");
+_Label003 -> SetGridConstraints(1, 0, 1, 1, CATGRID_4SIDES);
+ _EditorY = new CATDlgEditor(this, "EditorY", CATDlgEdtDouble);
+ _EditorY -> SetPrecision( 0 );
+_EditorY -> SetGridConstraints(1, 1, 1, 1, CATGRID_4SIDES);
+ _Label005 = new CATDlgLabel(this, "Label005");
+_Label005 -> SetGridConstraints(2, 0, 1, 1, CATGRID_4SIDES);
+ _EditorZ = new CATDlgEditor(this, "EditorZ", CATDlgEdtDouble);
+ _EditorZ -> SetPrecision( 0 );
+_EditorZ -> SetGridConstraints(2, 1, 1, 1, CATGRID_4SIDES);
 //END CAA2 WIZARD WIDGET CONSTRUCTION SECTION
 
 //CAA2 WIZARD CALLBACK DECLARATION SECTION
@@ -66,3 +93,17 @@ void TestExtendPtDlg::Build()
 
 }
 
+CATDlgEditor *TestExtendPtDlg::GetEditorFunc(EditorType type)
+{
+	switch(type)
+	{
+	case CoordX:
+		return _EditorX;
+	case CoordY:
+		return _EditorY;
+	case CoordZ:
+		return _EditorZ;
+	default:
+		return NULL;
+	}
+}

@@ -17,7 +17,7 @@
 CATImplementClass(TstEBuild,
                   DataExtension,
                   CATBaseUnknown,
-                  TestExtendPt );
+                  TestExtendPT );	//最后一个参数需要给的是catalog里面的startuptype
  
 
 //-----------------------------------------------------------------------------

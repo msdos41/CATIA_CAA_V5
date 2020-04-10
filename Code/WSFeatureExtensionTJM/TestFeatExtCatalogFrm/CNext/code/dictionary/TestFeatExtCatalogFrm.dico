@@ -9,25 +9,25 @@
 # DO NOT EDIT :: THE CAA2 WIZARDS WILL ADD CODE HERE
 
 
-	TestExtendPt	CATIIcon	libTestExtentPtImplMod
+	TestExtendPT	CATIIcon	libTestExtentPtImplMod
 
 
 
 
 
-	TestExtendPt	CATIEdit	libTestExtentPtImplMod
+	
 
 
 
 
 
-	TestExtendPt	CATIBuild	libTestExtentPtImplMod
+	TestExtendPT	CATIBuild	libTestExtentPtImplMod
 
 
 
 
 
-	TestExtendPt	TstIPoint	libTestExtentPtImplMod
+	TestExtendPT	TstIPoint	libTestExtentPtImplMod
 
 
 

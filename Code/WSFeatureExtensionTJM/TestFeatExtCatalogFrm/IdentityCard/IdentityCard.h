@@ -27,3 +27,5 @@ AddPrereqComponent("GeometricObjects",Public);
 AddPrereqComponent("NewTopologicalObjects",Public);
 AddPrereqComponent("BasicTopologicalOpe",Public);
 AddPrereqComponent("Mathematics",Public);
+AddPrereqComponent("TestExtendUIFrm",Public);
+AddPrereqComponent("VisualizationBase",Public);

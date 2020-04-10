@@ -28,6 +28,8 @@ CATGeometricObjects		\
 CATTopologicalObjects	\
 CATBasicTopologicalOpe	\
 CATMathStream	\
+TestExtendUIMod		\
+CATViz	\
 
 # System dependant variables
 #

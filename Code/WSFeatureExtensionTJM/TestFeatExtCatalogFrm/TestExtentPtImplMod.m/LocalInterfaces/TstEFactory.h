@@ -26,6 +26,8 @@
 
 #include "TstIFactory.h"
 
+#include "TstIPoint.h"
+
 #include "CATIContainer.h"
 
 #include "CATICatalog.h"                

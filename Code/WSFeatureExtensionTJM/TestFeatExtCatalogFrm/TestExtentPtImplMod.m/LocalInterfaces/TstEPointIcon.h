@@ -26,6 +26,8 @@
 
 #include "CATBaseUnknown.h"
 
+#include "CATUnicodeString.h"
+
 //-----------------------------------------------------------------------
 
 /**

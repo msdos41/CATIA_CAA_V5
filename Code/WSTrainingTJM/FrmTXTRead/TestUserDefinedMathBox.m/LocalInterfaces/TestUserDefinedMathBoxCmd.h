@@ -27,6 +27,12 @@ class CATIndicationAgent;
 
 //----------------------------------------------------------------------
 
+struct UserDefinedCircle 
+{
+	CATMathPoint2D ptCenter;
+	double dRadius;
+};
+
 /**
  * Describe your command here.
  * <p>
@@ -60,7 +66,15 @@ class TestUserDefinedMathBoxCmd: public CATStateCommand
 
   void GetPlaneFromScreen();
   CATBoolean AddHSO(CATBaseUnknown_var ispSpecSelect);
-  private:
+  HRESULT GetAllPointsFromView(CATIView_var ispiView,vector<CATMathPoint2D> &ovecPt);
+  CATBoolean IsOccurInList(CATMathPoint2D iPt2D,vector<CATMathPoint2D> ivecPt2D);
+  HRESULT GetMinOuterCircle(vector<CATMathPoint2D> ivecPt2D,UserDefinedCircle &oOuterCircle);
+  HRESULT MinOuterCircleWithOnePoint(vector<CATMathPoint2D> ivecPt2D,CATMathPoint2D iPt,UserDefinedCircle &oOuterCircle);
+  HRESULT MinOuterCircleWithTwoPoints(vector<CATMathPoint2D> ivecPt2D,CATMathPoint2D iPt1,CATMathPoint2D iPt2,UserDefinedCircle &oOuterCircle);
+  CATBoolean IsIncludedInCircle(CATMathPoint2D iPt,UserDefinedCircle iCircle);
+  void GetCenterAndRadius(CATMathPoint iPTA,CATMathPoint iPTB,CATMathPoint iPTC,CATMathPoint &oPT,double &oRadius);
+
+private:
 
   CATIndicationAgent	* _Indication;
 

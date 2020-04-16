@@ -39,6 +39,110 @@ TestUserDefinedMathBoxCmd::TestUserDefinedMathBoxCmd() :
 	
 	_pGeneralCls = new GeneralClass();
 
+	//测试2维最小外接圆
+	CATFrmEditor *pEditor = CATFrmEditor::GetCurrentEditor();
+	CATDocument *pDoc = pEditor->GetDocument();
+	CATLISTV(CATISpecObject_var) lstViews;
+	_pGeneralCls->GetAllViews(pDoc,lstViews);
+	if (lstViews.Size()==0)
+	{
+		return;
+	}
+
+	for (int i=1;i<=lstViews.Size();i++)
+	{
+		CATIView_var spiView = lstViews[i];
+		vector<CATMathPoint2D> vecPt2D;
+		this->GetAllPointsFromView(spiView,vecPt2D);
+		if (vecPt2D.size()==0)
+		{
+			continue;
+		}
+		UserDefinedCircle MinOuterCircle;
+		this->GetMinOuterCircle(vecPt2D,MinOuterCircle);
+
+		//UserDefinedCircle MaxInnerCircle;
+		//this->GetMaxInnerCircle(vecPt2D,MaxInnerCircle);
+
+		//
+		CATIDftView *piDftView=NULL;
+		HRESULT rc=spiView->QueryInterface(IID_CATIDftView,(void**)&piDftView);
+		if(FAILED(rc)||piDftView==NULL) 
+		{
+			continue;
+		}
+		piDftView->Activate();
+
+		//
+		CATI2DWFFactory_var spi2DWFFactory = spiView;
+		if (spi2DWFFactory!=NULL_var)
+		{
+			double arrCenter[2] = {MinOuterCircle.ptCenter.GetX(),MinOuterCircle.ptCenter.GetY()};
+			double dRadius = MinOuterCircle.dRadius;
+
+			CATISpecObject_var spiSpecCircle = spi2DWFFactory->CreateCircle(arrCenter,dRadius);
+			spiSpecCircle->Update();
+
+			//double arrCenter2[2] = {MaxInnerCircle.ptCenter.GetX(),MaxInnerCircle.ptCenter.GetY()};
+			//double dRadius2 = MaxInnerCircle.dRadius;
+
+			//CATISpecObject_var spiSpecCircle2 = spi2DWFFactory->CreateCircle(arrCenter2,dRadius2);
+			//spiSpecCircle2->Update();
+		}
+	}
+
+#if 0
+	//测试clipping view内的线条数量
+	CATFrmEditor *pEditor = CATFrmEditor::GetCurrentEditor();
+	CATDocument *pDoc = pEditor->GetDocument();
+
+	CATLISTV(CATISpecObject_var) lstViews;
+	_pGeneralCls->GetAllViews(pDoc,lstViews);
+	if (lstViews.Size()==0)
+	{
+		return;
+	}
+	for (int i=1;i<=lstViews.Size();i++)
+	{
+		CATIView_var spiView = lstViews[i];
+		if (spiView==NULL_var)
+		{
+			continue;
+		}
+		CATIDftView* piDftView=NULL;
+		HRESULT rc=spiView->QueryInterface(IID_CATIDftView, (void**)&piDftView);
+		if(SUCCEEDED(rc)&&piDftView!=NULL)
+		{
+			IUnknown* piGenView = NULL;
+			if(SUCCEEDED(piDftView->GetApplicativeExtension(IID_CATIDftGenView,&piGenView)))
+			{
+				CATIDftGenGeomAccess* piGenGeomAccess = NULL;
+				if(SUCCEEDED(piGenView->QueryInterface(IID_CATIDftGenGeomAccess,(void**)&piGenGeomAccess)))
+				{
+					// Get a list containing all Generated Geometry of the view
+					CATIUnknownList* piList=NULL;
+					if( SUCCEEDED(piGenGeomAccess->GetAllGeneratedItems(IID_CATIDftGenGeom,&piList)))
+					{
+						if(piList!=NULL)
+						{
+							unsigned int iListSize = 0;
+							piList->Count(&iListSize);
+							cout<<"# The Number Of Generated Geometry:"<<iListSize<<endl;
+
+							piList->Release();
+							piList = NULL;
+						}
+						piGenGeomAccess->Release();
+						piGenGeomAccess = NULL;
+					}
+				}
+				piGenView->Release();
+				piGenView=NULL;
+			}
+		}
+	}
+#endif
+	/*
 	//测试自动高亮以及高亮面的中点处的曲率半径
 	CATIProduct_var spiProdRoot = NULL_var;
 	_pGeneralCls->GetRootProductUpdate(spiProdRoot);
@@ -101,18 +205,18 @@ TestUserDefinedMathBoxCmd::TestUserDefinedMathBoxCmd() :
 		{
 			continue;
 		}
-		/*
-		double dblCrvRadiusMin,dblCrvRadiusMax;
-		rc = _pGeneralCls->GetCrvRadiusOnSurface(spFace,dblCrvRadiusMin,dblCrvRadiusMax);
-		if (SUCCEEDED(rc))
-		{
-			cout<<"Rmin: "<<dblCrvRadiusMin<<"   Rmax: "<<dblCrvRadiusMax<<endl;
-		}
-		if (dblCrvRadiusMin < 2.8 || dblCrvRadiusMin > 3.2)
-		{
-			continue;
-		}
-		*/
+		//
+		//double dblCrvRadiusMin,dblCrvRadiusMax;
+		//rc = _pGeneralCls->GetCrvRadiusOnSurface(spFace,dblCrvRadiusMin,dblCrvRadiusMax);
+		//if (SUCCEEDED(rc))
+		//{
+		//	cout<<"Rmin: "<<dblCrvRadiusMin<<"   Rmax: "<<dblCrvRadiusMax<<endl;
+		//}
+		//if (dblCrvRadiusMin < 2.8 || dblCrvRadiusMin > 3.2)
+		//{
+		//	continue;
+		//}
+		//
 		//
 		CATIBRepAccess_var spiBrepAcess  =NULL_var;
 		spiBrepAcess = CATBRepDecodeCellInBody(spFace,spBody);
@@ -158,6 +262,9 @@ TestUserDefinedMathBoxCmd::TestUserDefinedMathBoxCmd() :
 	cout<<"-----------------------------------------------"<<endl;
 	cout<<"The Specific Color Count is "<<iCountColor<<endl;
 	cout<<"-----------------------------------------------"<<endl;
+
+	*/
+
 	/*
 	double num1 = 0.00005;
 	double num2 = 0.00006;
@@ -724,4 +831,375 @@ CATBoolean TestUserDefinedMathBoxCmd::AddHSO(CATBaseUnknown_var ispSpecSelect)
 	}
 
 	return TRUE;
+}
+
+//从view中获取所有的不重复的端点
+HRESULT TestUserDefinedMathBoxCmd::GetAllPointsFromView(CATIView_var ispiView,vector<CATMathPoint2D> &ovecPt)
+{
+	HRESULT rc = S_OK;
+	if (ispiView==NULL_var)
+	{
+		return E_FAIL;
+	}
+
+	vector<CATMathPoint2D> vecPt;
+
+	CATIDftView* piDftView=NULL;
+	rc=ispiView->QueryInterface(IID_CATIDftView, (void**)&piDftView);
+	if(SUCCEEDED(rc)&&piDftView!=NULL)
+	{
+		IUnknown* piGenView = NULL;
+		if(SUCCEEDED(piDftView->GetApplicativeExtension(IID_CATIDftGenView,&piGenView)))
+		{
+			CATIDftGenGeomAccess* piGenGeomAccess = NULL;
+			if(SUCCEEDED(piGenView->QueryInterface(IID_CATIDftGenGeomAccess,(void**)&piGenGeomAccess)))
+			{
+				// Get a list containing all Generated Geometry of the view
+				CATIUnknownList* piList=NULL;
+				if( SUCCEEDED(piGenGeomAccess->GetAllGeneratedItems(IID_CATIDftGenGeom,&piList)))
+				{
+					if(piList!=NULL)
+					{
+						unsigned int iListSize = 0;
+						piList->Count(&iListSize);
+						//cout<<"# The Number Of Generated Geometry:"<<iListSize<<endl;
+
+						IUnknown* item = NULL;
+						// Loop on all Generated Geometry of the view.
+						for(unsigned int iFirCount=0;iFirCount<iListSize;iFirCount++)
+						{
+							if( SUCCEEDED(piList->Item(iFirCount,&item)))
+							{
+								IDMCurve2D* piIDMCurve2D = NULL;
+								double arrStartPt[2],arrEndPt[2];
+								if(SUCCEEDED(item->QueryInterface(IID_IDMCurve2D,(void**)&piIDMCurve2D)))
+								{
+									piIDMCurve2D->GetEndPoints(arrStartPt,arrEndPt);
+									CATMathPoint2D pt1(arrStartPt);
+									CATMathPoint2D pt2(arrEndPt);
+									if (FALSE==this->IsOccurInList(pt1,vecPt))
+									{
+										vecPt.push_back(pt1);
+									}
+									if (FALSE==this->IsOccurInList(pt2,vecPt))
+									{
+										vecPt.push_back(pt2);
+									}
+								}
+								item->Release();
+								item = NULL;
+							}							
+						}
+						piList->Release();
+						piList = NULL;
+					}
+					piGenGeomAccess->Release();
+					piGenGeomAccess = NULL;
+				}
+			}
+			piGenView->Release();
+			piGenView=NULL;
+		}
+	}
+
+	ovecPt.swap(vecPt);
+	return rc;
+}
+
+CATBoolean TestUserDefinedMathBoxCmd::IsOccurInList(CATMathPoint2D iPt2D,vector<CATMathPoint2D> ivecPt2D)
+{
+	CATBoolean bOccur = FALSE;
+	for (int i=0;i<ivecPt2D.size();i++)
+	{
+		CATMathPoint2D ptInList = ivecPt2D[i];
+		double dDist = iPt2D.DistanceTo(ptInList);
+		if (dDist<0.001)
+		{
+			bOccur = TRUE;
+			break;
+		}
+	}
+	return bOccur;
+}
+
+HRESULT TestUserDefinedMathBoxCmd::GetMinOuterCircle(vector<CATMathPoint2D> ivecPt2D,UserDefinedCircle &oOuterCircle)
+{
+	HRESULT rc = S_OK;
+	//点列表中必须至少有2个点
+	if (ivecPt2D.size()<2)
+	{
+		return E_FAIL;
+	}
+	//先取列表头2个点，计算出初始的外接圆
+	CATMathPoint2D pt1=ivecPt2D[0];
+	CATMathPoint2D pt2=ivecPt2D[1];
+	oOuterCircle.ptCenter = 0.5*(pt1+pt2);
+	oOuterCircle.dRadius = 0.5*(pt1.DistanceTo(pt2));
+	
+	//从列表第三个点开始循环
+	for (int i=2;i<ivecPt2D.size();i++)
+	{
+		CATMathPoint2D ptCurrent = ivecPt2D[i];
+		if (TRUE==this->IsIncludedInCircle(ptCurrent,oOuterCircle))	//如果当前点在当前状态的外接面内，则继续下个循环
+		{
+			continue;
+		}
+		else
+		{
+			vector<CATMathPoint2D> vecPtCurrent;
+			vecPtCurrent.assign(ivecPt2D.begin(),ivecPt2D.begin()+i);
+			rc = this->MinOuterCircleWithOnePoint(vecPtCurrent,ptCurrent,oOuterCircle);
+		}
+	}
+
+
+
+	return rc;
+}
+
+HRESULT TestUserDefinedMathBoxCmd::MinOuterCircleWithOnePoint(vector<CATMathPoint2D> ivecPt2D,CATMathPoint2D iPt,UserDefinedCircle &oOuterCircle)
+{
+	HRESULT rc = S_OK;
+	//
+	if (ivecPt2D.size()<1)
+	{
+		return E_FAIL;
+	}
+	//根据列表第一个和输入的点，求出初始外接圆
+	CATMathPoint2D pt1 = ivecPt2D[0];
+	CATMathPoint2D pt2 = iPt;
+	oOuterCircle.ptCenter = 0.5*(pt1+pt2);
+	oOuterCircle.dRadius = 0.5*(pt1.DistanceTo(pt2));
+
+	//从列表第二位开始循环
+	for (int i=1;i<ivecPt2D.size();i++)
+	{
+		CATMathPoint2D ptCurrent = ivecPt2D[i];
+		if (TRUE==this->IsIncludedInCircle(ptCurrent,oOuterCircle))	//如果当前点在当前状态的外接面内，则继续下个循环
+		{
+			continue;
+		}
+		else
+		{
+			vector<CATMathPoint2D> vecPtCurrent;
+			vecPtCurrent.assign(ivecPt2D.begin(),ivecPt2D.begin()+i);
+			rc = this->MinOuterCircleWithTwoPoints(vecPtCurrent,ptCurrent,iPt,oOuterCircle);
+		}
+	}
+
+	return rc;
+}
+
+HRESULT TestUserDefinedMathBoxCmd::MinOuterCircleWithTwoPoints(vector<CATMathPoint2D> ivecPt2D,CATMathPoint2D iPt1,CATMathPoint2D iPt2,UserDefinedCircle &oOuterCircle)
+{
+	HRESULT rc = S_OK;
+
+	//根据输入的点，求出初始外接圆
+	CATMathPoint2D pt1 = iPt1;
+	CATMathPoint2D pt2 = iPt2;
+	oOuterCircle.ptCenter = 0.5*(pt1+pt2);
+	oOuterCircle.dRadius = 0.5*(pt1.DistanceTo(pt2));
+
+	//从列表第一位开始循环
+	for (int i=0;i<ivecPt2D.size();i++)
+	{
+		CATMathPoint2D ptCurrent = ivecPt2D[i];
+		if (TRUE==this->IsIncludedInCircle(ptCurrent,oOuterCircle))	//如果当前点在当前状态的外接面内，则继续下个循环
+		{
+			continue;
+		}
+		else
+		{
+			//先判断三点是否共线
+			CATMathVector2D dir1 = pt1 - ptCurrent;
+			CATMathVector2D dir2 = pt2 - ptCurrent;
+			CATAngle angleDir = abs(dir1.GetAngleTo(dir2));
+			if ((angleDir>=0&&angleDir<=0.01)||(angleDir<=CATPI&&angleDir>=CATPI-0.01))	//如果3点共线，取最外侧的两个点算出外接圆
+			{
+				CATMathPoint2D opt1,opt2;
+				double dDist1 = pt1.DistanceTo(ptCurrent);
+				double dDist2 = pt2.DistanceTo(ptCurrent);
+				double dDist3 = pt1.DistanceTo(pt2);
+				double dDistMax = dDist1;
+				opt1 = pt1;
+				opt2 = ptCurrent;
+				if (dDist2>dDistMax)
+				{
+					dDistMax = dDist2;
+					opt1 = pt2;
+					opt2 = ptCurrent;
+				}
+				if (dDist3>dDistMax)
+				{
+					opt1 = pt1;
+					opt2 = pt2;
+				}
+				oOuterCircle.ptCenter = 0.5*(opt1+opt2);
+				oOuterCircle.dRadius = 0.5*dDistMax;
+			}
+			else	//三点取圆
+			{
+				CATMathPoint ptA(pt1.GetX(),pt1.GetY(),0);
+				CATMathPoint ptB(pt2.GetX(),pt2.GetY(),0);
+				CATMathPoint ptC(ptCurrent.GetX(),ptCurrent.GetY(),0);
+				CATMathPoint oCenter;
+				double dRadius;
+				this->GetCenterAndRadius(ptA,ptB,ptC,oCenter,dRadius);
+
+				//
+				oOuterCircle.dRadius = dRadius;
+				oOuterCircle.ptCenter = CATMathPoint2D(oCenter.GetX(),oCenter.GetY());
+			}
+		}
+	}
+
+	return rc;
+}
+//判断点是否包含于外接圆
+CATBoolean TestUserDefinedMathBoxCmd::IsIncludedInCircle(CATMathPoint2D iPt,UserDefinedCircle iCircle)
+{
+	CATBoolean bIsIncluded = FALSE;
+
+	CATMathPoint2D ptCenter = iCircle.ptCenter;
+	double dRadius = iCircle.dRadius;
+	double dDist = iPt.DistanceTo(ptCenter);
+	if (dDist<=dRadius)
+	{
+		bIsIncluded = TRUE;
+	}
+
+	return bIsIncluded;
+}
+
+void TestUserDefinedMathBoxCmd::GetCenterAndRadius(CATMathPoint iPTA,CATMathPoint iPTB,CATMathPoint iPTC,CATMathPoint &oPT,double &oRadius)
+{
+	double dPx,dQx,dRx;
+	double dPy,dQy,dRy;
+	double dPz,dQz,dRz;
+	//	double dX0,dY0,dZ0;
+
+	dPx=iPTA.GetX();
+	dQx=iPTB.GetX();
+	dRx=iPTC.GetX();
+
+	dPy=iPTA.GetY();
+	dQy=iPTB.GetY();
+	dRy=iPTC.GetY();
+
+	dPz=iPTA.GetZ();
+	dQz=iPTB.GetZ();
+	dRz=iPTC.GetZ();
+
+	// 	//算平面法量
+	// 	double pi,pj,pk;
+	// 	double x1=dQx-dPx;
+	// 	double x2=dRx-dPx;
+	// 
+	// 	double y1=dQy-dPy;
+	// 	double y2=dRy-dPy;
+	// 
+	// 	double z1=dQz-dPz;
+	// 	double z2=dRz-dPz;
+	// 
+	// 	pi=y1*z2-z1*y2;
+	// 	pj=z1*x2-x1*z2;
+	// 	pk=x1*y2-y1*x2;
+	// 
+	// 	//求PQ和PR的中垂线
+	// 	//1，过PQ的中点(Mx,My,Mz),
+	// 
+	// 	double dMx,dMy,dMz;
+	// 
+	// 	dMx=(dPx+dQx)/2;
+	// 	dMy=(dPy+dQy)/2;
+	// 	dMz=(dPz+dQz)/2;
+	// 
+	// 	//（Mi,Mj,Mk）＝（pi，pj，pk）×（x1,y1,z1）垂直
+	// 	double dMi,dMj,dMk;
+	// 	dMi=pj*z1-pk*y1;
+	// 	dMj=pk*x1-pi*z1;
+	// 	dMk=pi*y1-pj*x1;
+	// 
+	// 	//2，过PR的中点(Nx,Ny,Nz),
+	// 	double dNx,dNy,dNz;
+	// 
+	// 	dNx=(dPx+dRx)/2;
+	// 	dNy=(dPy+dRy)/2;
+	// 	dNz=(dPz+dRz)/2;
+	// 
+	// 	//（Ni,Nj,Nk）＝（pi，pj，pk）×（x2,y2,z2）垂直
+	// 	double dNi,dNj,dNk;
+	// 
+	// 	dNi=pj*z2-pk*y2;
+	// 	dNj=pk*x2-pi*z2;
+	// 	dNk=pi*y2-pj*x2;
+	// 
+	// 	//解两直线交点
+	// 	double tn;
+	// 	if((dNj*dMi-dMj*dNi)!=0)
+	// 	{	
+	// 		tn=((dMy-dNy)*dMi+dMj*(dNx-dMx))/(dNj*dMi-dMj*dNi);
+	// 	}
+	// 	else if((dMi*dNk-dMk*dNi)!=0)
+	// 	{	
+	// 		tn=((dMz-dNz)*dMi+dMk*(dNx-dMx))/(dNk*dMi-dMk*dNi);
+	// 	}
+	// 	else if((dMj*dNk-dMk*dNj)!=0)
+	// 	{	
+	// 		tn=((dMz-dNz)*dMj+dMk*(dNy-dMy))/(dMj*dNk-dMk*dNj);
+	// 	}
+	// 	dX0=dNx+dNi*tn;
+	// 	dY0=dNy+dNj*tn;
+	// 	dZ0=dNz+dNk*tn;
+	// 
+	// 	//得半径
+	// 	oRadius=(dX0-dPx)*(dX0-dPx)+(dY0-dPy)*(dY0-dPy)+(dZ0-dPz)*(dZ0-dPz);
+	// 	oPT.SetCoord(dX0,dY0,dZ0);
+	// 	oRadius=sqrt(oRadius);
+	double x1=iPTA.GetX();
+	double x2=iPTB.GetX();
+	double x3=iPTC.GetX();
+
+	double y1=iPTA.GetY();
+	double y2=iPTB.GetY();
+	double y3=iPTC.GetY();
+
+	double z1=iPTA.GetZ();
+	double z2=iPTB.GetZ();
+	double z3=iPTC.GetZ();
+
+	double a1, b1, c1, d1;
+	double a2, b2, c2, d2;
+	double a3, b3, c3, d3;
+
+	a1 = (y1*z2 - y2*z1 - y1*z3 + y3*z1 + y2*z3 - y3*z2);
+	b1 = -(x1*z2 - x2*z1 - x1*z3 + x3*z1 + x2*z3 - x3*z2);
+	c1 = (x1*y2 - x2*y1 - x1*y3 + x3*y1 + x2*y3 - x3*y2);
+	d1 = -(x1*y2*z3 - x1*y3*z2 - x2*y1*z3 + x2*y3*z1 + x3*y1*z2 - x3*y2*z1);
+
+	a2 = 2 * (x2 - x1);
+	b2 = 2 * (y2 - y1);
+	c2 = 2 * (z2 - z1);
+	d2 = x1 * x1 + y1 * y1 + z1 * z1 - x2 * x2 - y2 * y2 - z2 * z2;
+
+	a3 = 2 * (x3 - x1);
+	b3 = 2 * (y3 - y1);
+	c3 = 2 * (z3 - z1);
+	d3 = x1 * x1 + y1 * y1 + z1 * z1 - x3 * x3 - y3 * y3 - z3 * z3;
+
+	double x, y, z;
+	x = -(b1*c2*d3 - b1*c3*d2 - b2*c1*d3 + b2*c3*d1 + b3*c1*d2 - b3*c2*d1)
+		/ (a1*b2*c3 - a1*b3*c2 - a2*b1*c3 + a2*b3*c1 + a3*b1*c2 - a3*b2*c1);
+	y = (a1*c2*d3 - a1*c3*d2 - a2*c1*d3 + a2*c3*d1 + a3*c1*d2 - a3*c2*d1)
+		/ (a1*b2*c3 - a1*b3*c2 - a2*b1*c3 + a2*b3*c1 + a3*b1*c2 - a3*b2*c1);
+	z = -(a1*b2*d3 - a1*b3*d2 - a2*b1*d3 + a2*b3*d1 + a3*b1*d2 - a3*b2*d1)
+		/ (a1*b2*c3 - a1*b3*c2 - a2*b1*c3 + a2*b3*c1 + a3*b1*c2 - a3*b2*c1);
+
+	oPT.SetCoord(x,y,z);
+	double r = 0.0;
+	r = sqrt((x1 - x)*(x1 - x) + (y1 - y)*(y1 - y) + (z1 - z)*(z1 - z));
+	r = sqrt((x2 - x)*(x2 - x) + (y2 - y)*(y2 - y) + (z2 - z)*(z2 - z));
+	r = sqrt((x3 - x)*(x3 - x) + (y3 - y)*(y3 - y) + (z3 - z)*(z3 - z));
+	oRadius=r;
+
 }

@@ -52,17 +52,13 @@ TestUserDefinedMathBoxCmd::TestUserDefinedMathBoxCmd() :
 	{
 		CATIView_var spiView = lstViews[i];
 		vector<CATMathPoint2D> vecPt2D;
-		this->GetAllPointsFromView(spiView,vecPt2D);
+		this->GetAllPointsFromView(spiView,CATMathPoint2D(-500,-500),CATMathPoint2D(500,500),vecPt2D);
 		if (vecPt2D.size()==0)
 		{
 			continue;
 		}
-		UserDefinedCircle MinOuterCircle;
-		this->GetMinOuterCircle(vecPt2D,MinOuterCircle);
-
-		//UserDefinedCircle MaxInnerCircle;
-		//this->GetMaxInnerCircle(vecPt2D,MaxInnerCircle);
-
+		vector<CATMathPoint2D> vecPtConvexHull;
+		this->GetConvexHull(vecPt2D,vecPtConvexHull);
 		//
 		CATIDftView *piDftView=NULL;
 		HRESULT rc=spiView->QueryInterface(IID_CATIDftView,(void**)&piDftView);
@@ -74,20 +70,26 @@ TestUserDefinedMathBoxCmd::TestUserDefinedMathBoxCmd() :
 
 		//
 		CATI2DWFFactory_var spi2DWFFactory = spiView;
-		if (spi2DWFFactory!=NULL_var)
+		if (spi2DWFFactory==NULL_var)
 		{
-			double arrCenter[2] = {MinOuterCircle.ptCenter.GetX(),MinOuterCircle.ptCenter.GetY()};
-			double dRadius = MinOuterCircle.dRadius;
-
-			CATISpecObject_var spiSpecCircle = spi2DWFFactory->CreateCircle(arrCenter,dRadius);
-			spiSpecCircle->Update();
-
-			//double arrCenter2[2] = {MaxInnerCircle.ptCenter.GetX(),MaxInnerCircle.ptCenter.GetY()};
-			//double dRadius2 = MaxInnerCircle.dRadius;
-
-			//CATISpecObject_var spiSpecCircle2 = spi2DWFFactory->CreateCircle(arrCenter2,dRadius2);
-			//spiSpecCircle2->Update();
+			return;
 		}
+		for (int i=0;i<vecPtConvexHull.size();i++)
+		{
+			CATMathPoint2D ptCurrent = vecPtConvexHull[i];
+			int iNext = (i+1)%vecPtConvexHull.size();
+			CATMathPoint2D ptNext = vecPtConvexHull[iNext];
+			
+			double arrPt1[2] = {ptCurrent.GetX(),ptCurrent.GetY()};
+			double arrPt2[2] = {ptNext.GetX(),ptNext.GetY()};
+
+			CATISpecObject_var spiSpecLine = spi2DWFFactory->CreateLine(arrPt1,arrPt2);
+			if (spiSpecLine!=NULL_var)
+			{
+				this->SetLineFormat(spiSpecLine);
+			}
+		}
+		spiView->Update(NULL_var);
 	}
 
 
@@ -1259,6 +1261,139 @@ void TestUserDefinedMathBoxCmd::GetCenterAndRadius(CATMathPoint iPTA,CATMathPoin
 
 }
 
+//从view中获取所有的不重复的端点
+HRESULT TestUserDefinedMathBoxCmd::GetAllPointsFromView(CATIView_var ispiView,CATMathPoint2D iPtLL,CATMathPoint2D iPtRH,vector<CATMathPoint2D> &ovecPt)
+{
+	HRESULT rc = S_OK;
+
+	vector<CATMathPoint2D> vecPt;
+
+	CATIDescendants_var spiDesc=ispiView;
+	if (spiDesc==NULL_var)
+	{
+		return E_FAIL;
+	}
+
+	CATISketch_var spiSketch = ispiView->GetSketch();
+	CATISpecObject_var spiHLine = NULL_var;
+	CATISpecObject_var spiVLine = NULL_var;
+	if (spiSketch!=NULL_var)
+	{
+		CATI2DAxis_var spi2DAxis = NULL_var;
+		if (SUCCEEDED(spiSketch->GetAbsolute2DAxis(spi2DAxis)))
+		{
+			spiHLine = spi2DAxis->GetHDirection();
+			spiVLine = spi2DAxis->GetVDirection(); 
+		}
+	}
+
+	CATListValCATISpecObject_var LstOf2DDrwObject;
+
+	spiDesc->GetAllChildren("IDMCurve2D",LstOf2DDrwObject);
+
+	for (int i=1;i<=LstOf2DDrwObject.Size();i++)
+	{
+		CATISpecObject_var spiSpec = LstOf2DDrwObject[i];
+		if (spiSpec==NULL_var)
+		{
+			continue;
+		}
+		if (spiSpec==spiHLine || spiSpec==spiVLine)
+		{
+			continue;
+		}
+
+		IDMCurve2D* piIDMCurve2D = NULL;
+		double arrStartPt[2],arrEndPt[2];
+		if(SUCCEEDED(spiSpec->QueryInterface(IID_IDMCurve2D,(void**)&piIDMCurve2D)))
+		{
+			piIDMCurve2D->GetEndPoints(arrStartPt,arrEndPt);
+			CATMathPoint2D pt1(arrStartPt);
+			CATMathPoint2D pt2(arrEndPt);
+			if (FALSE==this->IsOccurInList(pt1,vecPt)&&TRUE==this->IsPointInsideBox(iPtLL,iPtRH,pt1))
+			{
+				vecPt.push_back(pt1);
+			}
+			if (FALSE==this->IsOccurInList(pt2,vecPt)&&TRUE==this->IsPointInsideBox(iPtLL,iPtRH,pt2))
+			{
+				vecPt.push_back(pt2);
+			}
+		}	
+	}
+
+	//CATIDftView* piDftView=NULL;
+	//rc=ispiView->QueryInterface(IID_CATIDftView, (void**)&piDftView);
+	//if(SUCCEEDED(rc)&&piDftView!=NULL)
+	//{
+	//	IUnknown* piGenView = NULL;
+	//	if(SUCCEEDED(piDftView->GetApplicativeExtension(IID_CATIDftGenView,&piGenView)))
+	//	{
+	//		CATIDftGenGeomAccess* piGenGeomAccess = NULL;
+	//		if(SUCCEEDED(piGenView->QueryInterface(IID_CATIDftGenGeomAccess,(void**)&piGenGeomAccess)))
+	//		{
+	//			// Get a list containing all Generated Geometry of the view
+	//			CATIUnknownList* piList=NULL;
+	//			if( SUCCEEDED(piGenGeomAccess->GetAllGeneratedItems(IID_CATIDftGenGeom,&piList)))
+	//			{
+	//				if(piList!=NULL)
+	//				{
+	//					unsigned int iListSize = 0;
+	//					piList->Count(&iListSize);
+	//					//cout<<"# The Number Of Generated Geometry:"<<iListSize<<endl;
+
+	//					IUnknown* item = NULL;
+	//					// Loop on all Generated Geometry of the view.
+	//					for(unsigned int iFirCount=0;iFirCount<iListSize;iFirCount++)
+	//					{
+	//						if( SUCCEEDED(piList->Item(iFirCount,&item)))
+	//						{
+	//							IDMCurve2D* piIDMCurve2D = NULL;
+	//							double arrStartPt[2],arrEndPt[2];
+	//							if(SUCCEEDED(item->QueryInterface(IID_IDMCurve2D,(void**)&piIDMCurve2D)))
+	//							{
+	//								piIDMCurve2D->GetEndPoints(arrStartPt,arrEndPt);
+	//								CATMathPoint2D pt1(arrStartPt);
+	//								CATMathPoint2D pt2(arrEndPt);
+	//								if (FALSE==this->IsOccurInList(pt1,vecPt)&&TRUE==this->IsPointInsideBox(iPtLL,iPtRH,pt1))
+	//								{
+	//									vecPt.push_back(pt1);
+	//								}
+	//								if (FALSE==this->IsOccurInList(pt2,vecPt)&&TRUE==this->IsPointInsideBox(iPtLL,iPtRH,pt2))
+	//								{
+	//									vecPt.push_back(pt2);
+	//								}
+	//							}
+	//							item->Release();
+	//							item = NULL;
+	//						}							
+	//					}
+	//					piList->Release();
+	//					piList = NULL;
+	//				}
+	//				piGenGeomAccess->Release();
+	//				piGenGeomAccess = NULL;
+	//			}
+	//		}
+	//		piGenView->Release();
+	//		piGenView=NULL;
+	//	}
+	//}
+
+	ovecPt.swap(vecPt);
+	return rc;
+}
+
+//
+CATBoolean TestUserDefinedMathBoxCmd::IsPointInsideBox(CATMathPoint2D iPtLL,CATMathPoint2D iPtRH,CATMathPoint2D iPt)
+{
+	CATMathPoint2D mathPt(iPt);
+	if (mathPt.GetX()>=iPtLL.GetX()&&mathPt.GetX()<=iPtRH.GetX()&&mathPt.GetY()>=iPtLL.GetY()&&mathPt.GetY()<=iPtRH.GetY())
+	{
+		return TRUE;
+	}
+	return FALSE;
+}
+
 //获取在一定范围内的点集
 void TestUserDefinedMathBoxCmd::GetPointsInsideBox(CATMathPoint2D iPtLL,CATMathPoint2D iPtRH,vector<CATMathPoint2D> &iovecPtFiltered)
 {
@@ -1266,7 +1401,7 @@ void TestUserDefinedMathBoxCmd::GetPointsInsideBox(CATMathPoint2D iPtLL,CATMathP
 	for (int i=0;i<iovecPtFiltered.size();i++)
 	{
 		CATMathPoint2D mathPt = iovecPtFiltered[i];
-		if (mathPt.GetX()>=iPtLL.GetX()&&mathPt.GetX()<=iPtRH&&mathPt.GetY()>=iPtLL.GetY()&&mathPt.GetY()<=iPtRH.GetY())
+		if (mathPt.GetX()>=iPtLL.GetX()&&mathPt.GetX()<=iPtRH.GetX()&&mathPt.GetY()>=iPtLL.GetY()&&mathPt.GetY()<=iPtRH.GetY())
 		{
 			vecPt.push_back(mathPt);
 		}
@@ -1290,7 +1425,7 @@ HRESULT TestUserDefinedMathBoxCmd::GetConvexHull(vector<CATMathPoint2D> ivecPt2D
 			iIndexMin = i;
 		}
 	}
-	CATMathPoint2D mathPtFirst = ivecPt2D[i];
+	CATMathPoint2D mathPtFirst = ivecPt2D[iIndexMin];
 	ivecPt2D.erase(ivecPt2D.begin()+iIndexMin);
 	//把该最小点和其他所有点分别做向量，求出和x正向最小的夹角和最大的夹角，获取对应的两个点
 	int iIndexMinAngle = 0;
@@ -1317,38 +1452,73 @@ HRESULT TestUserDefinedMathBoxCmd::GetConvexHull(vector<CATMathPoint2D> ivecPt2D
 		}
 	}
 	//从起始点开始，和x正向夹角最小的那个点肯定是最终列表中的第二个点，夹角最大的是最终列表的最后一个点
-	CATMathVector2D mathPtSecond = ivecPt2D[iIndexMinAngle];
-	CATMathVector2D mathPtLast = ivecPt2D[iIndexMaxAngle];
+	CATMathPoint2D mathPtSecond = ivecPt2D[iIndexMinAngle];
+	CATMathPoint2D mathPtLast = ivecPt2D[iIndexMaxAngle];
 	ovecPtConvexHull.push_back(mathPtFirst);
 	ovecPtConvexHull.push_back(mathPtSecond);
 	ivecPt2D.erase(ivecPt2D.begin()+iIndexMinAngle);
-	ivecPt2D.erase(ivecPt2D.begin()+iIndexMaxAngle);
+	//ivecPt2D.erase(ivecPt2D.begin()+iIndexMaxAngle);
 	//
-	for (int i=0;i<ivecPt2D.size();i++)
+	//for (int i=0;i<ivecPt2D.size();i++)
+	//{
+	//	//最终列表的当前状态的最后一个点和当前列表的点组成base line，然后判断其他点相对这根线的位置
+	//	CATMathPoint2D ptLast = ovecPtConvexHull[ovecPtConvexHull.size()-1];
+	//	CATMathPoint2D ptJudgeCurrent = ivecPt2D[i];
+	//	CATBoolean bIsOnRightSide = FALSE;
+	//	for (int j=0;j<ivecPt2D.size();j++)
+	//	{
+	//		if (i==j)
+	//		{
+	//			continue;
+	//		}
+	//		CATMathPoint2D ptCurrent = ivecPt2D[j];
+	//		if (IsOnRightSide(ptLast,ptJudgeCurrent,ptCurrent))	//如果点在线的右侧，该点作为新的输入重新循环，直至所有点都在左侧
+	//		{
+	//			ptJudgeCurrent = ptCurrent;
+	//			i=j;
+	//			j=-1;
+	//			bIsOnRightSide = TRUE;
+	//		}
+	//	}
+	//}
+	int iCount=0;
+	while(iCount<ivecPt2D.size())
 	{
 		//最终列表的当前状态的最后一个点和当前列表的点组成base line，然后判断其他点相对这根线的位置
 		CATMathPoint2D ptLast = ovecPtConvexHull[ovecPtConvexHull.size()-1];
-		CATMathPoint2D ptJudgeCurrent = ivecPt2D[i];
+		CATMathPoint2D ptJudgeCurrent = ivecPt2D[iCount];
 		CATBoolean bIsOnRightSide = FALSE;
-		for (int j=0;j<ivecPt2D.size();j++)
+		int j=0;
+		while(j<ivecPt2D.size())
 		{
-			if (i==j)
+			if (iCount==j)
 			{
+				j++;
 				continue;
 			}
 			CATMathPoint2D ptCurrent = ivecPt2D[j];
 			if (IsOnRightSide(ptLast,ptJudgeCurrent,ptCurrent))	//如果点在线的右侧，该点作为新的输入重新循环，直至所有点都在左侧
 			{
 				ptJudgeCurrent = ptCurrent;
-				i=j;
+				iCount=j;
 				j=-1;
 				bIsOnRightSide = TRUE;
 			}
+			j++;
+		}
+		//
+		CATMathPoint2D ptResult = ivecPt2D[iCount];
+		ivecPt2D.erase(ivecPt2D.begin()+iCount);
+		ovecPtConvexHull.push_back(ptResult);
+		iCount=0;
+
+		//
+		if (ptResult.DistanceTo(mathPtLast) <=0.001)	//当算到了之前拟定的角度最大点时，循环结束
+		{
+			break;
 		}
 
 	}
-
-	ovecPtConvexHull.push_back(mathPtLast);
 
 	return rc;
 }
@@ -1369,7 +1539,7 @@ CATBoolean TestUserDefinedMathBoxCmd::IsOnRightSide(CATMathPoint2D iPtBase,CATMa
 	{
 		return TRUE;
 	}
-	else if (dCross==0)
+	else
 	{
 		double dLengthBase = sqrt(dirBase.GetX()*dirBase.GetX()+dirBase.GetY()*dirBase.GetY());
 		double dLengthJudge = sqrt(dirJudge.GetX()*dirJudge.GetX()+dirJudge.GetY()*dirJudge.GetY());
@@ -1381,5 +1551,24 @@ CATBoolean TestUserDefinedMathBoxCmd::IsOnRightSide(CATMathPoint2D iPtBase,CATMa
 		{
 			return TRUE;
 		}
+	}
+}
+
+//设置线型格式
+void TestUserDefinedMathBoxCmd::SetLineFormat(CATISpecObject_var ispiSpecLine)
+{
+	CATIVisProperties* piVisPropLine=NULL;
+	HRESULT rc = ispiSpecLine->QueryInterface(IID_CATIVisProperties,(void**)&piVisPropLine);
+	if(SUCCEEDED(rc) && piVisPropLine !=NULL)
+	{
+		int iLineType=3;
+		int iWidth = 2;
+		CATVisPropertiesValues VisPropValuesLine;;
+		VisPropValuesLine.SetLineType(iLineType);
+		VisPropValuesLine.SetWidth(iWidth);
+		VisPropValuesLine.SetColor(255,0,0);
+		piVisPropLine->SetPropertiesAtt( VisPropValuesLine, CATVPLineType, CATVPLine);
+		piVisPropLine->SetPropertiesAtt( VisPropValuesLine,CATVPWidth, CATVPLine);	
+		piVisPropLine->SetPropertiesAtt( VisPropValuesLine,CATVPColor, CATVPLine);
 	}
 }

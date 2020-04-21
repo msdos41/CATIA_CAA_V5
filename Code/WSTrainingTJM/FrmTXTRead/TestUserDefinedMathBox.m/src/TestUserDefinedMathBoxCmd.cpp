@@ -39,6 +39,59 @@ TestUserDefinedMathBoxCmd::TestUserDefinedMathBoxCmd() :
 	
 	_pGeneralCls = new GeneralClass();
 
+	//测试最小包围凸多边形
+	CATFrmEditor *pEditor = CATFrmEditor::GetCurrentEditor();
+	CATDocument *pDoc = pEditor->GetDocument();
+	CATLISTV(CATISpecObject_var) lstViews;
+	_pGeneralCls->GetAllViews(pDoc,lstViews);
+	if (lstViews.Size()==0)
+	{
+		return;
+	}
+	for (int i=1;i<=lstViews.Size();i++)
+	{
+		CATIView_var spiView = lstViews[i];
+		vector<CATMathPoint2D> vecPt2D;
+		this->GetAllPointsFromView(spiView,vecPt2D);
+		if (vecPt2D.size()==0)
+		{
+			continue;
+		}
+		UserDefinedCircle MinOuterCircle;
+		this->GetMinOuterCircle(vecPt2D,MinOuterCircle);
+
+		//UserDefinedCircle MaxInnerCircle;
+		//this->GetMaxInnerCircle(vecPt2D,MaxInnerCircle);
+
+		//
+		CATIDftView *piDftView=NULL;
+		HRESULT rc=spiView->QueryInterface(IID_CATIDftView,(void**)&piDftView);
+		if(FAILED(rc)||piDftView==NULL) 
+		{
+			continue;
+		}
+		piDftView->Activate();
+
+		//
+		CATI2DWFFactory_var spi2DWFFactory = spiView;
+		if (spi2DWFFactory!=NULL_var)
+		{
+			double arrCenter[2] = {MinOuterCircle.ptCenter.GetX(),MinOuterCircle.ptCenter.GetY()};
+			double dRadius = MinOuterCircle.dRadius;
+
+			CATISpecObject_var spiSpecCircle = spi2DWFFactory->CreateCircle(arrCenter,dRadius);
+			spiSpecCircle->Update();
+
+			//double arrCenter2[2] = {MaxInnerCircle.ptCenter.GetX(),MaxInnerCircle.ptCenter.GetY()};
+			//double dRadius2 = MaxInnerCircle.dRadius;
+
+			//CATISpecObject_var spiSpecCircle2 = spi2DWFFactory->CreateCircle(arrCenter2,dRadius2);
+			//spiSpecCircle2->Update();
+		}
+	}
+
+
+#if 0
 	//测试2维最小外接圆
 	CATFrmEditor *pEditor = CATFrmEditor::GetCurrentEditor();
 	CATDocument *pDoc = pEditor->GetDocument();
@@ -90,6 +143,8 @@ TestUserDefinedMathBoxCmd::TestUserDefinedMathBoxCmd() :
 			//spiSpecCircle2->Update();
 		}
 	}
+
+#endif
 
 #if 0
 	//测试clipping view内的线条数量
@@ -1202,4 +1257,129 @@ void TestUserDefinedMathBoxCmd::GetCenterAndRadius(CATMathPoint iPTA,CATMathPoin
 	r = sqrt((x3 - x)*(x3 - x) + (y3 - y)*(y3 - y) + (z3 - z)*(z3 - z));
 	oRadius=r;
 
+}
+
+//获取在一定范围内的点集
+void TestUserDefinedMathBoxCmd::GetPointsInsideBox(CATMathPoint2D iPtLL,CATMathPoint2D iPtRH,vector<CATMathPoint2D> &iovecPtFiltered)
+{
+	vector<CATMathPoint2D> vecPt;
+	for (int i=0;i<iovecPtFiltered.size();i++)
+	{
+		CATMathPoint2D mathPt = iovecPtFiltered[i];
+		if (mathPt.GetX()>=iPtLL.GetX()&&mathPt.GetX()<=iPtRH&&mathPt.GetY()>=iPtLL.GetY()&&mathPt.GetY()<=iPtRH.GetY())
+		{
+			vecPt.push_back(mathPt);
+		}
+	}
+	iovecPtFiltered.swap(vecPt);
+}
+//获取凸多边形边界
+HRESULT TestUserDefinedMathBoxCmd::GetConvexHull(vector<CATMathPoint2D> ivecPt2D, vector<CATMathPoint2D> &ovecPtConvexHull)
+{
+	HRESULT rc = S_OK;
+	//先找到y值最小的点
+	double dYmin = DBL_MAX;
+	int iIndexMin = 0;
+	for (int i=0;i<ivecPt2D.size();i++)
+	{
+		CATMathPoint2D mathPt = ivecPt2D[i];
+		double dYcoord = mathPt.GetY();
+		if (dYcoord<dYmin)
+		{
+			dYmin = dYcoord;
+			iIndexMin = i;
+		}
+	}
+	CATMathPoint2D mathPtFirst = ivecPt2D[i];
+	ivecPt2D.erase(ivecPt2D.begin()+iIndexMin);
+	//把该最小点和其他所有点分别做向量，求出和x正向最小的夹角和最大的夹角，获取对应的两个点
+	int iIndexMinAngle = 0;
+	int iIndexMaxAngle = 0;
+	for (int i=1;i<ivecPt2D.size();i++)	//先以第一位作为初始，从第二位开始循环
+	{
+		CATMathVector2D dirMinAngle = ivecPt2D[iIndexMinAngle]-mathPtFirst;
+		CATMathVector2D dirMaxAngle = ivecPt2D[iIndexMaxAngle]-mathPtFirst;
+		CATAngle angleMin = CATMathVector2D(1,0).GetAngleTo(dirMinAngle);
+		CATAngle angleMax = CATMathVector2D(1,0).GetAngleTo(dirMaxAngle);
+
+		CATMathVector2D dirCurrent = ivecPt2D[i]-mathPtFirst;
+		CATAngle angleCurrent = CATMathVector2D(1,0).GetAngleTo(dirCurrent);
+
+		if (angleCurrent<angleMin)
+		{
+			angleMin = angleCurrent;
+			iIndexMinAngle = i;
+		}
+		if (angleCurrent>angleMax)
+		{
+			angleMax = angleCurrent;
+			iIndexMaxAngle = i;
+		}
+	}
+	//从起始点开始，和x正向夹角最小的那个点肯定是最终列表中的第二个点，夹角最大的是最终列表的最后一个点
+	CATMathVector2D mathPtSecond = ivecPt2D[iIndexMinAngle];
+	CATMathVector2D mathPtLast = ivecPt2D[iIndexMaxAngle];
+	ovecPtConvexHull.push_back(mathPtFirst);
+	ovecPtConvexHull.push_back(mathPtSecond);
+	ivecPt2D.erase(ivecPt2D.begin()+iIndexMinAngle);
+	ivecPt2D.erase(ivecPt2D.begin()+iIndexMaxAngle);
+	//
+	for (int i=0;i<ivecPt2D.size();i++)
+	{
+		//最终列表的当前状态的最后一个点和当前列表的点组成base line，然后判断其他点相对这根线的位置
+		CATMathPoint2D ptLast = ovecPtConvexHull[ovecPtConvexHull.size()-1];
+		CATMathPoint2D ptJudgeCurrent = ivecPt2D[i];
+		CATBoolean bIsOnRightSide = FALSE;
+		for (int j=0;j<ivecPt2D.size();j++)
+		{
+			if (i==j)
+			{
+				continue;
+			}
+			CATMathPoint2D ptCurrent = ivecPt2D[j];
+			if (IsOnRightSide(ptLast,ptJudgeCurrent,ptCurrent))	//如果点在线的右侧，该点作为新的输入重新循环，直至所有点都在左侧
+			{
+				ptJudgeCurrent = ptCurrent;
+				i=j;
+				j=-1;
+				bIsOnRightSide = TRUE;
+			}
+		}
+
+	}
+
+	ovecPtConvexHull.push_back(mathPtLast);
+
+	return rc;
+}
+
+//判断点是否在直线的右侧，如果是，后续操作需要把judge2代替judge1
+CATBoolean TestUserDefinedMathBoxCmd::IsOnRightSide(CATMathPoint2D iPtBase,CATMathPoint2D iPtJudge1,CATMathPoint2D iPtJudge2)
+{
+	CATMathVector2D dirBase = iPtJudge1 - iPtBase;
+	CATMathVector2D dirJudge = iPtJudge2 - iPtBase;
+
+	double dCross = dirBase.GetX()*dirJudge.GetY()-dirJudge.GetX()*dirBase.GetY();
+
+	if (dCross>0)
+	{
+		return FALSE;
+	}
+	else if (dCross<0)
+	{
+		return TRUE;
+	}
+	else if (dCross==0)
+	{
+		double dLengthBase = sqrt(dirBase.GetX()*dirBase.GetX()+dirBase.GetY()*dirBase.GetY());
+		double dLengthJudge = sqrt(dirJudge.GetX()*dirJudge.GetX()+dirJudge.GetY()*dirJudge.GetY());
+		if (dLengthBase>dLengthJudge)
+		{
+			return FALSE;
+		}
+		else
+		{
+			return TRUE;
+		}
+	}
 }

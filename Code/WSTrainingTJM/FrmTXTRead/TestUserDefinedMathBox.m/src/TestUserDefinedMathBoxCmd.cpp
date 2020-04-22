@@ -77,7 +77,7 @@ TestUserDefinedMathBoxCmd::TestUserDefinedMathBoxCmd() :
 		for (int i=0;i<vecPtConvexHull.size();i++)
 		{
 			CATMathPoint2D ptCurrent = vecPtConvexHull[i];
-			int iNext = (i+1)%vecPtConvexHull.size();
+			int iNext = (i+1)%vecPtConvexHull.size();	//封闭图形的序号取法，当i是最后的的时候，下一位是回到第一位
 			CATMathPoint2D ptNext = vecPtConvexHull[iNext];
 			
 			double arrPt1[2] = {ptCurrent.GetX(),ptCurrent.GetY()};
@@ -1436,10 +1436,8 @@ HRESULT TestUserDefinedMathBoxCmd::GetConvexHull(vector<CATMathPoint2D> ivecPt2D
 	CATMathPoint2D mathPtFirst = ivecPt2D[iIndexMin];
 	ivecPt2D.erase(ivecPt2D.begin()+iIndexMin);
 	//把该最小点和其他所有点分别做向量，按照和x轴正向的cos值从大到小排列
-	int iIndexMinAngle = 0;
-	int iIndexMaxAngle = 0;
 	vector<double> vecCosValue;
-	for (int i=0;i<ivecPt2D.size();i++)	//先以第一位作为初始，从第二位开始循环
+	for (int i=0;i<ivecPt2D.size();i++)	
 	{
 		CATMathVector2D dirCurrent = ivecPt2D[i]-mathPtFirst;
 
@@ -1466,7 +1464,6 @@ HRESULT TestUserDefinedMathBoxCmd::GetConvexHull(vector<CATMathPoint2D> ivecPt2D
 	}
 	//把头两个点加入列表，从第三个点开始循环判断
 	CATMathPoint2D mathPtSecond = ivecPt2D[0];
-	CATMathPoint2D mathPtLast = ivecPt2D[iIndexMaxAngle];
 	ovecPtConvexHull.push_back(mathPtFirst);
 	ovecPtConvexHull.push_back(mathPtSecond);
 	ivecPt2D.erase(ivecPt2D.begin());
@@ -1479,6 +1476,7 @@ HRESULT TestUserDefinedMathBoxCmd::GetConvexHull(vector<CATMathPoint2D> ivecPt2D
 		while(TRUE == IsOnRightSide(pt1,pt2,ptCurrent))	//如果当前点在已确定的点连线的右侧，舍弃确定列表的最后一个点，判断后面的点，直到false
 		{
 			ovecPtConvexHull.pop_back();
+			//列表更新后重新定义pt1,pt2
 			pt1 = ovecPtConvexHull[ovecPtConvexHull.size()-2];	//列表倒数第二个
 			pt2 = ovecPtConvexHull[ovecPtConvexHull.size()-1];	//列表最后一个
 		}
@@ -1544,7 +1542,7 @@ CATBoolean TestUserDefinedMathBoxCmd::IsOnRightSide(CATMathPoint2D iPtBase,CATMa
 	}
 	else
 	{
-		double dDot = dirBase.GetX()*dirJudge.GetX()+dirBase.GetY()*dirJudge.GetY();
+		double dDot = dirBase.GetX()*dirJudge.GetX()+dirBase.GetY()*dirJudge.GetY();	//根据向量点积判断平行向量的同向还是反向
 		if (dDot>0)	//同向，则认为是在左侧，算作内部
 		{
 			return FALSE;

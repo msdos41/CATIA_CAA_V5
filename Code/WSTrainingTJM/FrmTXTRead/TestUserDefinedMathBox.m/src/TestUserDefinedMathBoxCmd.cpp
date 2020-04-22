@@ -1424,101 +1424,104 @@ HRESULT TestUserDefinedMathBoxCmd::GetConvexHull(vector<CATMathPoint2D> ivecPt2D
 			dYmin = dYcoord;
 			iIndexMin = i;
 		}
+		else if (dYcoord==dYmin)	//如果y坐标相同，取x坐标小的
+		{
+			if (mathPt.GetX()<ivecPt2D[iIndexMin].GetX())
+			{
+				dYmin = dYcoord;
+				iIndexMin = i;
+			}
+		}
 	}
 	CATMathPoint2D mathPtFirst = ivecPt2D[iIndexMin];
 	ivecPt2D.erase(ivecPt2D.begin()+iIndexMin);
-	//把该最小点和其他所有点分别做向量，求出和x正向最小的夹角和最大的夹角，获取对应的两个点
+	//把该最小点和其他所有点分别做向量，按照和x轴正向的cos值从大到小排列
 	int iIndexMinAngle = 0;
 	int iIndexMaxAngle = 0;
-	for (int i=1;i<ivecPt2D.size();i++)	//先以第一位作为初始，从第二位开始循环
+	vector<double> vecCosValue;
+	for (int i=0;i<ivecPt2D.size();i++)	//先以第一位作为初始，从第二位开始循环
 	{
-		CATMathVector2D dirMinAngle = ivecPt2D[iIndexMinAngle]-mathPtFirst;
-		CATMathVector2D dirMaxAngle = ivecPt2D[iIndexMaxAngle]-mathPtFirst;
-		CATAngle angleMin = CATMathVector2D(1,0).GetAngleTo(dirMinAngle);
-		CATAngle angleMax = CATMathVector2D(1,0).GetAngleTo(dirMaxAngle);
-
 		CATMathVector2D dirCurrent = ivecPt2D[i]-mathPtFirst;
-		CATAngle angleCurrent = CATMathVector2D(1,0).GetAngleTo(dirCurrent);
 
-		if (angleCurrent<angleMin)
+		double dCos = dirCurrent.GetX()/(sqrt(dirCurrent.GetX()*dirCurrent.GetX()+dirCurrent.GetY()*dirCurrent.GetY()));
+		
+		vecCosValue.push_back(dCos);
+	}
+	for (int i=0;i<ivecPt2D.size();i++)
+	{
+		for (int j=0;j<ivecPt2D.size()-1;j++)
 		{
-			angleMin = angleCurrent;
-			iIndexMinAngle = i;
-		}
-		if (angleCurrent>angleMax)
-		{
-			angleMax = angleCurrent;
-			iIndexMaxAngle = i;
+			if (i==j)
+			{
+				continue;
+			}
+			double dCrossCurrent = vecCosValue[j];
+			double dCrossNext = vecCosValue[j+1];
+			if (dCrossCurrent<dCrossNext)
+			{
+				swap(vecCosValue[j],vecCosValue[j+1]);
+				swap(ivecPt2D[j],ivecPt2D[j+1]);
+			}
 		}
 	}
-	//从起始点开始，和x正向夹角最小的那个点肯定是最终列表中的第二个点，夹角最大的是最终列表的最后一个点
-	CATMathPoint2D mathPtSecond = ivecPt2D[iIndexMinAngle];
+	//把头两个点加入列表，从第三个点开始循环判断
+	CATMathPoint2D mathPtSecond = ivecPt2D[0];
 	CATMathPoint2D mathPtLast = ivecPt2D[iIndexMaxAngle];
 	ovecPtConvexHull.push_back(mathPtFirst);
 	ovecPtConvexHull.push_back(mathPtSecond);
-	ivecPt2D.erase(ivecPt2D.begin()+iIndexMinAngle);
-	//ivecPt2D.erase(ivecPt2D.begin()+iIndexMaxAngle);
+	ivecPt2D.erase(ivecPt2D.begin());
 	//
-	//for (int i=0;i<ivecPt2D.size();i++)
+	for (int i=0;i<ivecPt2D.size();i++)
+	{
+		CATMathPoint2D pt1 = ovecPtConvexHull[ovecPtConvexHull.size()-2];	//列表倒数第二个
+		CATMathPoint2D pt2 = ovecPtConvexHull[ovecPtConvexHull.size()-1];	//列表最后一个
+		CATMathPoint2D ptCurrent = ivecPt2D[i];
+		while(TRUE == IsOnRightSide(pt1,pt2,ptCurrent))	//如果当前点在已确定的点连线的右侧，舍弃确定列表的最后一个点，判断后面的点，直到false
+		{
+			ovecPtConvexHull.pop_back();
+			pt1 = ovecPtConvexHull[ovecPtConvexHull.size()-2];	//列表倒数第二个
+			pt2 = ovecPtConvexHull[ovecPtConvexHull.size()-1];	//列表最后一个
+		}
+		ovecPtConvexHull.push_back(ptCurrent);
+	}
+	//int iCount=0;
+	//while(iCount<ivecPt2D.size())
 	//{
 	//	//最终列表的当前状态的最后一个点和当前列表的点组成base line，然后判断其他点相对这根线的位置
 	//	CATMathPoint2D ptLast = ovecPtConvexHull[ovecPtConvexHull.size()-1];
-	//	CATMathPoint2D ptJudgeCurrent = ivecPt2D[i];
+	//	CATMathPoint2D ptJudgeCurrent = ivecPt2D[iCount];
 	//	CATBoolean bIsOnRightSide = FALSE;
-	//	for (int j=0;j<ivecPt2D.size();j++)
+	//	int j=0;
+	//	while(j<ivecPt2D.size())
 	//	{
-	//		if (i==j)
+	//		if (iCount==j)
 	//		{
+	//			j++;
 	//			continue;
 	//		}
 	//		CATMathPoint2D ptCurrent = ivecPt2D[j];
 	//		if (IsOnRightSide(ptLast,ptJudgeCurrent,ptCurrent))	//如果点在线的右侧，该点作为新的输入重新循环，直至所有点都在左侧
 	//		{
 	//			ptJudgeCurrent = ptCurrent;
-	//			i=j;
+	//			iCount=j;
 	//			j=-1;
 	//			bIsOnRightSide = TRUE;
 	//		}
+	//		j++;
 	//	}
+	//	//
+	//	CATMathPoint2D ptResult = ivecPt2D[iCount];
+	//	ivecPt2D.erase(ivecPt2D.begin()+iCount);
+	//	ovecPtConvexHull.push_back(ptResult);
+	//	iCount=0;
+
+	//	//
+	//	if (ptResult.DistanceTo(mathPtLast) <=0.001)	//当算到了之前拟定的角度最大点时，循环结束
+	//	{
+	//		break;
+	//	}
+
 	//}
-	int iCount=0;
-	while(iCount<ivecPt2D.size())
-	{
-		//最终列表的当前状态的最后一个点和当前列表的点组成base line，然后判断其他点相对这根线的位置
-		CATMathPoint2D ptLast = ovecPtConvexHull[ovecPtConvexHull.size()-1];
-		CATMathPoint2D ptJudgeCurrent = ivecPt2D[iCount];
-		CATBoolean bIsOnRightSide = FALSE;
-		int j=0;
-		while(j<ivecPt2D.size())
-		{
-			if (iCount==j)
-			{
-				j++;
-				continue;
-			}
-			CATMathPoint2D ptCurrent = ivecPt2D[j];
-			if (IsOnRightSide(ptLast,ptJudgeCurrent,ptCurrent))	//如果点在线的右侧，该点作为新的输入重新循环，直至所有点都在左侧
-			{
-				ptJudgeCurrent = ptCurrent;
-				iCount=j;
-				j=-1;
-				bIsOnRightSide = TRUE;
-			}
-			j++;
-		}
-		//
-		CATMathPoint2D ptResult = ivecPt2D[iCount];
-		ivecPt2D.erase(ivecPt2D.begin()+iCount);
-		ovecPtConvexHull.push_back(ptResult);
-		iCount=0;
-
-		//
-		if (ptResult.DistanceTo(mathPtLast) <=0.001)	//当算到了之前拟定的角度最大点时，循环结束
-		{
-			break;
-		}
-
-	}
 
 	return rc;
 }
@@ -1541,9 +1544,8 @@ CATBoolean TestUserDefinedMathBoxCmd::IsOnRightSide(CATMathPoint2D iPtBase,CATMa
 	}
 	else
 	{
-		double dLengthBase = sqrt(dirBase.GetX()*dirBase.GetX()+dirBase.GetY()*dirBase.GetY());
-		double dLengthJudge = sqrt(dirJudge.GetX()*dirJudge.GetX()+dirJudge.GetY()*dirJudge.GetY());
-		if (dLengthBase>dLengthJudge)
+		double dDot = dirBase.GetX()*dirJudge.GetX()+dirBase.GetY()*dirJudge.GetY();
+		if (dDot>0)	//同向，则认为是在左侧，算作内部
 		{
 			return FALSE;
 		}

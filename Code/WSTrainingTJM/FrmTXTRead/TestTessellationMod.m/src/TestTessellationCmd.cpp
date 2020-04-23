@@ -598,7 +598,7 @@ HRESULT TestTessellationCmd::CreateTessellation(CATBaseUnknown_var ispBUElement)
 		return E_FAIL;
 	}
 
-	////Remove the old CATRep
+	//Remove the old CATRep
 	//CATI3DGeometricalElement_var spGeoEle=ispBUElement;
 	//CATI3DGeoVisu_var spGeoVis = spGeoEle;
 	//if( spGeoVis == NULL_var ) {
@@ -613,6 +613,43 @@ HRESULT TestTessellationCmd::CreateTessellation(CATBaseUnknown_var ispBUElement)
 	//CATRep *pParentRep = pOldRep->GetRepParents(0);
 	//pParentRep->RemoveChild(*pOldRep);
 
+	//Remove 2
+	CATPathElement *pPathObj = NULL;
+	rc = this->GetPathElemFromBU(ispBUElement,_pEditor,pPathObj);
+	if (FAILED(rc)||pPathObj==NULL)
+	{
+		cout<<"==> Get PathElement from BU error !"<<endl;
+		return E_FAIL;
+	}
+	CATUnicodeString strPathElem = "";
+	_pGeneralCls->PathElementString(pPathObj,strPathElem);
+	cout<<"==> PathElement: "<<strPathElem<<endl;
+
+	CAT3DRep *pOldRep = NULL;
+	CATRepPath oRepPath;
+	rc = this->Get3DRep(pPathObj,&pOldRep,oRepPath);
+	if (FAILED(rc)||pOldRep==NULL)
+	{
+		cout<<"==> Get 3DRep from PathElement error !"<<endl;
+		return E_FAIL;
+	}
+	pOldRep->SetShowMode(1,0);
+	//CATRep *pParentRep = pOldRep->GetRepParents(0);
+	//pParentRep->RemoveChild(*pOldRep);
+
+	//Remove 3
+	//CATRepPath oRepPath;
+	//CATRep *pOldRep = NULL;
+	//rc = this->GetRepFromBU(ispBUElement,_pEditor,&pOldRep,oRepPath);
+	//if (FAILED(rc)||pOldRep==NULL)
+	//{
+	//	cout<<"==> Get 3DRep from BU error !"<<endl;
+	//	return E_FAIL;
+	//}
+	//CATRep *pParentRep = pOldRep->GetRepParents(0);
+	//pParentRep->RemoveChild(*pOldRep);
+
+
 	//We can noshow the old CATRep
 	//pOldRep->SetShowMode(1,0);
 
@@ -622,4 +659,191 @@ HRESULT TestTessellationCmd::CreateTessellation(CATBaseUnknown_var ispBUElement)
 	_pViewer->Draw();
 
 	return rc;
+}
+
+HRESULT TestTessellationCmd::Get3DRep(CATPathElement *iObject, CAT3DRep ** oRep,CATRepPath &oRepPath)
+{
+	HRESULT rc = E_FAIL ;
+
+	if ( NULL == oRep ) return rc ;
+
+	CATVisManager * pVisManager = CATVisManager::GetVisManager();
+
+	if ( NULL != pVisManager )
+	{
+		CATViewpoint *pViewpoint=NULL;
+		CATFrmLayout * pLayout = CATFrmLayout::GetCurrentLayout();
+		if ( NULL !=  pLayout )
+		{
+			CATFrmWindow * pWindow = pLayout->GetCurrentWindow();
+			if ( NULL !=  pWindow )
+			{
+				CATViewer * pViewer = pWindow->GetViewer();
+
+				if ( NULL != pViewer )
+				{
+					CAT3DViewpoint & Main3DViewpoint = pViewer->GetMain3DViewpoint();
+					pViewpoint = (CATViewpoint*)(& Main3DViewpoint);
+				}
+			}
+		}
+
+		// Generation of the rep
+		pVisManager->GenerateRepPathFromPathElement(*iObject,pViewpoint,oRepPath);
+
+		if ( oRepPath.Size() >= 1 )
+		{                   
+			//*oRep = (CAT3DRep*) oRepPath[oRepPath.Size()-1];
+			*oRep = (CAT3DRep*) oRepPath[0];
+			if ( NULL != *oRep )
+			{
+				rc = S_OK ;
+			}
+		}
+	}
+	return rc ;
+}
+
+HRESULT TestTessellationCmd::GetRepFromBU(CATBaseUnknown *ipBU, CATFrmEditor *ipEditor,CATRep ** oRep,CATRepPath &oRepPath)
+{
+	HRESULT rc = E_FAIL ;
+
+	if ( NULL == oRep ) return rc ;
+
+	CATVisManager * pVisManager = CATVisManager::GetVisManager();
+
+	if ( NULL != pVisManager )
+	{
+		CATViewpoint *pViewpoint=NULL;
+		CATFrmLayout * pLayout = CATFrmLayout::GetCurrentLayout();
+		if ( NULL !=  pLayout )
+		{
+			CATFrmWindow * pWindow = pLayout->GetCurrentWindow();
+			if ( NULL !=  pWindow )
+			{
+				CATViewer * pViewer = pWindow->GetViewer();
+
+				if ( NULL != pViewer )
+				{
+					CAT3DViewpoint & Main3DViewpoint = pViewer->GetMain3DViewpoint();
+					pViewpoint = (CATViewpoint*)(& Main3DViewpoint);
+				}
+			}
+		}
+
+		CATPathElement *iObject = NULL;
+		rc = GetPathElemFromBU(ipBU,ipEditor,iObject);
+		if (FAILED(rc)||iObject==NULL)
+		{
+			return E_FAIL;
+		}
+
+		CATUnicodeString strPathElem = "";
+		_pGeneralCls->PathElementString(iObject,strPathElem);
+		cout<<"==> PathElement: "<<strPathElem<<endl;
+		cout<<"==> PathElement Num: "<<iObject->GetSize()<<endl;
+
+		// Generation of the rep
+		pVisManager->GenerateRepPathFromPathElement(*iObject,pViewpoint,oRepPath);
+
+		if ( oRepPath.Size() >= 1 )
+		{                   
+			CATUnicodeString strPathName = "";
+			int NumOfPath = oRepPath.Size();
+			for(int i=0;i<NumOfPath;i++)  
+			{
+				CATRep *pRep =(CATRep*)(oRepPath)[i];
+				if (pRep == NULL)
+				{
+					continue;
+				}
+				CATBaseUnknown *pElt = NULL; 
+				rc = pRep->QueryInterface(IID_CATBaseUnknown,(void**)&pElt);
+				if(pElt != NULL) 
+				{
+					CATIAlias *piAlias = NULL;
+					rc = pElt->QueryInterface (IID_CATIAlias, (void**) &piAlias);
+					if(SUCCEEDED(rc) && piAlias!=NULL)
+					{
+						CATUnicodeString Name = piAlias->GetAlias();
+						strPathName.Append(Name) ;
+						if(i<=(NumOfPath-2)) 
+						{
+							strPathName.Append("/");
+						}
+						piAlias->Release(); piAlias = NULL;
+					}
+				}
+				if (pElt == ipBU)
+				{
+					*oRep = (CATRep*) oRepPath[i];
+				}
+			}
+
+			cout<<"==> RepPath: "<<strPathName<<endl;
+			
+			//*oRep = (CAT3DRep*) oRepPath[oRepPath.Size()-1];
+			//*oRep = (CAT3DRep*) oRepPath[0];
+			if ( NULL != *oRep )
+			{
+				rc = S_OK ;
+			}
+		}
+	}
+	return rc ;
+}
+
+HRESULT TestTessellationCmd::GetPathElemFromBU(CATBaseUnknown_var ispBU,CATFrmEditor *ipEditor,CATPathElement *&opPathElem)
+{
+
+	CATIBuildPath *piBuildPath = NULL;
+	HRESULT rc = ispBU->QueryInterface(IID_CATIBuildPath,(void**) &piBuildPath);
+	if (SUCCEEDED(rc))
+	{
+		CATPathElement context = ipEditor->GetUIActiveObject();
+		CATPathElement *pPathElement = NULL;
+
+		rc = piBuildPath->ExtractPathElement(&context,&pPathElement);
+		if (pPathElement != NULL)
+		{
+			opPathElem = pPathElement;
+			return S_OK;
+		}
+	}
+
+	return E_FAIL;
+}
+
+HRESULT TestTessellationCmd::GetRepFromBU(CATBaseUnknown_var ispBU,CATRep **opRep)
+{
+	HRESULT rc = S_OK;
+	//ÌØÕ÷»¯
+	CATISpecObject_var spiSpecObj = _pGeneralCls->GetSpecFromBaseUnknownFunc(ispBU);
+	if (spiSpecObj==NULL_var)
+	{
+		return E_FAIL;
+	}
+	//CATVisManager * pVisuManager = CATVisManager::GetVisManager();
+	//CATModelIdentificator Ident(spiSpecObj);
+	//CAT3DRep * pRepChild = (CAT3DRep *) pVisuManager->BuildRep(Ident);
+
+	//CATIVisu *piVisu = NULL;
+	//rc = spiSpecObj->QueryInterface(IID_CATIVisu,(void**)&piVisu);
+	//if (FAILED(rc)||piVisu==NULL)
+	//{
+	//	return E_FAIL;
+	//}
+	//CATRep *pRep = piVisu->BuildRep();
+
+	CATI3DGeoVisu *pi3DGeoVisu = NULL;
+	rc = spiSpecObj->QueryInterface(IID_CATI3DGeoVisu,(void**)&pi3DGeoVisu);
+	if (FAILED(rc)||pi3DGeoVisu==NULL)
+	{
+		return E_FAIL;
+	}
+	CATRep *pRep = pi3DGeoVisu->GiveRep();
+
+	*opRep = pRep;
+	//
+	return E_FAIL;
 }

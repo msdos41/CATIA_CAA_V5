@@ -37,6 +37,8 @@
 #include "CATTessTrianIter.h"
 #include "CATCellTessellator.h"
 
+#include "CATVisManager.h"
+
 class CATIndicationAgent;
 
 //----------------------------------------------------------------------
@@ -76,6 +78,11 @@ class TestTessellationCmd: public CATStateCommand
   void ActionSurfaceSelect(void * data);
   HRESULT CreateTessellation(CATBaseUnknown_var ispBUElement);
   HRESULT CreateTessellation(CATBaseUnknown_var ispBUElement,CAT3DRep *&op3DRep);
+  HRESULT Get3DRep(CATPathElement *iObject, CAT3DRep ** oRep,CATRepPath &oRepPath);
+  HRESULT GetPathElemFromBU(CATBaseUnknown_var ispBU,CATFrmEditor *ipEditor,CATPathElement *&opPathElem);
+  HRESULT Get3DRepFromBU(CATBaseUnknown_var ispBU,CAT3DRep **op3DRep);
+  HRESULT GetRepFromBU(CATBaseUnknown_var ispBU,CATRep **opRep);
+  HRESULT GetRepFromBU(CATBaseUnknown *ipBU, CATFrmEditor *ipEditor,CATRep ** oRep,CATRepPath &oRepPath);
 private:
 
 	  TestTessellationDlg			*_pDlg;

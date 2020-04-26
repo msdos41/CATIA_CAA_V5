@@ -614,26 +614,27 @@ HRESULT TestTessellationCmd::CreateTessellation(CATBaseUnknown_var ispBUElement)
 	//pParentRep->RemoveChild(*pOldRep);
 
 	//Remove 2
-	CATPathElement *pPathObj = NULL;
-	rc = this->GetPathElemFromBU(ispBUElement,_pEditor,pPathObj);
-	if (FAILED(rc)||pPathObj==NULL)
-	{
-		cout<<"==> Get PathElement from BU error !"<<endl;
-		return E_FAIL;
-	}
-	CATUnicodeString strPathElem = "";
-	_pGeneralCls->PathElementString(pPathObj,strPathElem);
-	cout<<"==> PathElement: "<<strPathElem<<endl;
+	//CATPathElement *pPathObj = NULL;
+	//rc = this->GetPathElemFromBU(ispBUElement,_pEditor,pPathObj);
+	//if (FAILED(rc)||pPathObj==NULL)
+	//{
+	//	cout<<"==> Get PathElement from BU error !"<<endl;
+	//	return E_FAIL;
+	//}
+	//CATUnicodeString strPathElem = "";
+	//_pGeneralCls->PathElementString(pPathObj,strPathElem);
+	//cout<<"==> PathElement: "<<strPathElem<<endl;
 
-	CAT3DRep *pOldRep = NULL;
-	CATRepPath oRepPath;
-	rc = this->Get3DRep(pPathObj,&pOldRep,oRepPath);
-	if (FAILED(rc)||pOldRep==NULL)
-	{
-		cout<<"==> Get 3DRep from PathElement error !"<<endl;
-		return E_FAIL;
-	}
-	pOldRep->SetShowMode(1,0);
+	//CAT3DRep *pOldRep = NULL;
+	//CATRepPath oRepPath;
+	//rc = this->Get3DRep(pPathObj,&pOldRep,oRepPath);
+	//if (FAILED(rc)||pOldRep==NULL)
+	//{
+	//	cout<<"==> Get 3DRep from PathElement error !"<<endl;
+	//	return E_FAIL;
+	//}
+	//pOldRep->SetShowMode(1,0);
+
 	//CATRep *pParentRep = pOldRep->GetRepParents(0);
 	//pParentRep->RemoveChild(*pOldRep);
 

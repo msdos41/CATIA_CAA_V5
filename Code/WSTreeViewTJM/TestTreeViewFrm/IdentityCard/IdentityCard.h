@@ -23,3 +23,5 @@ AddPrereqComponent("Mathematics",Protected);
 // END WIZARD EDITION ZONE
 AddPrereqComponent("GeneralClsFrm",Public);
 AddPrereqComponent("ProductStructure",Protected);
+AddPrereqComponent("ObjectSpecsModeler",Protected);
+AddPrereqComponent("ObjectModelerBase",Protected);

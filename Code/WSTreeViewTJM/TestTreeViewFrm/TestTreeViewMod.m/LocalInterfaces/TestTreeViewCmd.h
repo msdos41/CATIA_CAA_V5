@@ -69,6 +69,8 @@ class TestTreeViewCmd: public CATStateCommand
   CATBoolean ActionOK(void * data);
  // HRESULT InitTreeView(CATIProduct_var ispiProd);
   HRESULT InitTreeView();
+  void InsertItemOnTree(CATIProduct_var spiProd, HTREEITEM ihNodeFather);
+  void InsertPartItemOnTree(CATISpecObject_var ispiSpecObj, HTREEITEM ihNode);
 private:
 
 	  TestTreeViewDlg		*_pDlg;

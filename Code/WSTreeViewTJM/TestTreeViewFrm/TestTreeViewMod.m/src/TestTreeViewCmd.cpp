@@ -232,6 +232,13 @@ HRESULT TestTreeViewCmd::InitTreeView()
 	//{
 	//}
 
+	CATIProduct_var spiProdRoot = NULL_var;
+	GetRootProduct(spiProdRoot);
+	if (spiProdRoot==NULL_var)
+	{
+		return E_FAIL;
+	}
+
 	DRECT drct1;
 	_pDlg->GetDlgFrame()->GetRectDimensions(&drct1);
 
@@ -260,50 +267,136 @@ HRESULT TestTreeViewCmd::InitTreeView()
 		| TVS_NOTOOLTIPS |TVS_SHOWSELALWAYS ,rct1,pCWnd,Uid1);
 	if(flag1)
 	{
+		CATUnicodeString strRootName = spiProdRoot->GetPartNumber();
+		BSTR bstrRoot;
+		strRootName.ConvertToBSTR(&bstrRoot);
+		
 		TVINSERTSTRUCT tvRootInst;
 		tvRootInst.item.mask = TVIF_TEXT;
 		tvRootInst.hInsertAfter = TVI_LAST;
 		tvRootInst.hParent = NULL;
-		tvRootInst.item.pszText =L"Root";
+		tvRootInst.item.pszText =bstrRoot;
 
 		HTREEITEM hNodeRoot = m_testTree.InsertItem(&tvRootInst);
 		if(hNodeRoot)
 		{
-			for(int ii=1;ii<5;ii++)
+			//for(int ii=1;ii<5;ii++)
+			//{
+			//	CATUnicodeString strII;
+			//	strII.BuildFromNum(ii);
+
+			//	BSTR bstrII;
+			//	strII.ConvertToBSTR(&bstrII);
+
+			//	TVINSERTSTRUCT tvChildInst;
+			//	tvChildInst.item.mask = TVIF_TEXT;
+			//	tvChildInst.hInsertAfter = TVI_LAST;
+			//	tvChildInst.hParent = hNodeRoot;
+			//	tvChildInst.item.pszText =bstrII;
+
+			//	HTREEITEM hNodeFath1 = m_testTree.InsertItem(&tvChildInst);
+			//	for(int jj=1;jj<5;jj++)
+			//	{
+			//		CATUnicodeString strjj;
+			//		strjj.BuildFromNum(jj);
+			//		strjj = strII+"."+strjj;
+
+			//		BSTR bstrJJ;
+			//		strjj.ConvertToBSTR(&bstrJJ);
+
+			//		TVINSERTSTRUCT tvInst2;
+			//		tvInst2.item.mask = TVIF_TEXT;
+			//		tvInst2.hInsertAfter = TVI_LAST;
+			//		tvInst2.hParent = hNodeFath1;
+			//		tvInst2.item.pszText =bstrJJ;
+
+			//		HTREEITEM hNodeFath2 = m_testTree.InsertItem(&tvInst2);
+			//	}
+			//}
+
+			if (IsProduct(spiProdRoot))
 			{
-				CATUnicodeString strII;
-				strII.BuildFromNum(ii);
-
-				BSTR bstrII;
-				strII.ConvertToBSTR(&bstrII);
-
-				TVINSERTSTRUCT tvChildInst;
-				tvChildInst.item.mask = TVIF_TEXT;
-				tvChildInst.hInsertAfter = TVI_LAST;
-				tvChildInst.hParent = hNodeRoot;
-				tvChildInst.item.pszText =bstrII;
-
-				HTREEITEM hNodeFath1 = m_testTree.InsertItem(&tvChildInst);
-				for(int jj=1;jj<5;jj++)
+				this->InsertItemOnTree(spiProdRoot,hNodeRoot);
+			} 
+			else
+			{
+				CATIPrtContainer_var spiPrtCont = GetPrtContainer(spiProdRoot);
+				if (spiPrtCont!=NULL_var)
 				{
-					CATUnicodeString strjj;
-					strjj.BuildFromNum(jj);
-					strjj = strII+"."+strjj;
+					CATISpecObject_var spiSpecPart = spiPrtCont->GetPart();
 
-					BSTR bstrJJ;
-					strjj.ConvertToBSTR(&bstrJJ);
-
-					TVINSERTSTRUCT tvInst2;
-					tvInst2.item.mask = TVIF_TEXT;
-					tvInst2.hInsertAfter = TVI_LAST;
-					tvInst2.hParent = hNodeFath1;
-					tvInst2.item.pszText =bstrJJ;
-
-					HTREEITEM hNodeFath2 = m_testTree.InsertItem(&tvInst2);
+					this->InsertPartItemOnTree(spiSpecPart,hNodeRoot);
 				}
 			}
+			
 		}
 	}
 
 	return rc;
+}
+
+void TestTreeViewCmd::InsertItemOnTree(CATIProduct_var spiProd, HTREEITEM ihNodeFather)
+{
+	CATListValCATBaseUnknown_var *listDirectChildren = spiProd->GetChildren();
+	if (listDirectChildren == NULL)
+	{
+		return;
+	}
+	CATIProduct_var spDirectChild = NULL_var;
+	for (int i=1; i<=listDirectChildren->Size(); i++)
+	{
+
+		spDirectChild = (*listDirectChildren)[i];
+		//int iLevel = GetLevel(spDirectChild);
+		//cout<<iLevel<<"     "<<spDirectChild->GetPartNumber()<<endl;
+		//CATIProduct *piDirectChild = NULL;
+		//HRESULT rc = spDirectChild->QueryInterface(IID_CATIProduct, (void**)&piDirectChild);
+		//if (FAILED(rc))
+		//{
+		//	return;
+		//}
+		CATUnicodeString strInstName;
+		spDirectChild->GetPrdInstanceName(strInstName);
+		BSTR bstrInstName;
+		strInstName.ConvertToBSTR(&bstrInstName);
+
+		TVINSERTSTRUCT tvChildInst;
+		tvChildInst.item.mask = TVIF_TEXT;
+		tvChildInst.hInsertAfter = TVI_LAST;
+		tvChildInst.hParent = ihNodeFather;
+		tvChildInst.item.pszText =bstrInstName;
+		HTREEITEM hNode = m_testTree.InsertItem(&tvChildInst);
+		//
+
+		InsertItemOnTree(spDirectChild,hNode);
+	}
+}
+
+void TestTreeViewCmd::InsertPartItemOnTree(CATISpecObject_var ispiSpecObj, HTREEITEM ihNode)
+{
+	CATIDescendants_var spiDesc = ispiSpecObj;
+	if (spiDesc==NULL_var)
+	{
+		return;
+	}
+	CATListValCATISpecObject_var lstSpecChildren;
+	spiDesc->GetDirectChildren("CATISpecObject",lstSpecChildren);
+	for (int i=1;i<=lstSpecChildren.Size();i++)
+	{
+		CATISpecObject_var spiSpec = lstSpecChildren[i];
+		CATIAlias_var spiAlias = spiSpec;
+		CATUnicodeString strAlias = spiAlias->GetAlias();
+		BSTR bstrAlias;
+		strAlias.ConvertToBSTR(&bstrAlias);
+
+		TVINSERTSTRUCT tvChildInst;
+		tvChildInst.item.mask = TVIF_TEXT;
+		tvChildInst.hInsertAfter = TVI_LAST;
+		tvChildInst.hParent = ihNode;
+		tvChildInst.item.pszText =bstrAlias;
+		HTREEITEM hNode = m_testTree.InsertItem(&tvChildInst);
+		//
+
+		InsertPartItemOnTree(spiSpec,hNode);
+	}
 }

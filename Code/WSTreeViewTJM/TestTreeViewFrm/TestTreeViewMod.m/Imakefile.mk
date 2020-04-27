@@ -19,6 +19,8 @@ CATMathematics CATDialogEngine
 LINK_WITH = $(WIZARD_LINK_MODULES)	\
 GeneralClsM	\
 CATProductStructure1	\
+CATObjectSpecsModeler	\
+CATObjectModelerBase	\
 
 # System dependant variables
 #

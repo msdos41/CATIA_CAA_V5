@@ -1863,6 +1863,38 @@ CATBoolean SplitString( CATUnicodeString iStrString, CATUnicodeString iStrSplit,
 
 	return TRUE;
 }
+//描述：分割字符 
+//输入：CATUnicodeString 要分割的字符串,CATUnicodeString 关键字符
+//输出：CATListOfCATUnicodeString 分割完的字符串
+//返回：CATBoolean
+CATBoolean SplitStringUpdate( CATUnicodeString iStrString, CATUnicodeString iStrSplit, CATListOfCATUnicodeString &oStrList )
+{
+	if (iStrString=="")
+	{
+		return FALSE;
+	}
+	CATUnicodeString strTemp, strTemp2;
+	int iLocation = iStrString.SearchSubString(iStrSplit, 0, CATUnicodeString::CATSearchModeForward);
+	int iSize;
+	strTemp = iStrString;
+	while(iLocation != -1)
+	{
+		strTemp2 = strTemp.SubString(0, iLocation);
+		oStrList.Append(strTemp2);
+		iSize = strTemp.GetLengthInChar();
+
+		strTemp2 = strTemp.SubString(iLocation+iStrSplit.GetLengthInChar(), iSize-iLocation-iStrSplit.GetLengthInChar());
+		strTemp = strTemp2;
+		iLocation = strTemp.SearchSubString(iStrSplit, 0, CATUnicodeString::CATSearchModeForward);
+
+		//if(iLocation == -1 && strTemp2 != "")
+		//	oStrList.Append(strTemp2);
+	}
+
+	oStrList.Append(strTemp);
+
+	return TRUE;
+}
 //描述：获取对象的名字
 //输入：const CATBaseUnknown_var 目标对象
 //输出：CATUnicodeString 名字

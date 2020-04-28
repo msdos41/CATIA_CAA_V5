@@ -540,6 +540,7 @@ void ExportedByGeneralClsM StringConvertToWChar(CATUnicodeString strUnicode, wch
 
 //·Ö¸î×Ö·û
 CATBoolean ExportedByGeneralClsM SplitString(CATUnicodeString iStrString, CATUnicodeString iStrSplit, CATListOfCATUnicodeString &oStrList);
+CATBoolean ExportedByGeneralClsM SplitStringUpdate( CATUnicodeString iStrString, CATUnicodeString iStrSplit, CATListOfCATUnicodeString &oStrList );
 //É¾³ýÊý×Ö×Ö·û´®Ä©Î²µÄ0
 void ExportedByGeneralClsM RemoveLastZeroesFromString(CATUnicodeString &ioString);
 
@@ -869,6 +870,7 @@ HRESULT ExportedByGeneralClsM MinDistanceBetweenTwoCells(CATGeoFactory *ipGeoFac
 HRESULT ExportedByGeneralClsM MinDistance(CATGeoFactory *ipGeoFactory, CATTopData *iTopdata, CATBody_var ispSoildBody, CATBody_var ispPointBody, double &olength);
 HRESULT ExportedByGeneralClsM MinDistanceFromProject(CATGeoFactory *ipGeoFactory,CATTopData *ipTopData,CATBody_var ispBodyPoint,CATBody_var ispBodySupport,double &odblLength);
 HRESULT ExportedByGeneralClsM GetMiddlePointFromCurveCell(CATGeoFactory *ipGeoFactory,CATTopData *ipTopData,CATCell_var ispCellCurve,CATBody *&opBodyPtMiddle);
+
 //-----------------------------------------------------------------------
 
 #endif

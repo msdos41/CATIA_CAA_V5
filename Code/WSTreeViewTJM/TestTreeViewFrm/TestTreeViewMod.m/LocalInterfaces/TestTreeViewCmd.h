@@ -24,12 +24,10 @@
 #include "TestTreeViewDlg.h"
 #include "GeneralClass.h"
 
-#include "afx.h"
-#include <afxwin.h>
-#include <afxext.h>
-#include <afxdisp.h>
-#include <afxdtctl.h>
-#include <afxcmn.h>
+#include "CAATreeCtrl.h"
+
+#include "CATINavigateObject.h"
+
 
 class CATIndicationAgent;
 
@@ -71,11 +69,14 @@ class TestTreeViewCmd: public CATStateCommand
   HRESULT InitTreeView();
   void InsertItemOnTree(CATIProduct_var spiProd, HTREEITEM ihNodeFather);
   void InsertPartItemOnTree(CATISpecObject_var ispiSpecObj, HTREEITEM ihNode);
+  void ONtreeDBLClick(CATCallbackEvent iDestructCmdEvent, void * iDestructCmd, CATNotification * iDestructCmdNotification, CATSubscriberData iCLCmdData, CATCallback iCallbackId);
+  void ONtreeLClick(CATCallbackEvent iDestructCmdEvent, void * iDestructCmd, CATNotification * iDestructCmdNotification, CATSubscriberData iCLCmdData, CATCallback iCallbackId);
+  CATISpecObject_var GetSpecObjFromNode(CATISpecObject_var ispiSpecFather,CATListOfCATUnicodeString ilstNode);
 private:
 
 	  TestTreeViewDlg		*_pDlg;
 
-	  CTreeCtrl				m_testTree;
+	  CAATreeCtrl			m_testTree;
 
 };
 

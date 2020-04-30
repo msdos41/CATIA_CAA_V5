@@ -83,6 +83,7 @@ class TestTessellationCmd: public CATStateCommand
   HRESULT Get3DRepFromBU(CATBaseUnknown_var ispBU,CAT3DRep **op3DRep);
   HRESULT GetRepFromBU(CATBaseUnknown_var ispBU,CATRep **opRep);
   HRESULT GetRepFromBU(CATBaseUnknown *ipBU, CATFrmEditor *ipEditor,CATRep ** oRep,CATRepPath &oRepPath);
+  CATBoolean ActionRightClickClear(void * data);
 private:
 
 	  TestTessellationDlg			*_pDlg;

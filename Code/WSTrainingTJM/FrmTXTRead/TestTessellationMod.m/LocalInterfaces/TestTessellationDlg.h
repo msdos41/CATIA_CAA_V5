@@ -44,7 +44,7 @@ class TestTessellationDlg: public CATDlgDialog
 
   void Build ();
   CATDlgSelectorList* GetSelectorListSurface();
-
+  CATDlgPushItem* GetRightClickClear();
   protected:
 
   private:
@@ -54,6 +54,10 @@ class TestTessellationDlg: public CATDlgDialog
  CATDlgLabel*      _Label001;
  CATDlgSelectorList*      _SelectorListSurface;
 //END CAA2 WIZARD WIDGET DECLARATION SECTION
+
+ //ÓÒ¼üÏà¹Ø¿Ø¼þ
+ CATDlgContextualMenu*		_pRightCLKMenu;
+ CATDlgPushItem*			_pRightCLKClear;
 };
 
 //----------------------------------------------------------------------

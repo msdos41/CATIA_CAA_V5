@@ -39,6 +39,9 @@ TestTessellationDlg::TestTessellationDlg() :
  _Label001 = NULL;
  _SelectorListSurface = NULL;
 //END CAA2 WIZARD CONSTRUCTOR INITIALIZATION SECTION
+
+ _pRightCLKMenu = NULL;
+ _pRightCLKClear = NULL;
 }
 
 //-------------------------------------------------------------------------
@@ -53,6 +56,9 @@ TestTessellationDlg::~TestTessellationDlg()
  _Label001 = NULL;
  _SelectorListSurface = NULL;
 //END CAA2 WIZARD DESTRUCTOR DECLARATION SECTION
+
+ _pRightCLKMenu = NULL;
+ _pRightCLKClear = NULL;
 }
 
 
@@ -75,9 +81,18 @@ _SelectorListSurface -> SetGridConstraints(0, 1, 1, 1, CATGRID_4SIDES);
 //END CAA2 WIZARD CALLBACK DECLARATION SECTION
 CATUnicodeString strDefault = "No selection";
 _SelectorListSurface->SetLine(strDefault,-1,CATDlgDataAdd);
+
+_pRightCLKMenu = new CATDlgContextualMenu(this,"RightClick",NULL);
+_pRightCLKClear = new CATDlgPushItem(_pRightCLKMenu,"RightClickClear");
+_pRightCLKClear->SetTitle("Clear selection");
 }
 
 CATDlgSelectorList* TestTessellationDlg::GetSelectorListSurface()
 {
 	return _SelectorListSurface;
+}
+
+CATDlgPushItem* TestTessellationDlg::GetRightClickClear()
+{
+	return _pRightCLKClear;
 }

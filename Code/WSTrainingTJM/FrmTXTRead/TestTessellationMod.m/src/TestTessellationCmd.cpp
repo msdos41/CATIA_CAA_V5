@@ -148,6 +148,13 @@ void TestTessellationCmd::BuildGraph()
 	AddTransition( pDlgStateSurface, pDlgStateSurface, 
 		IsOutputSetCondition (_pSurfaceAgent),
 		Action ((ActionMethod) &TestTessellationCmd::ActionSurfaceSelect));
+
+	
+	//ÓÒ¼ü»Øµ÷
+	AddAnalyseNotificationCB(_pDlg->GetRightClickClear(),
+		_pDlg->GetRightClickClear()->GetMenuIActivateNotification(),
+		(CATCommandMethod)&TestTessellationCmd::ActionRightClickClear,
+		NULL);
 }
 
 
@@ -179,6 +186,26 @@ CATBoolean TestTessellationCmd::ActionOK(void * data)
 		_pISO->Empty();
 	}
 	this->CreateTessellation(_spBUSurface);
+	return TRUE;
+}
+
+CATBoolean TestTessellationCmd::ActionRightClickClear(void * data)
+{
+	_pDlg->GetSelectorListSurface()->ClearLine();
+	CATUnicodeString strDefault = "No selection";
+	_pDlg->GetSelectorListSurface()->SetLine(strDefault,-1,CATDlgDataAdd);
+
+	_spBUSurface = NULL_var;
+
+	if (_pHSO!=NULL)
+	{
+		_pHSO->Empty();
+	}
+	if (_pISO!=NULL)
+	{
+		_pISO->Empty();
+	}
+	
 	return TRUE;
 }
 

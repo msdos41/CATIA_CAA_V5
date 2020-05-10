@@ -1,0 +1,34 @@
+// DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
+CATDlgDialog TestMeasurementDlg
+{
+  STYLE = CATDlgGridLayout;
+}
+
+CATDlgLabel Label001
+{
+  FATHER = TestMeasurementDlg;
+  GRID = { 0, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgLabel Label002
+{
+  FATHER = TestMeasurementDlg;
+  GRID = { 1, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgSelectorList SelectorListObjA
+{
+  FATHER = TestMeasurementDlg;
+  TH = 1;
+  TW = 20;
+  GRID = { 0, 1, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgSelectorList SelectorListObjB
+{
+  FATHER = TestMeasurementDlg;
+  TH = 1;
+  GRID = { 1, 1, 1, 1, CATGRID_4SIDES };
+}
+
+// END WIZARD REPLACEMENT ZONE

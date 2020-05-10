@@ -273,23 +273,27 @@ HRESULT TestMeasurementCmd::GetMinDistanceByMeasure(CATISpecObject_var ispiSpec1
 	if (spMeasurableInContext2 == NULL_var) return E_FAIL;
 	if (spMeasurable2 == NULL_var) return E_FAIL;
 
-	CATMathTransformation transAbsObj1 = this->GetAbsTransformation(ispiSpec1);
-	CATMathTransformation transAbsObj2 = this->GetAbsTransformation(ispiSpec2);
+	CATMathTransformation transAbsObj1 = this->GetAbsTransformation(ispiProd1);
+	CATMathTransformation transAbsObj2 = this->GetAbsTransformation(ispiProd2);
 	CATMathAxis axisAbsObj1 = transAbsObj1 * CATMathOIJK;
 	CATMathAxis axisAbsObj2 = transAbsObj2 * CATMathOIJK;
 
 	CATMathTransformation transObj2ToObj1 = CATMathTransformation(axisAbsObj1,CATMathOIJK) * CATMathTransformation(CATMathOIJK,axisAbsObj2);
 
+	//关键步骤，需要把测量元素1先set到全局坐标系下
+	spMeasurableInContext1->SetAxisSystemOnMeasurable(axisAbsObj1);
+
 	CATMathAxis ioAxis;
 	double oMinDis = 9999.0;
 
-	ioAxis = transObj2ToObj1 * CATMathOIJK;
+	ioAxis = transObj2ToObj1 * axisAbsObj1;
 	//spMeasurableInContext2->GetAxisSystemFromMeasurable(ioAxis);
 	//
 	//CATMathTransformation transAxis = this->GetMatrixTransformation(ispiProd2,ispiProd1);		//注意，该处坐标需要从2变换到1内
 	//ioAxis = transAxis * ioAxis;
-	//
-	spMeasurableInContext1->MinimumDistance(spMeasurable2,ioAxis,oMinDis,omathPt1,omathPt2);	//这里输出的两个点坐标都是在1内的坐标，后续可以按需变换到全局或变换到2
+
+	//该处输入的坐标系是测量元素2的全局坐标系
+	spMeasurableInContext1->MinimumDistance(spMeasurable2,axisAbsObj2,oMinDis,omathPt1,omathPt2);	//这里输出的两个点坐标都是在1内的坐标，后续可以按需变换到全局或变换到2
 	oDistance = oMinDis;
 
 	return S_OK;

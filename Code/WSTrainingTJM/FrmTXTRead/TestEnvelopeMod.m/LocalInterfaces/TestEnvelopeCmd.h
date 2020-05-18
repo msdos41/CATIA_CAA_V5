@@ -27,6 +27,9 @@
 #include "CATDynTransformation.h"
 #include "CATDynBoolean.h"
 
+#include "CATVisManager.h"
+#include "CATIMeasurableInContext.h"
+
 class CATIndicationAgent;
 
 //----------------------------------------------------------------------
@@ -68,6 +71,11 @@ class TestEnvelopeCmd: public CATStateCommand
   void TransToSelectA(void * data);
   void TransToSelectB(void * data);
   HRESULT CreateEnvelope(CATBaseUnknown_var ispBUObj,CATBaseUnknown_var ispBUCurve);
+  HRESULT GetRepFromBU(CATBaseUnknown_var ispBU,CATRep **opRep);
+  HRESULT GetRepFromBU(CATBaseUnknown *ipBU, CATFrmEditor *ipEditor,CATRep ** oRep,CATRepPath &oRepPath);
+  HRESULT TestCgr();
+  HRESULT Get3DRep(CATPathElement *iObject, CAT3DRep ** oRep,CATRepPath &oRepPath);
+  HRESULT GetPathElemFromBU(CATBaseUnknown_var ispBU,CATFrmEditor *ipEditor,CATPathElement *&opPathElem);
 private:
 
 	  TestEnvelopeDlg		*_pDlg;
@@ -80,7 +88,8 @@ private:
 
 	  CATFeatureImportAgent * _pSelAAgent;
 
-	  CATFeatureImportAgent * _pSelBAgent;
+	  //CATFeatureImportAgent * _pSelBAgent;
+	  CATPathElementAgent	*_pSelBAgent;
 
 	  CATDialogAgent		* _pSelAFieldAgent;
 

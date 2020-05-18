@@ -138,8 +138,10 @@ void TestEnvelopeCmd::BuildGraph()
 	_pSelAAgent->SetBehavior(CATDlgEngWithPrevaluation|CATDlgEngWithCSO|CATDlgEngOneShot);
 
 	//选择Solid
-	_pSelBAgent = new CATFeatureImportAgent("Select B");
-	_pSelBAgent->AddElementType("CATCurve");
+	//_pSelBAgent = new CATFeatureImportAgent("Select B");
+	_pSelBAgent = new CATPathElementAgent("Select B");
+	//_pSelBAgent->AddElementType("CATRep");
+	//_pSelBAgent->AddElementType("CATIMfMonoDimResult");
 	//_pSolidAgent->AddElementType("CATSurface");
 	//_pSolidAgent->AddElementType("CATIMechanicalTool");
 	//_pSolidAgent->AddElementType("CATIMfBiDimResult");
@@ -193,11 +195,16 @@ CATBoolean TestEnvelopeCmd::ActionExit(void * data)
 
 CATBoolean TestEnvelopeCmd::ActionOK(void * data)
 {
+	/*
 	HRESULT rc=this->CreateEnvelope(_spBUSelectA,_spBUSelectB);
 	if (FAILED(rc))
 	{
 		return FALSE;
 	}
+	*/
+
+	HRESULT rc=this->TestCgr();
+
 	return TRUE;
 }
 
@@ -239,8 +246,10 @@ void TestEnvelopeCmd::selectObjBFunc(void * data)
 	
 	CATBaseUnknown *pBUSelect = NULL;
 	CATIProduct_var spiProdSelect = NULL_var;
-	_pGeneralCls->TransferSelectToBU(_pSelBAgent,pBUSelect,spiProdSelect);
-	if (pBUSelect == NULL || spiProdSelect == NULL_var)
+	//_pGeneralCls->TransferSelectToBU(_pSelBAgent,pBUSelect,spiProdSelect);
+
+	pBUSelect = _pSelBAgent->GetElementValue();
+	if (pBUSelect == NULL /*|| spiProdSelect == NULL_var*/)
 	{
 		_pSelBAgent->InitializeAcquisition();
 		return;
@@ -440,4 +449,247 @@ HRESULT TestEnvelopeCmd::CreateEnvelope(CATBaseUnknown_var ispBUObj,CATBaseUnkno
 	
 
 	return rc;
+}
+
+HRESULT TestEnvelopeCmd::TestCgr()
+{
+	HRESULT rc=S_OK;
+
+	//
+	//CATRep *pRep=NULL;
+	//CATFrmEditor *pEditor=CATFrmEditor::GetCurrentEditor();
+	//CATRepPath repPath;
+	//rc=this->GetRepFromBU(_spBUSelectB,pEditor,&pRep,repPath);
+	//if (FAILED(rc))
+	//{
+	//	return E_FAIL;
+	//}
+
+	//
+	/*
+	CATI3DGeoVisu_var spGeoVis = _spBUSelectB;
+	if (spGeoVis==NULL_var)
+	{
+		return E_FAIL;
+	}
+	CATRep *pRep=spGeoVis->BuildRep();
+	if( pRep == NULL ) {
+		cout << "==> Get CATRep error !" << endl;
+		return E_FAIL;
+	}
+	//CAT3DRep *p3DRep = (CAT3DRep*)pRep;
+	//if (p3DRep==NULL)
+	//{
+	//	return E_FAIL;
+	//}
+	CAT3DBagRep *p3DBagRep = new CAT3DBagRep();
+	p3DBagRep->AddChild(*pRep);
+	const CAT4x4Matrix *pMatrix=p3DBagRep->GetMatrix();
+	CATMathVectorf oU,oV,oW;
+	CATMathPointf oT;
+	pMatrix->GetComponents(oU,oV,oW,oT);
+	*/
+
+	//CATIMeasurableCurve_var spiMeasurableCrv=_spBUSelectB;	//该接口只能适用于没有坐标变换过的对象
+	//if (spiMeasurableCrv==NULL_var)
+	//{
+	//	return E_FAIL;
+	//}
+	CATIMeasurableInContext_var spiMeasurableInContext=_spBUSelectB;	//必须用context来获取点，这样可以包含坐标变换
+	if (spiMeasurableInContext==NULL_var)
+	{
+		return E_FAIL;
+	}
+
+	CATMathPoint ptStart,ptMid,ptEnd;
+	rc=spiMeasurableInContext->GetPointsOnCurve(ptStart,ptMid,ptEnd);
+
+	return rc;
+}
+
+HRESULT TestEnvelopeCmd::GetRepFromBU(CATBaseUnknown_var ispBU,CATRep **opRep)
+{
+	HRESULT rc = S_OK;
+	//特征化
+	CATISpecObject_var spiSpecObj = _pGeneralCls->GetSpecFromBaseUnknownFunc(ispBU);
+	if (spiSpecObj==NULL_var)
+	{
+		return E_FAIL;
+	}
+	//CATVisManager * pVisuManager = CATVisManager::GetVisManager();
+	//CATModelIdentificator Ident(spiSpecObj);
+	//CAT3DRep * pRepChild = (CAT3DRep *) pVisuManager->BuildRep(Ident);
+
+	//CATIVisu *piVisu = NULL;
+	//rc = spiSpecObj->QueryInterface(IID_CATIVisu,(void**)&piVisu);
+	//if (FAILED(rc)||piVisu==NULL)
+	//{
+	//	return E_FAIL;
+	//}
+	//CATRep *pRep = piVisu->BuildRep();
+
+	CATI3DGeoVisu *pi3DGeoVisu = NULL;
+	rc = spiSpecObj->QueryInterface(IID_CATI3DGeoVisu,(void**)&pi3DGeoVisu);
+	if (FAILED(rc)||pi3DGeoVisu==NULL)
+	{
+		return E_FAIL;
+	}
+	CATRep *pRep = pi3DGeoVisu->GiveRep();
+
+	*opRep = pRep;
+	//
+	return E_FAIL;
+}
+
+HRESULT TestEnvelopeCmd::Get3DRep(CATPathElement *iObject, CAT3DRep ** oRep,CATRepPath &oRepPath)
+{
+	HRESULT rc = E_FAIL ;
+
+	if ( NULL == oRep ) return rc ;
+
+	CATVisManager * pVisManager = CATVisManager::GetVisManager();
+
+	if ( NULL != pVisManager )
+	{
+		CATViewpoint *pViewpoint=NULL;
+		CATFrmLayout * pLayout = CATFrmLayout::GetCurrentLayout();
+		if ( NULL !=  pLayout )
+		{
+			CATFrmWindow * pWindow = pLayout->GetCurrentWindow();
+			if ( NULL !=  pWindow )
+			{
+				CATViewer * pViewer = pWindow->GetViewer();
+
+				if ( NULL != pViewer )
+				{
+					CAT3DViewpoint & Main3DViewpoint = pViewer->GetMain3DViewpoint();
+					pViewpoint = (CATViewpoint*)(& Main3DViewpoint);
+				}
+			}
+		}
+
+		// Generation of the rep
+		pVisManager->GenerateRepPathFromPathElement(*iObject,pViewpoint,oRepPath);
+
+		if ( oRepPath.Size() >= 1 )
+		{                   
+			//*oRep = (CAT3DRep*) oRepPath[oRepPath.Size()-1];
+			*oRep = (CAT3DRep*) oRepPath[0];
+			if ( NULL != *oRep )
+			{
+				rc = S_OK ;
+			}
+		}
+	}
+	return rc ;
+}
+
+HRESULT TestEnvelopeCmd::GetRepFromBU(CATBaseUnknown *ipBU, CATFrmEditor *ipEditor,CATRep ** oRep,CATRepPath &oRepPath)
+{
+	HRESULT rc = E_FAIL ;
+
+	if ( NULL == oRep ) return rc ;
+
+	CATVisManager * pVisManager = CATVisManager::GetVisManager();
+
+	if ( NULL != pVisManager )
+	{
+		CATViewpoint *pViewpoint=NULL;
+		CATFrmLayout * pLayout = CATFrmLayout::GetCurrentLayout();
+		if ( NULL !=  pLayout )
+		{
+			CATFrmWindow * pWindow = pLayout->GetCurrentWindow();
+			if ( NULL !=  pWindow )
+			{
+				CATViewer * pViewer = pWindow->GetViewer();
+
+				if ( NULL != pViewer )
+				{
+					CAT3DViewpoint & Main3DViewpoint = pViewer->GetMain3DViewpoint();
+					pViewpoint = (CATViewpoint*)(& Main3DViewpoint);
+				}
+			}
+		}
+
+		CATPathElement *iObject = NULL;
+		rc = GetPathElemFromBU(ipBU,ipEditor,iObject);
+		if (FAILED(rc)||iObject==NULL)
+		{
+			return E_FAIL;
+		}
+
+		CATUnicodeString strPathElem = "";
+		_pGeneralCls->PathElementString(iObject,strPathElem);
+		cout<<"==> PathElement: "<<strPathElem<<endl;
+		cout<<"==> PathElement Num: "<<iObject->GetSize()<<endl;
+
+		// Generation of the rep
+		pVisManager->GenerateRepPathFromPathElement(*iObject,pViewpoint,oRepPath);
+
+		if ( oRepPath.Size() >= 1 )
+		{                   
+			CATUnicodeString strPathName = "";
+			int NumOfPath = oRepPath.Size();
+			for(int i=0;i<NumOfPath;i++)  
+			{
+				CATRep *pRep =(CATRep*)(oRepPath)[i];
+				if (pRep == NULL)
+				{
+					continue;
+				}
+				CATBaseUnknown *pElt = NULL; 
+				rc = pRep->QueryInterface(IID_CATBaseUnknown,(void**)&pElt);
+				if(pElt != NULL) 
+				{
+					CATIAlias *piAlias = NULL;
+					rc = pElt->QueryInterface (IID_CATIAlias, (void**) &piAlias);
+					if(SUCCEEDED(rc) && piAlias!=NULL)
+					{
+						CATUnicodeString Name = piAlias->GetAlias();
+						strPathName.Append(Name) ;
+						if(i<=(NumOfPath-2)) 
+						{
+							strPathName.Append("/");
+						}
+						piAlias->Release(); piAlias = NULL;
+					}
+				}
+				if (pElt == ipBU)
+				{
+					*oRep = (CATRep*) oRepPath[i];
+				}
+			}
+
+			cout<<"==> RepPath: "<<strPathName<<endl;
+			
+			//*oRep = (CAT3DRep*) oRepPath[oRepPath.Size()-1];
+			//*oRep = (CAT3DRep*) oRepPath[0];
+			if ( NULL != *oRep )
+			{
+				rc = S_OK ;
+			}
+		}
+	}
+	return rc ;
+}
+
+HRESULT TestEnvelopeCmd::GetPathElemFromBU(CATBaseUnknown_var ispBU,CATFrmEditor *ipEditor,CATPathElement *&opPathElem)
+{
+
+	CATIBuildPath *piBuildPath = NULL;
+	HRESULT rc = ispBU->QueryInterface(IID_CATIBuildPath,(void**) &piBuildPath);
+	if (SUCCEEDED(rc))
+	{
+		CATPathElement context = ipEditor->GetUIActiveObject();
+		CATPathElement *pPathElement = NULL;
+
+		rc = piBuildPath->ExtractPathElement(&context,&pPathElement);
+		if (pPathElement != NULL)
+		{
+			opPathElem = pPathElement;
+			return S_OK;
+		}
+	}
+
+	return E_FAIL;
 }

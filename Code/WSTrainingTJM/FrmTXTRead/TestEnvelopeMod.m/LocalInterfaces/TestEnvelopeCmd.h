@@ -30,6 +30,19 @@
 #include "CATVisManager.h"
 #include "CATIMeasurableInContext.h"
 
+#include "DumITempPoint.h"
+#include "DumITempArrow.h"
+#include "DumITempPlane.h"
+#include "DumITempFace.h"
+#include "DumITempLine.h"
+
+#include "CATTessPointIter.h"
+#include "CATTessStripeIter.h"
+#include "CATTessFanIter.h"
+#include "CATTessPolyIter.h"
+#include "CATTessTrianIter.h"
+#include "CATCellTessellator.h"
+
 class CATIndicationAgent;
 
 //----------------------------------------------------------------------
@@ -76,6 +89,10 @@ class TestEnvelopeCmd: public CATStateCommand
   HRESULT TestCgr();
   HRESULT Get3DRep(CATPathElement *iObject, CAT3DRep ** oRep,CATRepPath &oRepPath);
   HRESULT GetPathElemFromBU(CATBaseUnknown_var ispBU,CATFrmEditor *ipEditor,CATPathElement *&opPathElem);
+  HRESULT CreateTessellation(CATBaseUnknown_var ispBUElement,vector<CATMathPoint> &olstVertices);
+  HRESULT CreateRotationTransformation(vector<CATMathPoint> ilstVertices,double iDeg,CATMathLine iAxis,double iStep,vector<CATMathPoint> &olstVerticesAll);
+  void GetExtremePointsInEachArea(vector<CATMathPoint> &iolstPt,double iFirstDirMin,double iFirstDirMax,double iSecondDirMin,double iSecondDirMax, CATUnicodeString istrThirdDir,CATMathPoint &oPtMin,CATMathPoint &oPtMax);
+  HRESULT CalculateOuterPoints(vector<CATMathPoint> ilstVerticesAll,double iStep,vector<CATMathPoint> &olstVerticesOuter);
 private:
 
 	  TestEnvelopeDlg		*_pDlg;

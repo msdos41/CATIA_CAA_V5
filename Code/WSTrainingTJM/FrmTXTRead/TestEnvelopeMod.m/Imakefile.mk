@@ -39,6 +39,7 @@ CATMechanicalModeler	\
 CATVisualization	\
 CATGeometricOperators \
 CATSaiSpaceAnalysisItf	\
+CATTessellation		\
 
 # System dependant variables
 #

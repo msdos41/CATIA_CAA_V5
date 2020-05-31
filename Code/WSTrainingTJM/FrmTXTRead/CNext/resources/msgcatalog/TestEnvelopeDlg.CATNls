@@ -1,4 +1,6 @@
 // DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
+BOK = "Translate";
+BApply = "Rotate";
 Label001.Title = "Object";
 Label002.Title = "Curve:";
 // END WIZARD REPLACEMENT ZONE

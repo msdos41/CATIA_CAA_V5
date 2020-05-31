@@ -29,6 +29,7 @@ TestEnvelopeCmd::TestEnvelopeCmd() :
 ,_pGeneralCls(NULL)
 ,_pEditor(NULL)
 ,_pHSO(NULL)
+,_pISO(NULL)
 {
 	_pDlg = NULL;
 	_pDlg = new TestEnvelopeDlg();
@@ -47,6 +48,7 @@ TestEnvelopeCmd::TestEnvelopeCmd() :
 	if (NULL!=_pEditor)
 	{
 		_pHSO = _pEditor->GetHSO();
+		_pISO = _pEditor->GetISO();
 	}
 }
 
@@ -71,6 +73,9 @@ TestEnvelopeCmd::~TestEnvelopeCmd()
 
 	_pHSO->Empty();
 	_pHSO = NULL;
+
+	_pISO->Empty();
+	_pISO = NULL;
 
 	if (_pSelAAgent != NULL)
 	{
@@ -121,7 +126,12 @@ void TestEnvelopeCmd::BuildGraph()
 
 	AddAnalyseNotificationCB(_pDlg,
 		_pDlg->GetDiaOKNotification(),
-		(CATCommandMethod)&TestEnvelopeCmd::ActionOK,
+		(CATCommandMethod)&TestEnvelopeCmd::ActionOK4,
+		NULL);
+
+	AddAnalyseNotificationCB(_pDlg,
+		_pDlg->GetDiaAPPLYNotification(),
+		(CATCommandMethod)&TestEnvelopeCmd::ActionOK3,
 		NULL);
 	//
 	_pSelAFieldAgent = new CATDialogAgent("Select A");
@@ -204,6 +214,292 @@ CATBoolean TestEnvelopeCmd::ActionOK(void * data)
 	*/
 
 	HRESULT rc=this->TestCgr();
+
+	return TRUE;
+}
+
+CATBoolean TestEnvelopeCmd::ActionOK2(void * data)
+{
+	if (NULL!=_pHSO) _pHSO->Empty();
+	if (NULL!=_pISO) _pISO->Empty();
+	
+	//
+	vector<CATMathPoint> lstVertices;
+	HRESULT rc=this->CreateTessellation(_spBUSelectA,lstVertices);
+	if (FAILED(rc))
+	{
+		return FALSE;
+	}
+
+	//
+	CATMathPoint pt1,pt2;
+	_pGeneralCls->GetPointFromCurve(_spBUSelectB,pt1,pt2);
+	if (pt1.DistanceTo(pt2)<=0.01)
+	{
+		return FALSE;
+	}
+	CATMathLine mathAxis(pt1,pt2);
+
+	vector<CATMathPoint> lstVerticesAll;
+	rc = this->CreateRotationTransformation(lstVertices,30,mathAxis,0.5,lstVerticesAll);
+	if (FAILED(rc))
+	{
+		return FALSE;
+	}
+
+	cout<<"lstVerticesAll Size: "<<lstVerticesAll.size()<<endl;
+
+	//
+	vector<CATMathPoint> lstVerticesOuter;
+	rc=this->CalculateOuterPoints(lstVerticesAll,1);
+	if (FAILED(rc))
+	{
+		return FALSE;
+	}
+	lstVerticesOuter.swap(lstVerticesAll);
+	cout<<"lstVerticesOuter Size: "<<lstVerticesOuter.size()<<endl;
+
+	//
+	//模型上画出虚拟点，CATISO高亮
+	for (int i=0;i<lstVerticesOuter.size();i++)
+	{
+		CATMathPoint mathPt=lstVerticesOuter[i];
+		DumITempPoint *piTempPoint = NULL;
+		HRESULT rc = ::CATInstantiateComponent("DumTempPointComp", IID_DumITempPoint, (void**)&piTempPoint);
+		if (SUCCEEDED(rc) && piTempPoint != NULL)
+		{
+			piTempPoint->SetDatas(&mathPt);
+			_pISO->AddElement(piTempPoint);
+		}
+	}
+
+	return TRUE;
+}
+
+CATBoolean TestEnvelopeCmd::ActionOK3(void * data)
+{
+	if (NULL!=_pHSO) _pHSO->Empty();
+	if (NULL!=_pISO) _pISO->Empty();
+
+	CATTime iStartTime = CATTime::GetCurrentLocalTime();
+	//
+	vector<CATMathPoint> lstVertices;
+	HRESULT rc=this->CreateTessellation(_spBUSelectA,lstVertices);
+	if (FAILED(rc))
+	{
+		return FALSE;
+	}
+	cout<<"lstVertices Size: "<<lstVertices.size()<<endl;
+
+	//点挂模型树
+	CATISpecObject_var spiGeoSet=NULL_var;
+	rc=_pGeneralCls->CreateNewGeoSet(_spiProdSelA,"TestOG",spiGeoSet);
+	if (FAILED(rc)||spiGeoSet==NULL_var)
+	{
+		return FALSE;
+	}
+	//获取工厂
+	CATSoftwareConfiguration * pConfig = new CATSoftwareConfiguration();//配置指针
+	CATTopData * topdata =new CATTopData(pConfig, NULL);//topdata
+	CATIPrtContainer_var ospiCont=NULL_var;
+	CATGeoFactory*  pGeoFactory=_pGeneralCls->GetProductGeoFactoryAndPrtCont(_spiProdSelA,ospiCont);
+	if (topdata == NULL || pGeoFactory == NULL)
+	{
+		return FALSE;
+	}
+	for (int i=0;i<lstVertices.size();i++)
+	{
+		CATMathPoint mathPt=lstVertices[i];
+		CATBody *pBodyPt =::CATCreateTopPointXYZ( pGeoFactory,topdata,mathPt.GetX(),mathPt.GetY(),mathPt.GetZ());
+		if (pBodyPt==NULL)
+		{
+			continue;
+		}
+		CATISpecObject_var spiSpecObj=NULL_var;
+		_pGeneralCls->InsertObjOnTree(_spiProdSelA,spiGeoSet,"pt",pBodyPt,spiSpecObj);
+	}
+	spiGeoSet->Update();
+
+	this->CalculateOuterPoints(lstVertices,0.5);
+	rc=_pGeneralCls->CreateNewGeoSet(_spiProdSelA,"TestOGFilter",spiGeoSet);
+	if (FAILED(rc)||spiGeoSet==NULL_var)
+	{
+		return FALSE;
+	}
+	for (int i=0;i<lstVertices.size();i++)
+	{
+		CATMathPoint mathPt=lstVertices[i];
+		CATBody *pBodyPt =::CATCreateTopPointXYZ( pGeoFactory,topdata,mathPt.GetX(),mathPt.GetY(),mathPt.GetZ());
+		if (pBodyPt==NULL)
+		{
+			continue;
+		}
+		CATISpecObject_var spiSpecObj=NULL_var;
+		_pGeneralCls->InsertObjOnTree(_spiProdSelA,spiGeoSet,"pt",pBodyPt,spiSpecObj);
+	}
+	spiGeoSet->Update();
+
+	/*
+	//
+	CATMathPoint pt1,pt2;
+	_pGeneralCls->GetPointFromCurve(_spBUSelectB,pt1,pt2);
+	if (pt1.DistanceTo(pt2)<=0.01)
+	{
+		return FALSE;
+	}
+	CATMathLine mathAxis(pt1,pt2);
+
+	vector<CATMathPoint> lstVerticesOuter;
+	rc = this->CreateRotationTransformationUpdate(lstVertices,30,mathAxis,0.5,lstVerticesOuter);
+	if (FAILED(rc))
+	{
+		return FALSE;
+	}
+
+	cout<<"lstVerticesOuter Size: "<<lstVerticesOuter.size()<<endl;
+
+	////模型上画出虚拟点，CATISO高亮
+	//for (int i=0;i<lstVerticesOuter.size();i++)
+	//{
+	//	CATMathPoint mathPt=lstVerticesOuter[i];
+	//	DumITempPoint *piTempPoint = NULL;
+	//	HRESULT rc = ::CATInstantiateComponent("DumTempPointComp", IID_DumITempPoint, (void**)&piTempPoint);
+	//	if (SUCCEEDED(rc) && piTempPoint != NULL)
+	//	{
+	//		piTempPoint->SetDatas(&mathPt);
+	//		_pISO->AddElement(piTempPoint);
+	//	}
+	//}
+
+	CATTime iEndTime = CATTime::GetCurrentLocalTime();
+
+	CATTimeSpan iTimeSpan=iEndTime-iStartTime;
+	cout<<"======> Rotate Calculate Run Time: "<<iTimeSpan.ConvertToString("%M:%S");
+
+	//点挂模型树
+	CATISpecObject_var spiGeoSet=NULL_var;
+	rc=_pGeneralCls->CreateNewGeoSet(_spiProdSelA,"Test",spiGeoSet);
+	if (FAILED(rc)||spiGeoSet==NULL_var)
+	{
+		return FALSE;
+	}
+	//获取工厂
+	CATSoftwareConfiguration * pConfig = new CATSoftwareConfiguration();//配置指针
+	CATTopData * topdata =new CATTopData(pConfig, NULL);//topdata
+	CATIPrtContainer_var ospiCont=NULL_var;
+	CATGeoFactory*  pGeoFactory=_pGeneralCls->GetProductGeoFactoryAndPrtCont(_spiProdSelA,ospiCont);
+	if (topdata == NULL || pGeoFactory == NULL)
+	{
+		return FALSE;
+	}
+	for (int i=0;i<lstVerticesOuter.size();i++)
+	{
+		CATMathPoint mathPt=lstVerticesOuter[i];
+		CATBody *pBodyPt =::CATCreateTopPointXYZ( pGeoFactory,topdata,mathPt.GetX(),mathPt.GetY(),mathPt.GetZ());
+		if (pBodyPt==NULL)
+		{
+			continue;
+		}
+		CATISpecObject_var spiSpecObj=NULL_var;
+		_pGeneralCls->InsertObjOnTree(_spiProdSelA,spiGeoSet,"pt",pBodyPt,spiSpecObj);
+	}
+	spiGeoSet->Update();
+
+	CATTime iEndTime2 = CATTime::GetCurrentLocalTime();
+
+	iTimeSpan=iEndTime2-iEndTime;
+	cout<<"======> SpecObj Run Time: "<<iTimeSpan.ConvertToString("%M:%S");
+
+	*/
+
+	return TRUE;
+}
+
+CATBoolean TestEnvelopeCmd::ActionOK4(void * data)
+{
+	if (NULL!=_pHSO) _pHSO->Empty();
+	if (NULL!=_pISO) _pISO->Empty();
+
+	CATTime iStartTime = CATTime::GetCurrentLocalTime();
+	//
+	vector<CATMathPoint> lstVertices;
+	HRESULT rc=this->CreateTessellation(_spBUSelectA,lstVertices);
+	if (FAILED(rc))
+	{
+		return FALSE;
+	}
+	cout<<"lstVertices Size: "<<lstVertices.size()<<endl;
+
+	//
+	CATMathPoint pt1,pt2;
+	_pGeneralCls->GetPointFromCurve(_spBUSelectB,pt1,pt2);
+	if (pt1.DistanceTo(pt2)<=0.01)
+	{
+		return FALSE;
+	}
+	//CATMathLine mathAxis(pt1,pt2);
+	CATMathVector mathDir=pt1-pt2;
+
+	vector<CATMathPoint> lstVerticesOuter;
+	rc = this->CreateTranslateTransformation(lstVertices,30,mathDir,0.5,lstVerticesOuter);
+	if (FAILED(rc))
+	{
+		return FALSE;
+	}
+
+	cout<<"lstVerticesOuter Size: "<<lstVerticesOuter.size()<<endl;
+
+	////模型上画出虚拟点，CATISO高亮
+	//for (int i=0;i<lstVerticesOuter.size();i++)
+	//{
+	//	CATMathPoint mathPt=lstVerticesOuter[i];
+	//	DumITempPoint *piTempPoint = NULL;
+	//	HRESULT rc = ::CATInstantiateComponent("DumTempPointComp", IID_DumITempPoint, (void**)&piTempPoint);
+	//	if (SUCCEEDED(rc) && piTempPoint != NULL)
+	//	{
+	//		piTempPoint->SetDatas(&mathPt);
+	//		_pISO->AddElement(piTempPoint);
+	//	}
+	//}
+
+	CATTime iEndTime = CATTime::GetCurrentLocalTime();
+
+	CATTimeSpan iTimeSpan=iEndTime-iStartTime;
+	cout<<"======> Translate Calculation Run Time: "<<iTimeSpan.ConvertToString("%M:%S");
+
+	//点挂模型树
+	CATISpecObject_var spiGeoSet=NULL_var;
+	rc=_pGeneralCls->CreateNewGeoSet(_spiProdSelA,"Test",spiGeoSet);
+	if (FAILED(rc)||spiGeoSet==NULL_var)
+	{
+		return FALSE;
+	}
+	//获取工厂
+	CATSoftwareConfiguration * pConfig = new CATSoftwareConfiguration();//配置指针
+	CATTopData * topdata =new CATTopData(pConfig, NULL);//topdata
+	CATIPrtContainer_var ospiCont=NULL_var;
+	CATGeoFactory*  pGeoFactory=_pGeneralCls->GetProductGeoFactoryAndPrtCont(_spiProdSelA,ospiCont);
+	if (topdata == NULL || pGeoFactory == NULL)
+	{
+		return FALSE;
+	}
+	for (int i=0;i<lstVerticesOuter.size();i++)
+	{
+		CATMathPoint mathPt=lstVerticesOuter[i];
+		CATBody *pBodyPt =::CATCreateTopPointXYZ( pGeoFactory,topdata,mathPt.GetX(),mathPt.GetY(),mathPt.GetZ());
+		if (pBodyPt==NULL)
+		{
+			continue;
+		}
+		CATISpecObject_var spiSpecObj=NULL_var;
+		_pGeneralCls->InsertObjOnTree(_spiProdSelA,spiGeoSet,"pt",pBodyPt,spiSpecObj);
+	}
+	spiGeoSet->Update();
+
+	CATTime iEndTime2 = CATTime::GetCurrentLocalTime();
+
+	iTimeSpan=iEndTime2-iEndTime;
+	cout<<"======> SpecObj Run Time: "<<iTimeSpan.ConvertToString("%M:%S");
 
 	return TRUE;
 }
@@ -861,15 +1157,96 @@ HRESULT TestEnvelopeCmd::CreateRotationTransformation(vector<CATMathPoint> ilstV
 	return rc;
 }
 
-HRESULT TestEnvelopeCmd::CalculateOuterPoints(vector<CATMathPoint> ilstVerticesAll,double iStep,vector<CATMathPoint> &olstVerticesOuter)
+HRESULT TestEnvelopeCmd::CreateRotationTransformationUpdate(vector<CATMathPoint> ilstVertices,double iDeg,CATMathLine iAxis,double iStep,vector<CATMathPoint> &olstVerticesAll)
 {
 	HRESULT rc=S_OK;
 
+	//先把输入点集过滤一下
+	this->CalculateOuterPoints(ilstVertices,1);
+
+	olstVerticesAll.insert(olstVerticesAll.end(),ilstVertices.begin(),ilstVertices.end());
+	//
+	int iRepeatNum=iDeg/iStep;
+	CATAngle angleStep=iStep*CATPI/180;
+	for (int i=1;i<=iRepeatNum;i++)
+	{
+		CATMathTransformation trans(i*angleStep,iAxis);
+		for (int j=0;j<ilstVertices.size();j++)
+		{
+			CATMathPoint ptOrigin=ilstVertices[j];
+			CATMathPoint ptTrans=trans*ptOrigin;
+			olstVerticesAll.push_back(ptTrans);
+		}
+		this->CalculateOuterPoints(olstVerticesAll,1);
+	}
+
+	double iRepeatLast=fmod(iDeg,iStep);
+	if (iRepeatLast>0.01)
+	{
+		CATAngle angleLast=iDeg*CATPI/180;
+		CATMathTransformation trans(angleLast,iAxis);
+		for (int j=0;j<ilstVertices.size();j++)
+		{
+			CATMathPoint ptOrigin=ilstVertices[j];
+			CATMathPoint ptTrans=trans*ptOrigin;
+			olstVerticesAll.push_back(ptTrans);
+		}
+		this->CalculateOuterPoints(olstVerticesAll,1);
+	}
+
+	return rc;
+}
+
+HRESULT TestEnvelopeCmd::CreateTranslateTransformation(vector<CATMathPoint> ilstVertices,double iDistance,CATMathVector iDir,double iStep,vector<CATMathPoint> &olstVerticesAll)
+{
+	HRESULT rc=S_OK;
+
+	iDir.Normalize();
+
+	//先把输入点集过滤一下
+	this->CalculateOuterPoints(ilstVertices,0.4);
+
+	olstVerticesAll.insert(olstVerticesAll.end(),ilstVertices.begin(),ilstVertices.end());
+	//
+	int iRepeatNum=iDistance/iStep;
+	for (int i=1;i<=iRepeatNum;i++)
+	{
+		CATMathTransformation trans(i*iStep*iDir);
+		for (int j=0;j<ilstVertices.size();j++)
+		{
+			CATMathPoint ptOrigin=ilstVertices[j];
+			CATMathPoint ptTrans=trans*ptOrigin;
+			olstVerticesAll.push_back(ptTrans);
+		}
+		this->CalculateOuterPoints(olstVerticesAll,0.4);
+	}
+
+	double iRepeatLast=fmod(iDistance,iStep);
+	if (iRepeatLast>0.01)
+	{
+		CATMathTransformation trans(iDistance*iDir);
+		for (int j=0;j<ilstVertices.size();j++)
+		{
+			CATMathPoint ptOrigin=ilstVertices[j];
+			CATMathPoint ptTrans=trans*ptOrigin;
+			olstVerticesAll.push_back(ptTrans);
+		}
+		this->CalculateOuterPoints(olstVerticesAll,0.4);
+	}
+
+	return rc;
+}
+
+HRESULT TestEnvelopeCmd::CalculateOuterPoints(vector<CATMathPoint> &iolstVerticesAll,double iStep)
+{
+	HRESULT rc=S_OK;
+
+	vector<CATMathPoint> lstPtOuter;
 	//
 	CATMathBox mathBox;
-	for (int i=0;i<ilstVerticesAll.size();i++)
+	for (int i=0;i<iolstVerticesAll.size();i++)
 	{
-		CATMathPoint pt=ilstVerticesAll[i];
+		CATMathPoint pt=iolstVerticesAll[i];
 		mathBox.AddInside(pt);
 	}
 	double oXMin,oXMax,oYMin,oYMax,oZMin,oZMax;
@@ -880,25 +1257,37 @@ HRESULT TestEnvelopeCmd::CalculateOuterPoints(vector<CATMathPoint> ilstVerticesA
 	int iNumRepeatY=(oYMax-oYMin)/iStep;
 	int iNumRepeatZ=(oZMax-oZMin)/iStep;
 
+	double iStepX=(oXMax-oXMin)/iNumRepeatX;
+	double iStepY=(oYMax-oYMin)/iNumRepeatY;
+	double iStepZ=(oZMax-oZMin)/iNumRepeatZ;
+
+	vector<CATMathPoint> lstPtFilter;
+	lstPtFilter.insert(lstPtFilter.end(),iolstVerticesAll.begin(),iolstVerticesAll.end());
 	//XY面内判断Z向极值
 	vector<CATMathPoint> lstPtAll;
-	lstPtAll.insert(lstPtAll.end(),ilstVerticesAll.begin(),ilstVerticesAll.end());
+	lstPtAll.insert(lstPtAll.end(),iolstVerticesAll.begin(),iolstVerticesAll.end());
 	for (int i=1;i<=iNumRepeatX;i++)
 	{
+		double dblFirstDirMin=oXMin+((i-1)*iStepX);
+		double dblFirstDirMax=oXMin+(i*iStepX);
+		if (i==1)			dblFirstDirMin=oXMin-0.5;
+		if (i==iNumRepeatX) dblFirstDirMax=oXMax+0.5;
+
 		for (int j=1;j<=iNumRepeatY;j++)
 		{
-			double dblFirstDirMin=oXMin+((i-1)*iStep);
-			double dblFirstDirMax=oXMin+(i*iStep);
-			double dblSecondDirMin=oYMin+((j-1)*iStep);
-			double dblSecondDirMax=oYMin+(j*iStep);
+			double dblSecondDirMin=oYMin+((j-1)*iStepY);
+			double dblSecondDirMax=oYMin+(j*iStepY);
+			if (j==1)			dblSecondDirMin=oYMin-0.5;
+			if (j==iNumRepeatY) dblSecondDirMax=oYMax+0.5;
 
 			CATMathPoint oPtMin,oPtMax;
-			this->GetExtremePointsInEachArea(lstPtAll,dblFirstDirMin,dblFirstDirMax,dblSecondDirMin,dblSecondDirMax,"Z",oPtMin,oPtMax);
-			olstVerticesOuter.push_back(oPtMin);
-			olstVerticesOuter.push_back(oPtMax);
+			CATBoolean bFindMin,bFindMax;
+			this->GetExtremePointsInEachArea(lstPtAll,dblFirstDirMin,dblFirstDirMax,dblSecondDirMin,dblSecondDirMax,"Z",oPtMin,oPtMax,bFindMin,bFindMax,lstPtFilter);
+			if (bFindMin) lstPtOuter.push_back(oPtMin);
+			if (bFindMax) lstPtOuter.push_back(oPtMax);
 		}
 	}
-	
+
 	//int iFinish=0;
 	//int iRepeatFirst=1;
 	//int iRepeatSecond=1;
@@ -909,30 +1298,81 @@ HRESULT TestEnvelopeCmd::CalculateOuterPoints(vector<CATMathPoint> ilstVerticesA
 
 	//XZ面内判断Y向极值
 	lstPtAll.swap(vector<CATMathPoint>());
-	lstPtAll.insert(lstPtAll.end(),ilstVerticesAll.begin(),ilstVerticesAll.end());
+	//lstPtAll.insert(lstPtAll.end(),lstPtFilter.begin(),lstPtFilter.end());
+	lstPtAll.insert(lstPtAll.end(),iolstVerticesAll.begin(),iolstVerticesAll.end());
+
+	lstPtFilter.swap(vector<CATMathPoint>());
+	lstPtFilter.insert(lstPtFilter.end(),iolstVerticesAll.begin(),iolstVerticesAll.end());
 
 	for (int i=1;i<=iNumRepeatX;i++)
 	{
+		double dblFirstDirMin=oXMin+((i-1)*iStepX);
+		double dblFirstDirMax=oXMin+(i*iStepX);
+		if (i==1)			dblFirstDirMin=oXMin-0.5;
+		if (i==iNumRepeatX) dblFirstDirMax=oXMax+0.5;
+		
 		for (int j=1;j<=iNumRepeatZ;j++)
 		{
-			double dblFirstDirMin=oXMin+((i-1)*iStep);
-			double dblFirstDirMax=oXMin+(i*iStep);
-			double dblSecondDirMin=oZMin+((j-1)*iStep);
-			double dblSecondDirMax=oZMin+(j*iStep);
+			double dblSecondDirMin=oZMin+((j-1)*iStepZ);
+			double dblSecondDirMax=oZMin+(j*iStepZ);
+			if (j==1)			dblSecondDirMin=oZMin-0.5;
+			if (j==iNumRepeatZ) dblSecondDirMax=oZMax+0.5;
 
 			CATMathPoint oPtMin,oPtMax;
-			this->GetExtremePointsInEachArea(lstPtAll,dblFirstDirMin,dblFirstDirMax,dblSecondDirMin,dblSecondDirMax,"Z",oPtMin,oPtMax);
-			olstVerticesOuter.push_back(oPtMin);
-			olstVerticesOuter.push_back(oPtMax);
+			CATBoolean bFindMin,bFindMax;
+			this->GetExtremePointsInEachArea(lstPtAll,dblFirstDirMin,dblFirstDirMax,dblSecondDirMin,dblSecondDirMax,"Y",oPtMin,oPtMax,bFindMin,bFindMax,lstPtFilter);
+
+			//if (FALSE==this->IsOccur(oPtMin,lstPtOuter))	olstVerticesOuter.push_back(oPtMin);
+			//if (FALSE==this->IsOccur(oPtMax,lstPtOuter))	olstVerticesOuter.push_back(oPtMax);
+
+			if (bFindMin) lstPtOuter.push_back(oPtMin);
+			if (bFindMax) lstPtOuter.push_back(oPtMax);
 		}
 	}
 	//YZ面内判断X向极值
+	lstPtAll.swap(vector<CATMathPoint>());
+	//lstPtAll.insert(lstPtAll.end(),lstPtFilter.begin(),lstPtFilter.end());
+	lstPtAll.insert(lstPtAll.end(),iolstVerticesAll.begin(),iolstVerticesAll.end());
+
+	lstPtFilter.swap(vector<CATMathPoint>());
+	lstPtFilter.insert(lstPtFilter.end(),iolstVerticesAll.begin(),iolstVerticesAll.end());
+
+	for (int i=1;i<=iNumRepeatY;i++)
+	{
+		double dblFirstDirMin=oYMin+((i-1)*iStepY);
+		double dblFirstDirMax=oYMin+(i*iStepY);
+		if (i==1)			dblFirstDirMin=oYMin-0.5;
+		if (i==iNumRepeatY) dblFirstDirMax=oYMax+0.5;
+		
+		for (int j=1;j<=iNumRepeatZ;j++)
+		{
+
+			double dblSecondDirMin=oZMin+((j-1)*iStepZ);
+			double dblSecondDirMax=oZMin+(j*iStepZ);
+			if (j==1)			dblSecondDirMin=oZMin-0.5;
+			if (j==iNumRepeatZ) dblSecondDirMax=oZMax+0.5;
+
+			CATMathPoint oPtMin,oPtMax;
+			CATBoolean bFindMin,bFindMax;
+			this->GetExtremePointsInEachArea(lstPtAll,dblFirstDirMin,dblFirstDirMax,dblSecondDirMin,dblSecondDirMax,"X",oPtMin,oPtMax,bFindMin,bFindMax,lstPtFilter);
+
+			//if (FALSE==this->IsOccur(oPtMin,olstVerticesOuter))	olstVerticesOuter.push_back(oPtMin);
+			//if (FALSE==this->IsOccur(oPtMax,olstVerticesOuter)) olstVerticesOuter.push_back(oPtMax);
+
+			if (bFindMin) lstPtOuter.push_back(oPtMin);
+			if (bFindMax) lstPtOuter.push_back(oPtMax);
+		}
+	}
+
+	//
+	iolstVerticesAll.swap(lstPtOuter);
 
 	return rc;
 }
 
 void TestEnvelopeCmd::GetExtremePointsInEachArea(vector<CATMathPoint> &iolstPt,double iFirstDirMin,double iFirstDirMax,double iSecondDirMin,double iSecondDirMax,
-												 CATUnicodeString istrThirdDir,CATMathPoint &oPtMin,CATMathPoint &oPtMax)
+												 CATUnicodeString istrThirdDir,CATMathPoint &oPtMin,CATMathPoint &oPtMax,CATBoolean &obFindMin,CATBoolean &obFindMax,
+												 vector<CATMathPoint> &iolstPtFilter)
 {
 	int iFirst,iSecond,iThird;
 	if (istrThirdDir=="Z")
@@ -955,7 +1395,11 @@ void TestEnvelopeCmd::GetExtremePointsInEachArea(vector<CATMathPoint> &iolstPt,d
 	}
 	//
 	double dblMax=-DBL_MAX;
-	double dblMin=DBL_MIN;
+	double dblMin=DBL_MAX;
+	obFindMin=FALSE;
+	obFindMax=FALSE;
+	int iIndexMin=0;
+	int iIndexMax=0;
 	for (int i=0;i<iolstPt.size();i++)
 	{
 		CATMathPoint ptCurrent=iolstPt[i];
@@ -972,15 +1416,52 @@ void TestEnvelopeCmd::GetExtremePointsInEachArea(vector<CATMathPoint> &iolstPt,d
 		{
 			dblMax=dThirdDir;
 			oPtMax=ptCurrent;
+			obFindMax=TRUE;
+			iIndexMax=i;
 		}
 		if (dThirdDir<dblMin)
 		{
 			dblMin=dThirdDir;
 			oPtMin=ptCurrent;
+			obFindMin=TRUE;
+			iIndexMin=i;
 		}
 		//把在当前范围内的点从列表中删除，这样在下次计算别的范围时，这些点就不会包含进去了，减少循环量
 		iolstPt.erase(iolstPt.begin()+i);
 		i--;
 
 	}
+
+	//如果有极值点，则在输出的列表中删除该极值点，用该列表传给下个方向求极值
+	if (TRUE==obFindMax)
+	{
+		if (iIndexMax==iIndexMin)
+		{
+			iolstPtFilter.erase(iolstPtFilter.begin()+iIndexMax);
+		} 
+		else if (iIndexMax>iIndexMin)
+		{
+			iolstPtFilter.erase(iolstPtFilter.begin()+iIndexMax);
+			iolstPtFilter.erase(iolstPtFilter.begin()+iIndexMin);
+		}
+		else
+		{
+			iolstPtFilter.erase(iolstPtFilter.begin()+iIndexMin);
+			iolstPtFilter.erase(iolstPtFilter.begin()+iIndexMax);
+		}
+
+	}
+}
+
+CATBoolean TestEnvelopeCmd::IsOccur(CATMathPoint iPt,vector<CATMathPoint> ilstPt)
+{
+	for (int i=0;i<ilstPt.size();i++)
+	{
+		CATMathPoint iPtTemp=ilstPt[i];
+		if (iPt.DistanceTo(iPtTemp)<=0.001)
+		{
+			return TRUE;
+		}
+	}
+	return FALSE;
 }

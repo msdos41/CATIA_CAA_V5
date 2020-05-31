@@ -31,7 +31,7 @@
 TestEnvelopeDlg::TestEnvelopeDlg() :
   CATDlgDialog ((CATApplicationFrame::GetApplicationFrame())->GetMainWindow(),
 //CAA2 WIZARD CONSTRUCTOR DECLARATION SECTION
-"TestEnvelopeDlg",CATDlgGridLayout
+"TestEnvelopeDlg",CATDlgWndBtnOKApplyClose|CATDlgGridLayout
 //END CAA2 WIZARD CONSTRUCTOR DECLARATION SECTION
                                )
 {

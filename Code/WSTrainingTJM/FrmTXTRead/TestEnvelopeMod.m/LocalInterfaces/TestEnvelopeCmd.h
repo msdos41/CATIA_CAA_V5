@@ -92,7 +92,15 @@ class TestEnvelopeCmd: public CATStateCommand
   HRESULT CreateTessellation(CATBaseUnknown_var ispBUElement,vector<CATMathPoint> &olstVertices);
   HRESULT CreateRotationTransformation(vector<CATMathPoint> ilstVertices,double iDeg,CATMathLine iAxis,double iStep,vector<CATMathPoint> &olstVerticesAll);
   void GetExtremePointsInEachArea(vector<CATMathPoint> &iolstPt,double iFirstDirMin,double iFirstDirMax,double iSecondDirMin,double iSecondDirMax, CATUnicodeString istrThirdDir,CATMathPoint &oPtMin,CATMathPoint &oPtMax);
-  HRESULT CalculateOuterPoints(vector<CATMathPoint> ilstVerticesAll,double iStep,vector<CATMathPoint> &olstVerticesOuter);
+  void GetExtremePointsInEachArea(vector<CATMathPoint> &iolstPt,double iFirstDirMin,double iFirstDirMax,double iSecondDirMin,double iSecondDirMax, CATUnicodeString istrThirdDir,CATMathPoint &oPtMin,CATMathPoint &oPtMax,CATBoolean &obFindMin,CATBoolean &obFindMax);
+  void GetExtremePointsInEachArea(vector<CATMathPoint> &iolstPt,double iFirstDirMin,double iFirstDirMax,double iSecondDirMin,double iSecondDirMax, CATUnicodeString istrThirdDir,CATMathPoint &oPtMin,CATMathPoint &oPtMax,CATBoolean &obFindMin,CATBoolean &obFindMax, vector<CATMathPoint> &iolstPtFilter);
+  HRESULT CalculateOuterPoints(vector<CATMathPoint> &iolstVerticesAll,double iStep);
+  CATBoolean IsOccur(CATMathPoint iPt,vector<CATMathPoint> ilstPt);
+  CATBoolean ActionOK2(void * data);
+  CATBoolean ActionOK3(void * data);
+  HRESULT CreateRotationTransformationUpdate(vector<CATMathPoint> ilstVertices,double iDeg,CATMathLine iAxis,double iStep,vector<CATMathPoint> &olstVerticesAll);
+  HRESULT CreateTranslateTransformation(vector<CATMathPoint> ilstVertices,double iDistance,CATMathVector iDir,double iStep,vector<CATMathPoint> &olstVerticesAll);
+  CATBoolean ActionOK4(void * data);
 private:
 
 	  TestEnvelopeDlg		*_pDlg;
@@ -100,6 +108,8 @@ private:
 	  CATFrmEditor			*_pEditor;
 
 	  CATHSO				*_pHSO;
+
+	  CATISO				*_pISO;
 
 	  GeneralClass			*_pGeneralCls;
 

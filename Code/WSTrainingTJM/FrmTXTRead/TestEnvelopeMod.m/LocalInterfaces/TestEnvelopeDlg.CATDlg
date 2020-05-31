@@ -1,7 +1,7 @@
 // DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
 CATDlgDialog TestEnvelopeDlg
 {
-  STYLE = CATDlgGridLayout;
+  STYLE = CATDlgWndBtnOKApplyClose|CATDlgGridLayout;
 }
 
 CATDlgLabel Label001

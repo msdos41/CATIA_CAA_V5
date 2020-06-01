@@ -1465,3 +1465,174 @@ CATBoolean TestEnvelopeCmd::IsOccur(CATMathPoint iPt,vector<CATMathPoint> ilstPt
 	}
 	return FALSE;
 }
+
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+HRESULT TestEnvelopeCmd::CreateEdgeTessellation(CATBody *ipBodyCurve,vector<CATMathPoint> &olstVertices)
+{
+	HRESULT rc = S_OK;
+	//
+	if (ipBodyCurve==NULL)
+	{
+		return E_FAIL;
+	}
+	//Tessellate the body
+	double iStep   = 1;
+	double sag=	10;
+	//CATBodyTessellator * pTessellator = new CATBodyTessellator(spBody,sag);
+	CATCellTessellator * pTessellator = new CATCellTessellator(sag);
+	if( NULL == pTessellator ) 
+	{
+		cout << "==> Create CATCellTessellator error !" << endl;
+		return E_FAIL;
+	}
+	//Set the step to the CATCellTessellator.
+	pTessellator->SetStep(iStep);
+	cout << "==> The step is: " << iStep << endl;
+
+	//Add face to the CATCellTessellator.
+	CATLISTP(CATCell) cells;
+	ipBodyCurve->GetAllCells( cells,1); 
+	int numberOfCells = cells.Size();
+	cout <<"==> Number of edge: " << numberOfCells << endl;
+	for (int ifa=1 ; ifa<=numberOfCells ; ifa++)
+	{
+		pTessellator->AddEdge((CATEdge *)(cells[ifa]));
+	}
+	//Run the CATCellTessellator
+	pTessellator->Run();
+
+
+
+	//CATISpecObject_var spLine;
+	// For every face.
+	for(int i=1;i<=numberOfCells;i++) 
+	{
+		cout << "==> Edge: " << i << endl;
+		// for each face, retrieve the tessellation results.
+		CATEdge * pEdge = (CATEdge*) cells[i];
+		if( NULL == pEdge )
+		{
+			return E_FAIL;
+		}
+		//Get the result.
+		CATLONG32 oNumberOfPoints;
+		double *oPointData=NULL;
+		pTessellator->GetEdge(pEdge,oNumberOfPoints,&oPointData);		//获得的点都是局部坐标，按需转成全局
+
+		if (NULL==oPointData||oNumberOfPoints==0)
+		{
+			continue;
+		}
+		cout << "  ==> Total point: " << oNumberOfPoints << endl;
+
+		//   循环画点
+
+		for (int i=1;i<=oNumberOfPoints;i++)
+		{
+			double dX=oPointData[3*(i-1)];
+			double dY=oPointData[3*(i-1)+1];
+			double dZ=oPointData[3*(i-1)+2];
+
+			olstVertices.push_back(CATMathPoint(dX,dY,dZ));
+		}
+
+		cout<<"==> Vertex number: "<<oNumberOfPoints<<endl;
+	}
+	delete pTessellator;   pTessellator = NULL;
+
+	return rc;
+}
+
+//滚球法求点集最外轮廓，考虑凹包，在平行于XY的平面内计算
+HRESULT TestEnvelopeCmd::CalculateOuterHull(vector<CATMathPoint> ilstPtAll, double idR,vector<CATMathPoint> &olstPtConcaveHull)
+{
+	HRESULT rc=S_OK;
+
+	//删除重复点集
+	for (int i=0;i<ilstPtAll.size();i++)
+	{
+		CATMathPoint ptForward=ilstPtAll[i];
+		for (int j=ilstPtAll.size()-1;j>i;j--)
+		{
+			CATMathPoint ptBackward=ilstPtAll[j];
+			if (ptBackward.DistanceTo(ptForward)<=0.001)
+			{
+				ilstPtAll.erase(ilstPtAll.begin()+j);
+			}
+		}
+	}
+
+	//先找到y值最小的点
+	double dYmin = DBL_MAX;
+	int iIndexMin = 0;
+	for (int i=0;i<ilstPtAll.size();i++)
+	{
+		CATMathPoint mathPt = ilstPtAll[i];
+		double dYcoord = mathPt.GetY();
+		if (dYcoord<dYmin)
+		{
+			dYmin = dYcoord;
+			iIndexMin = i;
+		}
+		else if (dYcoord==dYmin)	//如果y坐标相同，取x坐标小的
+		{
+			if (mathPt.GetX()<ilstPtAll[iIndexMin].GetX())
+			{
+				dYmin = dYcoord;
+				iIndexMin = i;
+			}
+		}
+	}
+
+	CATMathPoint2D mathPtFirst = ilstPtAll[iIndexMin];
+	ilstPtAll.erase(ilstPtAll.begin()+iIndexMin);
+
+	//
+	//把该最小点和其他所有点分别做向量，按照和x轴正向的cos值从大到小排列
+	vector<double> vecCosValue;
+	for (int i=0;i<ilstPtAll.size();i++)	
+	{
+		CATMathVector dirCurrent = ilstPtAll[i]-mathPtFirst;
+
+		double dCos = dirCurrent.GetX()/(sqrt(dirCurrent.GetX()*dirCurrent.GetX()+dirCurrent.GetY()*dirCurrent.GetY()));
+
+		vecCosValue.push_back(dCos);
+	}
+	for (int i=0;i<ilstPtAll.size();i++)
+	{
+		for (int j=0;j<ilstPtAll.size()-1;j++)
+		{
+			if (i==j)
+			{
+				continue;
+			}
+			double dCrossCurrent = vecCosValue[j];
+			double dCrossNext = vecCosValue[j+1];
+			if (dCrossCurrent<dCrossNext)
+			{
+				swap(vecCosValue[j],vecCosValue[j+1]);
+				swap(ilstPtAll[j],ilstPtAll[j+1]);
+			}
+		}
+	}
+	//把头两个点加入列表，从第三个点开始循环判断
+	CATMathPoint2D mathPtSecond = ilstPtAll[0];
+	olstPtConcaveHull.push_back(mathPtFirst);
+	olstPtConcaveHull.push_back(mathPtSecond);
+	ilstPtAll.erase(ilstPtAll.begin());
+
+	//
+	for ()
+	{
+	}
+
+	return rc;
+}
+
+CATBoolean TestEnvelopeCmd::IsFindNextHullPoint(CATMathPoint iPtCurrent,double idR,vector<CATMathPoint> ilstPtRest,CATMathPoint &oPtNext)
+{
+
+}

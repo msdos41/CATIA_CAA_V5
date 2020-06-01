@@ -101,6 +101,7 @@ class TestEnvelopeCmd: public CATStateCommand
   HRESULT CreateRotationTransformationUpdate(vector<CATMathPoint> ilstVertices,double iDeg,CATMathLine iAxis,double iStep,vector<CATMathPoint> &olstVerticesAll);
   HRESULT CreateTranslateTransformation(vector<CATMathPoint> ilstVertices,double iDistance,CATMathVector iDir,double iStep,vector<CATMathPoint> &olstVerticesAll);
   CATBoolean ActionOK4(void * data);
+  HRESULT CreateEdgeTessellation(CATBody *ipBodyCurve,vector<CATMathPoint> &olstVertices);
 private:
 
 	  TestEnvelopeDlg		*_pDlg;

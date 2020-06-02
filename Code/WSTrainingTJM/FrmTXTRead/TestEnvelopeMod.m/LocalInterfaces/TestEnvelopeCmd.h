@@ -105,6 +105,7 @@ class TestEnvelopeCmd: public CATStateCommand
   HRESULT CreateEdgeTessellation(CATBody *ipBodyCurve,vector<CATMathPoint> &olstVertices);
   HRESULT CalculateOuterHull(vector<CATMathPoint> ilstPtAll, double idR,CATUnicodeString istrDir,vector<CATMathPoint> &olstPtConcaveHull);
   CATBoolean IsFindNextHullPoint(vector<CATMathPoint2D> &iolstPtRest,CATMathPoint2D iPtCurrent,CATMathVector2D iDirRef,double idR,CATMathPoint2D &oPtNext);
+  CATBoolean IsFindNextHullPoint(vector<CATMathPoint2D> &iolstPtRest,CATMathPoint2D iPtCurrent,CATMathVector2D iDirRef,double idR,CATMathPoint2D &oPtNext,CATMathPoint2D &oCenter);
   void SortAdjListByAngle(vector<CATMathPoint2D> ilstPt, CATMathPoint2D iPtCurrent,CATMathVector2D iDirRef,double idR,vector<int> &olstIndexSorted);
   CATBoolean CompareAngle(CATMathPoint2D iPtA,CATMathPoint2D iPtB,CATMathPoint2D iPtCurrent,CATMathVector2D idirRef);
   double GetCross(CATMathVector2D a, CATMathVector2D b);
@@ -116,6 +117,8 @@ class TestEnvelopeCmd: public CATStateCommand
   CATBody*CreateTopAssembly(CATGeoFactory* ipGeoFactory,CATTopData* itopdata,CATLISTP(CATBody) ListOfBodyLst);
   CATBody* CreateTopIntersect( CATGeoFactory* ipGeoFactory, CATTopData* itopdata,CATBody*iBody1,CATBody*iBody2 );
   CATBoolean CreatePlaneBody( CATGeoFactory_var spGeoFactory,CATTopData * topdata, CATMathPlane iMathPlane,CATBody_var &ospPlaneBody );
+  HRESULT GetBodyFromBodyCells(CATBody_var ispBody,CATGeoFactory *ipGeoFact,int iDimension,CATBody *&opBody);
+  HRESULT CreateCircle( CATGeoFactory_var spGeoFactory,CATTopData * topdata,CATMathPlane iMathPlane,double Radius,CATBody_var &ospBody );
 private:
 
 	  TestEnvelopeDlg		*_pDlg;

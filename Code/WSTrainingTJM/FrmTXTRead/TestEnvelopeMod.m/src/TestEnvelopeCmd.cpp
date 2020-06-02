@@ -528,7 +528,7 @@ CATBoolean TestEnvelopeCmd::ActionOK5(void * data)
 	{
 		return FALSE;
 	}
-	//CATMathLine mathAxis(pt1,pt2);
+	
 	CATMathVector mathDir=pt1-pt2;
 	//
 	CATBody *pBodyAssy=NULL;
@@ -537,9 +537,10 @@ CATBoolean TestEnvelopeCmd::ActionOK5(void * data)
 	{
 		return FALSE;
 	}
+	
 	//
 	//先XY方向切面
-	int iStep=0.5;
+	double iStep=0.5;
 	int iNumRepeatX=(oXMax-oXMin)/iStep;
 	int iNumRepeatY=(oYMax-oYMin)/iStep;
 	int iNumRepeatZ=(oZMax-oZMin)/iStep;
@@ -575,10 +576,26 @@ CATBoolean TestEnvelopeCmd::ActionOK5(void * data)
 				if (SUCCEEDED(CreateEdgeTessellation(pBodyResult,lstPt))&&lstPt.size()>0)
 				{
 					vector<CATMathPoint> lstPtOuter;
-					CalculateOuterHull(lstPt,1.2,"XY",lstPtOuter);
+					CalculateOuterHull(lstPt,0.7,"XY",lstPtOuter);
 					lstPtConcaveHull.push_back(lstPtOuter);
 				}
 			}
+			//////////////////////////////////////////////////////////////////////////
+			//相交结果挂模型树
+			CATUnicodeString strIndex;
+			strIndex.BuildFromNum(i);
+			CATUnicodeString strGeoSetName="TestIntersect_"+strIndex;
+			CATISpecObject_var spiGeoSet=NULL_var;
+			HRESULT rc=_pGeneralCls->CreateNewGeoSet(_spiProdSelA,strGeoSetName,spiGeoSet);
+			if (FAILED(rc)||spiGeoSet==NULL_var)
+			{
+				continue;;
+			}
+
+			CATISpecObject_var spiSpecObj=NULL_var;
+			_pGeneralCls->InsertObjOnTree(_spiProdSelA,spiGeoSet,"Curve",pBodyResult,spiSpecObj);
+
+			spiGeoSet->Update();
 		}
 	}
 	CATTime iEndTime = CATTime::GetCurrentLocalTime();
@@ -1622,9 +1639,14 @@ HRESULT TestEnvelopeCmd::CreateTranslateTransformation(CATBody_var ispBody,CATIP
 	}
 	//
 	CATLISTP(CATBody) lstBody;
-	lstBody.Append(ispBody);
 
-	/*
+	CATBody *pBody=NULL;
+	if (SUCCEEDED(GetBodyFromBodyCells(ispBody,pGeoFactory,2,pBody))&&pBody!=NULL)
+	{
+		lstBody.Append(pBody);
+	}
+	
+	
 	int iRepeatNum=iDistance/iStep;
 	for (int i=1;i<=iRepeatNum;i++)
 	{
@@ -1633,7 +1655,11 @@ HRESULT TestEnvelopeCmd::CreateTranslateTransformation(CATBody_var ispBody,CATIP
 		GetTransformationBody(ispBody,trans,spBodyTrans);
 		if (spBodyTrans!=NULL_var)
 		{
-			lstBody.Append(spBodyTrans);
+			CATBody *pBody=NULL;
+			if (SUCCEEDED(GetBodyFromBodyCells(spBodyTrans,pGeoFactory,2,pBody))&&pBody!=NULL)
+			{
+				lstBody.Append(pBody);
+			}
 		}
 	}
 
@@ -1645,10 +1671,14 @@ HRESULT TestEnvelopeCmd::CreateTranslateTransformation(CATBody_var ispBody,CATIP
 		GetTransformationBody(ispBody,trans,spBodyTrans);
 		if (spBodyTrans!=NULL_var)
 		{
-			lstBody.Append(spBodyTrans);
+			CATBody *pBody=NULL;
+			if (SUCCEEDED(GetBodyFromBodyCells(spBodyTrans,pGeoFactory,2,pBody))&&pBody!=NULL)
+			{
+				lstBody.Append(pBody);
+			}
 		}
 	}
-	*/
+	
 
 	//
 	CATBody *pBodyAssy=CreateTopAssembly(pGeoFactory,topdata,lstBody);
@@ -1808,27 +1838,66 @@ HRESULT TestEnvelopeCmd::CalculateOuterHull(vector<CATMathPoint> ilstPtAll, doub
 	}
 
 	CATMathPoint2D ptCurrent=mathPtFirst;
-	CATMathVector2D dirRef(1,0);
+	CATMathVector2D dirRef(0,1);
 
 	while(1)
 	{
-		CATMathPoint2D ptNext;
-		CATBoolean bIsFind=IsFindNextHullPoint(lstPt2D,ptCurrent,dirRef,idR,ptNext);
+		CATMathPoint2D ptNext,ptCenter;
+		CATBoolean bIsFind=IsFindNextHullPoint(lstPt2D,ptCurrent,dirRef,idR,ptNext,ptCenter);
 		if (!bIsFind)
 		{
 			break;
 		}
+		CATMathPoint oCenter;
+		CATMathVector dir;
 		if (istrDir=="XY")
 		{
 			olstPtConcaveHull.push_back(CATMathPoint(ptNext.GetX(),ptNext.GetY(),dThirdDimension));
+
+			oCenter.SetCoord(ptCenter.GetX(),ptCenter.GetY(),dThirdDimension);
+			dir.SetCoord(0,0,1);
 		}
 		else if (istrDir=="XZ")
 		{
 			olstPtConcaveHull.push_back(CATMathPoint(ptNext.GetX(),dThirdDimension,ptNext.GetY()));
+
+			oCenter.SetCoord(ptCenter.GetX(),dThirdDimension,ptCenter.GetY());
+			dir.SetCoord(0,1,0);
 		}
 
 		dirRef=ptCurrent-ptNext;
 		ptCurrent=ptNext;
+
+		//圆挂树上
+		//获取工厂
+		CATSoftwareConfiguration * pConfig = new CATSoftwareConfiguration();//配置指针
+		CATTopData * topdata =new CATTopData(pConfig, NULL);//topdata
+		CATIPrtContainer_var ospiCont=NULL_var;
+		CATGeoFactory*  pGeoFactory=_pGeneralCls->GetProductGeoFactoryAndPrtCont(_spiProdSelA,ospiCont);
+		if (topdata == NULL || pGeoFactory == NULL)
+		{
+			return FALSE;
+		}
+
+		//
+		CATBody_var spBodyCircle=NULL_var;
+		CATMathPlane mathPlane(oCenter,dir);
+		CreateCircle(pGeoFactory,topdata,mathPlane,0.5*idR,spBodyCircle);
+		if (spBodyCircle!=NULL_var)
+		{
+			CATUnicodeString strGeoSetName="Test_Circle";
+			CATISpecObject_var spiGeoSet=NULL_var;
+			HRESULT rc=_pGeneralCls->CreateNewGeoSet(_spiProdSelA,strGeoSetName,spiGeoSet);
+			if (FAILED(rc)||spiGeoSet==NULL_var)
+			{
+				continue;;
+			}
+
+			CATISpecObject_var spiSpecObj=NULL_var;
+			_pGeneralCls->InsertObjOnTree(_spiProdSelA,spiGeoSet,"Circle",spBodyCircle,spiSpecObj);
+
+			spiGeoSet->Update();
+		}
 	}
 	
 
@@ -1853,6 +1922,33 @@ CATBoolean TestEnvelopeCmd::IsFindNextHullPoint(vector<CATMathPoint2D> &iolstPtR
 			{
 				oPtNext=ptAdj;
 				iolstPtRest.erase(iolstPtRest.begin()+lstIndexSorted[i]);
+				return TRUE;
+			}
+		}
+	}
+
+	return FALSE;
+}
+
+CATBoolean TestEnvelopeCmd::IsFindNextHullPoint(vector<CATMathPoint2D> &iolstPtRest,CATMathPoint2D iPtCurrent,CATMathVector2D iDirRef,double idR,CATMathPoint2D &oPtNext,CATMathPoint2D &oCenter)
+{
+	//
+	vector<int> lstIndexSorted;
+	this->SortAdjListByAngle(iolstPtRest,iPtCurrent,iDirRef,idR,lstIndexSorted);
+
+	//
+	double dR=0.5*idR;
+	for (int i=0;i<lstIndexSorted.size();i++)
+	{
+		CATMathPoint2D ptAdj=iolstPtRest[lstIndexSorted[i]];
+		CATMathPoint2D ptCenter;
+		if (this->GetCircleCenter(iPtCurrent,ptAdj,dR,ptCenter))
+		{
+			if (!this->HasPointsInCircle(iolstPtRest,lstIndexSorted,ptCenter,dR,lstIndexSorted[i]))
+			{
+				oPtNext=ptAdj;
+				iolstPtRest.erase(iolstPtRest.begin()+lstIndexSorted[i]);
+				oCenter=ptCenter;
 				return TRUE;
 			}
 		}
@@ -1965,7 +2061,7 @@ double TestEnvelopeCmd::GetDot(CATMathVector2D a,CATMathVector2D b)
 //
 CATBoolean TestEnvelopeCmd::GetCircleCenter(CATMathPoint2D iPtA, CATMathPoint2D iPtB, double idR,CATMathPoint2D &oCenter)
 {
-	double dx = iPtB.GetX() - iPtA.GetY();
+	double dx = iPtB.GetX() - iPtA.GetX();
 	double dy = iPtB.GetY() - iPtA.GetY();
 	double cx = 0.5 * (iPtB.GetX() + iPtA.GetX());
 	double cy = 0.5 * (iPtB.GetY() + iPtA.GetY());
@@ -1974,7 +2070,7 @@ CATBoolean TestEnvelopeCmd::GetCircleCenter(CATMathPoint2D iPtA, CATMathPoint2D 
 		return FALSE;
 	}
 	double dSqrt = sqrt(idR * idR / (dx * dx + dy * dy) - 0.25);
-	oCenter.SetCoord(cx - dy * dSqrt, cy + dx * dSqrt);
+	oCenter.SetCoord(cx + dy * dSqrt, cy - dx * dSqrt);
 
 	return TRUE;
 }
@@ -2124,4 +2220,114 @@ CATBoolean TestEnvelopeCmd::CreatePlaneBody( CATGeoFactory_var spGeoFactory,CATT
 	ospPlaneBody=pTopPlaneBody;
 
 	return TRUE;
+}
+
+HRESULT TestEnvelopeCmd::GetBodyFromBodyCells(CATBody_var ispBody,CATGeoFactory *ipGeoFact,int iDimension,CATBody *&opBody)
+{
+	HRESULT rc=S_OK;
+	//
+	if (ispBody==NULL_var||ipGeoFact==NULL)
+	{
+		return E_FAIL;
+	}
+	//
+	CATLISTP(CATCell) lstCell;
+	ispBody->GetAllCells(lstCell,iDimension);
+	if (lstCell.Size()==0)
+	{
+		return E_FAIL;
+	}
+	//
+	CATBody *pBody = ipGeoFact->CreateBody();
+	CATDomain *pDomain = pBody->CreateDomain(iDimension);
+	for (int i=1;i<=lstCell.Size();i++)
+	{
+		pDomain->AddCell(lstCell[i]);
+	}
+	pBody->AddDomain(pDomain);
+	if (pBody==NULL)
+	{
+		return E_FAIL;
+	}
+	opBody=pBody;
+	return rc;
+}
+
+HRESULT TestEnvelopeCmd::CreateCircle( CATGeoFactory_var spGeoFactory,CATTopData * topdata,CATMathPlane iMathPlane,double Radius,CATBody_var &ospBody )
+{
+	HRESULT hr=E_FAIL;
+
+	CATCircle * pCircle=spGeoFactory->CreateCircle(Radius,iMathPlane);
+	if (pCircle==NULL)
+	{
+		cout<<"CreateCircle Failed"<<endl;
+		return E_FAIL;
+	}
+
+	CATCurve *piCurve = NULL;
+	hr = pCircle->QueryInterface(IID_CATCurve,(void**)&piCurve);
+	if(FAILED(hr) || piCurve == NULL)
+	{
+		cout<<"QI to IID_CATCurve is failed!"<<endl;
+		return E_FAIL;
+	}
+
+	int iNum = 1;
+	CATCurve ** ListOfCurves = new CATCurve * [iNum];
+	CATCrvLimits * curLimits = new CATCrvLimits[iNum];
+	short * wireOrientations = new short[iNum];
+	ListOfCurves[0] = piCurve;
+
+	for (int i = 0; i <iNum ; i++)
+	{
+		CATCurve * pLocalCurve = ListOfCurves[i];
+		if (pLocalCurve != NULL)
+			pLocalCurve->GetLimits(curLimits[i]);
+		wireOrientations[i]=short(1);
+	}
+
+	CATTopWire * pWire = ::CATCreateTopWire(spGeoFactory, 
+		topdata,
+		iNum,
+		ListOfCurves,
+		curLimits,
+		wireOrientations);
+
+	pWire->ForceWireClosure();
+	pWire->Run();
+
+	ospBody = pWire->GetResult();
+
+	if (pCircle!=NULL)
+	{
+		spGeoFactory->Remove(pCircle);
+		pCircle=NULL;
+	}
+
+	if (pWire!=NULL)
+	{
+		delete pWire;
+		pWire = NULL;
+	}
+
+	if (ListOfCurves!=NULL)
+	{
+		delete ListOfCurves; 
+		ListOfCurves = NULL;
+	}
+
+	if (curLimits!=NULL)
+	{
+		delete curLimits;
+		curLimits = NULL;
+	}
+
+	if (wireOrientations!=NULL)
+	{
+		delete wireOrientations; 
+		wireOrientations = NULL;
+	}
+
+
+	return S_OK;
 }

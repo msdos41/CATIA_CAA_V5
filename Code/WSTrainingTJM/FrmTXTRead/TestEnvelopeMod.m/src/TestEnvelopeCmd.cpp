@@ -126,7 +126,7 @@ void TestEnvelopeCmd::BuildGraph()
 
 	AddAnalyseNotificationCB(_pDlg,
 		_pDlg->GetDiaOKNotification(),
-		(CATCommandMethod)&TestEnvelopeCmd::ActionOK4,
+		(CATCommandMethod)&TestEnvelopeCmd::ActionOK5,
 		NULL);
 
 	AddAnalyseNotificationCB(_pDlg,
@@ -501,6 +501,136 @@ CATBoolean TestEnvelopeCmd::ActionOK4(void * data)
 	iTimeSpan=iEndTime2-iEndTime;
 	cout<<"======> SpecObj Run Time: "<<iTimeSpan.ConvertToString("%M:%S");
 
+	return TRUE;
+}
+//Translate
+CATBoolean TestEnvelopeCmd::ActionOK5(void * data)
+{
+	if (NULL!=_pHSO) _pHSO->Empty();
+	if (NULL!=_pISO) _pISO->Empty();
+
+	CATTime iStartTime = CATTime::GetCurrentLocalTime();
+	
+	//根据选择实体算出包围盒
+	CATBody_var spBody=_pGeneralCls->GetBodyFromFeature(_spBUSelectA);
+	if (spBody==NULL_var)
+	{
+		return FALSE;
+	}
+	CATMathBox mathBox;
+	_pGeneralCls->GetBodyBox(spBody,_spiProdSelA,mathBox);
+	double oXMin,oXMax,oYMin,oYMax,oZMin,oZMax;
+	mathBox.GetExtremities(oXMin,oXMax,oYMin,oYMax,oZMin,oZMax);
+	//
+	CATMathPoint pt1,pt2;
+	_pGeneralCls->GetPointFromCurve(_spBUSelectB,pt1,pt2);
+	if (pt1.DistanceTo(pt2)<=0.01)
+	{
+		return FALSE;
+	}
+	//CATMathLine mathAxis(pt1,pt2);
+	CATMathVector mathDir=pt1-pt2;
+	//
+	CATBody *pBodyAssy=NULL;
+	CreateTranslateTransformation(spBody,_spiProdSelA,30,mathDir,0.5,pBodyAssy);
+	if (pBodyAssy==NULL)
+	{
+		return FALSE;
+	}
+	//
+	//先XY方向切面
+	int iStep=0.5;
+	int iNumRepeatX=(oXMax-oXMin)/iStep;
+	int iNumRepeatY=(oYMax-oYMin)/iStep;
+	int iNumRepeatZ=(oZMax-oZMin)/iStep;
+
+	double iStepX=(oXMax-oXMin)/iNumRepeatX;
+	double iStepY=(oYMax-oYMin)/iNumRepeatY;
+	double iStepZ=(oZMax-oZMin)/iNumRepeatZ;
+
+	//获取工厂
+	CATSoftwareConfiguration * pConfig = new CATSoftwareConfiguration();//配置指针
+	CATTopData * topdata =new CATTopData(pConfig, NULL);//topdata
+	CATIPrtContainer_var ospiCont=NULL_var;
+	CATGeoFactory*  pGeoFactory=_pGeneralCls->GetProductGeoFactoryAndPrtCont(_spiProdSelA,ospiCont);
+	if (topdata == NULL || pGeoFactory == NULL)
+	{
+		return FALSE;
+	}
+
+	vector<vector<CATMathPoint>> lstPtConcaveHull;
+	for (int i=0;i<=iNumRepeatZ;i++)
+	{
+		CATMathPoint pt(0,0,oZMin+i*iStep);
+		CATMathVector dir(0,0,1);
+		CATMathPlane planeIntersect(pt,dir);
+		CATBody_var spBodyPlane=NULL_var;
+		if (CreatePlaneBody(pGeoFactory,topdata,planeIntersect,spBodyPlane)&&spBodyPlane!=NULL_var)
+		{
+			CATBody *pBodyResult=CreateTopIntersect(pGeoFactory,topdata,pBodyAssy,spBodyPlane);
+
+			if (pBodyResult!=NULL)
+			{
+				vector<CATMathPoint> lstPt;
+				if (SUCCEEDED(CreateEdgeTessellation(pBodyResult,lstPt))&&lstPt.size()>0)
+				{
+					vector<CATMathPoint> lstPtOuter;
+					CalculateOuterHull(lstPt,1.2,"XY",lstPtOuter);
+					lstPtConcaveHull.push_back(lstPtOuter);
+				}
+			}
+		}
+	}
+	CATTime iEndTime = CATTime::GetCurrentLocalTime();
+
+	CATTimeSpan iTimeSpan=iEndTime-iStartTime;
+	cout<<"======> Translate Calculation Run Time: "<<iTimeSpan.ConvertToString("%M:%S");
+
+	//挂模型树 
+	for (int i=0;i<lstPtConcaveHull.size();i++)
+	{
+		vector<CATMathPoint> lstPtCurrentLayer=lstPtConcaveHull[i];
+		for (int j=0;j<lstPtCurrentLayer.size();j++)
+		{
+			CATUnicodeString strIndex;
+			strIndex.BuildFromNum(i);
+			CATUnicodeString strGeoSetName="Test_"+strIndex;
+			CATISpecObject_var spiGeoSet=NULL_var;
+			HRESULT rc=_pGeneralCls->CreateNewGeoSet(_spiProdSelA,strGeoSetName,spiGeoSet);
+			if (FAILED(rc)||spiGeoSet==NULL_var)
+			{
+				return FALSE;
+			}
+			
+			CATMathPoint ptCurrent = lstPtCurrentLayer[j];
+			int iNext = (j+1)%lstPtCurrentLayer.size();	//封闭图形的序号取法，当i是最后的的时候，下一位是回到第一位
+			CATMathPoint ptNext = lstPtCurrentLayer[iNext];
+
+			CATBody *pBodyPtCurrent =::CATCreateTopPointXYZ( pGeoFactory,topdata,ptCurrent.GetX(),ptCurrent.GetY(),ptCurrent.GetZ());
+			CATBody *pBodyPtNext =::CATCreateTopPointXYZ( pGeoFactory,topdata,ptNext.GetX(),ptNext.GetY(),ptNext.GetZ());
+			if (pBodyPtCurrent==NULL||pBodyPtNext==NULL)
+			{
+				continue;
+			}
+			CATBody *pBodyLine=::CATCreateTopLineFromPoints(pGeoFactory,topdata,pBodyPtCurrent,pBodyPtNext);
+			if (pBodyLine==NULL)
+			{
+				continue;
+			}
+
+			CATISpecObject_var spiSpecObj=NULL_var;
+			_pGeneralCls->InsertObjOnTree(_spiProdSelA,spiGeoSet,"Line",pBodyLine,spiSpecObj);
+
+			spiGeoSet->Update();
+		}
+	}
+
+	CATTime iEndTime2 = CATTime::GetCurrentLocalTime();
+
+	iTimeSpan=iEndTime2-iEndTime;
+	cout<<"======> SpecObj Run Time: "<<iTimeSpan.ConvertToString("%M:%S");
+
+	
 	return TRUE;
 }
 
@@ -1237,6 +1367,9 @@ HRESULT TestEnvelopeCmd::CreateTranslateTransformation(vector<CATMathPoint> ilst
 	return rc;
 }
 
+
+
+
 HRESULT TestEnvelopeCmd::CalculateOuterPoints(vector<CATMathPoint> &iolstVerticesAll,double iStep)
 {
 	HRESULT rc=S_OK;
@@ -1470,6 +1603,65 @@ CATBoolean TestEnvelopeCmd::IsOccur(CATMathPoint iPt,vector<CATMathPoint> ilstPt
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+HRESULT TestEnvelopeCmd::CreateTranslateTransformation(CATBody_var ispBody,CATIProduct_var ispiProd,double iDistance,CATMathVector iDir,double iStep,CATBody *&opBodyAssy)
+{
+	HRESULT rc=S_OK;
+
+	iDir.Normalize();
+
+	//
+
+	//获取工厂
+	CATSoftwareConfiguration * pConfig = new CATSoftwareConfiguration();//配置指针
+	CATTopData * topdata =new CATTopData(pConfig, NULL);//topdata
+	CATIPrtContainer_var ospiCont=NULL_var;
+	CATGeoFactory*  pGeoFactory=_pGeneralCls->GetProductGeoFactoryAndPrtCont(ispiProd,ospiCont);
+	if (topdata == NULL || pGeoFactory == NULL)
+	{
+		return E_FAIL;
+	}
+	//
+	CATLISTP(CATBody) lstBody;
+	lstBody.Append(ispBody);
+
+	/*
+	int iRepeatNum=iDistance/iStep;
+	for (int i=1;i<=iRepeatNum;i++)
+	{
+		CATMathTransformation trans(i*iStep*iDir);
+		CATBody_var spBodyTrans=NULL_var;
+		GetTransformationBody(ispBody,trans,spBodyTrans);
+		if (spBodyTrans!=NULL_var)
+		{
+			lstBody.Append(spBodyTrans);
+		}
+	}
+
+	double iRepeatLast=fmod(iDistance,iStep);
+	if (iRepeatLast>0.01)
+	{
+		CATMathTransformation trans(iDistance*iDir);
+		CATBody_var spBodyTrans=NULL_var;
+		GetTransformationBody(ispBody,trans,spBodyTrans);
+		if (spBodyTrans!=NULL_var)
+		{
+			lstBody.Append(spBodyTrans);
+		}
+	}
+	*/
+
+	//
+	CATBody *pBodyAssy=CreateTopAssembly(pGeoFactory,topdata,lstBody);
+	if (pBodyAssy==NULL)
+	{
+		return E_FAIL;
+	}
+
+	opBodyAssy=pBodyAssy;
+
+	return rc;
+}
+
 HRESULT TestEnvelopeCmd::CreateEdgeTessellation(CATBody *ipBodyCurve,vector<CATMathPoint> &olstVertices)
 {
 	HRESULT rc = S_OK;
@@ -1546,12 +1738,14 @@ HRESULT TestEnvelopeCmd::CreateEdgeTessellation(CATBody *ipBodyCurve,vector<CATM
 	return rc;
 }
 
-//滚球法求点集最外轮廓，考虑凹包，在平行于XY的平面内计算
-HRESULT TestEnvelopeCmd::CalculateOuterHull(vector<CATMathPoint> ilstPtAll, double idR,vector<CATMathPoint> &olstPtConcaveHull)
+//滚球法求点集最外轮廓，考虑凹包，在指定平面内计算
+HRESULT TestEnvelopeCmd::CalculateOuterHull(vector<CATMathPoint> ilstPtAll, double idR,CATUnicodeString istrDir,vector<CATMathPoint> &olstPtConcaveHull)
 {
 	HRESULT rc=S_OK;
 
-	//删除重复点集
+	//删除重复点集并转换为2D点
+	vector<CATMathPoint2D> lstPt2D;
+	double dThirdDimension;
 	for (int i=0;i<ilstPtAll.size();i++)
 	{
 		CATMathPoint ptForward=ilstPtAll[i];
@@ -1563,14 +1757,24 @@ HRESULT TestEnvelopeCmd::CalculateOuterHull(vector<CATMathPoint> ilstPtAll, doub
 				ilstPtAll.erase(ilstPtAll.begin()+j);
 			}
 		}
+		if (istrDir=="XY")
+		{
+			lstPt2D.push_back(CATMathPoint2D(ptForward.GetX(),ptForward.GetY()));
+			dThirdDimension=ptForward.GetZ();
+		}
+		else if (istrDir=="XZ")
+		{
+			lstPt2D.push_back(CATMathPoint2D(ptForward.GetX(),ptForward.GetZ()));
+			dThirdDimension=ptForward.GetY();
+		}
 	}
 
-	//先找到y值最小的点
+	//找到y值最小的点
 	double dYmin = DBL_MAX;
-	int iIndexMin = 0;
-	for (int i=0;i<ilstPtAll.size();i++)
+	int iIndexMin = -1;
+	for (int i=0;i<lstPt2D.size();i++)
 	{
-		CATMathPoint mathPt = ilstPtAll[i];
+		CATMathPoint2D mathPt = lstPt2D[i];
 		double dYcoord = mathPt.GetY();
 		if (dYcoord<dYmin)
 		{
@@ -1579,60 +1783,345 @@ HRESULT TestEnvelopeCmd::CalculateOuterHull(vector<CATMathPoint> ilstPtAll, doub
 		}
 		else if (dYcoord==dYmin)	//如果y坐标相同，取x坐标小的
 		{
-			if (mathPt.GetX()<ilstPtAll[iIndexMin].GetX())
+			if (mathPt.GetX()<lstPt2D[iIndexMin].GetX())
 			{
 				dYmin = dYcoord;
 				iIndexMin = i;
 			}
 		}
 	}
-
-	CATMathPoint2D mathPtFirst = ilstPtAll[iIndexMin];
-	ilstPtAll.erase(ilstPtAll.begin()+iIndexMin);
+	if (iIndexMin==-1)
+	{
+		return E_FAIL;
+	}
 
 	//
-	//把该最小点和其他所有点分别做向量，按照和x轴正向的cos值从大到小排列
-	vector<double> vecCosValue;
-	for (int i=0;i<ilstPtAll.size();i++)	
+	CATMathPoint2D mathPtFirst = lstPt2D[iIndexMin];
+	lstPt2D.erase(lstPt2D.begin()+iIndexMin);
+	if (istrDir=="XY")
 	{
-		CATMathVector dirCurrent = ilstPtAll[i]-mathPtFirst;
-
-		double dCos = dirCurrent.GetX()/(sqrt(dirCurrent.GetX()*dirCurrent.GetX()+dirCurrent.GetY()*dirCurrent.GetY()));
-
-		vecCosValue.push_back(dCos);
+		olstPtConcaveHull.push_back(CATMathPoint(mathPtFirst.GetX(),mathPtFirst.GetY(),dThirdDimension));
 	}
-	for (int i=0;i<ilstPtAll.size();i++)
+	else if (istrDir=="XZ")
 	{
-		for (int j=0;j<ilstPtAll.size()-1;j++)
+		olstPtConcaveHull.push_back(CATMathPoint(mathPtFirst.GetX(),dThirdDimension,mathPtFirst.GetY()));
+	}
+
+	CATMathPoint2D ptCurrent=mathPtFirst;
+	CATMathVector2D dirRef(1,0);
+
+	while(1)
+	{
+		CATMathPoint2D ptNext;
+		CATBoolean bIsFind=IsFindNextHullPoint(lstPt2D,ptCurrent,dirRef,idR,ptNext);
+		if (!bIsFind)
 		{
-			if (i==j)
-			{
-				continue;
-			}
-			double dCrossCurrent = vecCosValue[j];
-			double dCrossNext = vecCosValue[j+1];
-			if (dCrossCurrent<dCrossNext)
-			{
-				swap(vecCosValue[j],vecCosValue[j+1]);
-				swap(ilstPtAll[j],ilstPtAll[j+1]);
-			}
+			break;
 		}
-	}
-	//把头两个点加入列表，从第三个点开始循环判断
-	CATMathPoint2D mathPtSecond = ilstPtAll[0];
-	olstPtConcaveHull.push_back(mathPtFirst);
-	olstPtConcaveHull.push_back(mathPtSecond);
-	ilstPtAll.erase(ilstPtAll.begin());
+		if (istrDir=="XY")
+		{
+			olstPtConcaveHull.push_back(CATMathPoint(ptNext.GetX(),ptNext.GetY(),dThirdDimension));
+		}
+		else if (istrDir=="XZ")
+		{
+			olstPtConcaveHull.push_back(CATMathPoint(ptNext.GetX(),dThirdDimension,ptNext.GetY()));
+		}
 
-	//
-	for ()
-	{
+		dirRef=ptCurrent-ptNext;
+		ptCurrent=ptNext;
 	}
+	
 
 	return rc;
 }
 
-CATBoolean TestEnvelopeCmd::IsFindNextHullPoint(CATMathPoint iPtCurrent,double idR,vector<CATMathPoint> ilstPtRest,CATMathPoint &oPtNext)
+CATBoolean TestEnvelopeCmd::IsFindNextHullPoint(vector<CATMathPoint2D> &iolstPtRest,CATMathPoint2D iPtCurrent,CATMathVector2D iDirRef,double idR,CATMathPoint2D &oPtNext)
 {
+	//
+	vector<int> lstIndexSorted;
+	this->SortAdjListByAngle(iolstPtRest,iPtCurrent,iDirRef,idR,lstIndexSorted);
 
+	//
+	double dR=0.5*idR;
+	for (int i=0;i<lstIndexSorted.size();i++)
+	{
+		CATMathPoint2D ptAdj=iolstPtRest[lstIndexSorted[i]];
+		CATMathPoint2D ptCenter;
+		if (this->GetCircleCenter(iPtCurrent,ptAdj,dR,ptCenter))
+		{
+			if (!this->HasPointsInCircle(iolstPtRest,lstIndexSorted,ptCenter,dR,i))
+			{
+				oPtNext=ptAdj;
+				iolstPtRest.erase(iolstPtRest.begin()+lstIndexSorted[i]);
+				return TRUE;
+			}
+		}
+	}
+
+	return FALSE;
+}
+
+/*
+void TestEnvelopeCmd::SortAdjListByAngle(vector<CATMathPoint2D> ilstPt, CATMathPoint2D iPtCurrent,CATMathPoint2D iDirRef,double idR,vector<CATMathPoint2D> &olstPtSorted)
+{
+	//先根据半径过滤一波，不在圆内的删掉
+	for (int i=0;i<ilstPt.size();i++)
+	{
+		CATMathPoint2D pt=ilstPt[i];
+		if (pt.DistanceTo(iPtCurrent)-idR >0)
+		{
+			ilstPt.erase(ilstPt.begin()+i);
+		}
+	}
+	//
+	CATMathPoint2D ptTemp;
+	for (int i=ilstPt.size();i>0;i--)
+	{
+		for (int j=0;j<i-1;j++)
+		{
+			CATMathPoint2D ptA=ilstPt[j];
+			CATMathPoint2D ptB=ilstPt[j+1];
+			if (this->CompareAngle(ptA,ptB,iPtCurrent,iDirRef))
+			{
+				swap(ilstPt[j],ilstPt[j+1]);
+			}
+		}
+	}
+	//
+	olstPtSorted.swap(ilstPt);
+	
+}
+*/
+
+void TestEnvelopeCmd::SortAdjListByAngle(vector<CATMathPoint2D> ilstPt, CATMathPoint2D iPtCurrent,CATMathVector2D iDirRef,double idR,vector<int> &olstIndexSorted)
+{
+	//先根据半径过滤一波，不在圆内的删掉
+	for (int i=0;i<ilstPt.size();i++)
+	{
+		CATMathPoint2D pt=ilstPt[i];
+		if (pt.DistanceTo(iPtCurrent)-idR <=0)
+		{
+			olstIndexSorted.push_back(i);
+		}
+	}
+	//
+	CATMathPoint2D ptTemp;
+	for (int i=olstIndexSorted.size();i>0;i--)
+	{
+		for (int j=0;j<i-1;j++)
+		{
+			CATMathPoint2D ptA=ilstPt[olstIndexSorted[j]];
+			CATMathPoint2D ptB=ilstPt[olstIndexSorted[j+1]];
+			if (this->CompareAngle(ptA,ptB,iPtCurrent,iDirRef))
+			{
+				swap(olstIndexSorted[j],olstIndexSorted[j+1]);
+			}
+		}
+	}
+}
+
+//根据当前点和前一个点组成的向量，判断后面两个点相对于该向量哪个夹角大，iPtA大则返回false，iPtB大返回true，后续需要交换位置
+CATBoolean TestEnvelopeCmd::CompareAngle(CATMathPoint2D iPtA,CATMathPoint2D iPtB,CATMathPoint2D iPtCurrent,CATMathVector2D idirRef)
+{
+	CATMathVector2D dirA=iPtA-iPtCurrent;
+	CATMathVector2D dirB=iPtB-iPtCurrent;
+
+	//CATMathPoint2D idirRef=iPtPrev-iPtCurrent;
+
+	//
+	double detB=GetCross(idirRef,dirB);
+	double dotB=GetDot(idirRef,dirB);
+	// nothing is less than zero degrees
+	if (detB==0 && dotB>=0) return FALSE;	//叉积为0，说明同向或者反向平行，点积大于等于0，说明是同向，也就是夹角0
+
+	//
+	double detA=GetCross(idirRef,dirA);
+	double dotA=GetDot(idirRef,dirA);
+	// zero degrees is less than anything else
+	if (detA==0 && dotA>=0)	return TRUE;	//
+
+	//
+	if (detA*detB >=0)	//叉积相乘大于等于0，说明两个向量在ref向量的同侧（左侧或者右侧）
+	{
+		return GetCross(dirA,dirB)>0;	//叉积大于0，说明a方向夹角小于b方向夹角
+	}
+
+	//
+	return detA>0;	//如果a，b方向没有在ref的同侧，detA大于0，说明a的夹角比b的夹角小
+
+}
+
+//叉积
+double TestEnvelopeCmd::GetCross(CATMathVector2D a, CATMathVector2D b) 
+{
+	return a.GetX() * b.GetY() - a.GetY() * b.GetX();
+}
+//点积
+double TestEnvelopeCmd::GetDot(CATMathVector2D a,CATMathVector2D b)
+{
+	return a.GetX() * b.GetX() + a.GetY() * b.GetY();
+}
+
+//
+CATBoolean TestEnvelopeCmd::GetCircleCenter(CATMathPoint2D iPtA, CATMathPoint2D iPtB, double idR,CATMathPoint2D &oCenter)
+{
+	double dx = iPtB.GetX() - iPtA.GetY();
+	double dy = iPtB.GetY() - iPtA.GetY();
+	double cx = 0.5 * (iPtB.GetX() + iPtA.GetX());
+	double cy = 0.5 * (iPtB.GetY() + iPtA.GetY());
+	if (idR * idR / (dx * dx + dy * dy) - 0.25 < 0)
+	{
+		return FALSE;
+	}
+	double dSqrt = sqrt(idR * idR / (dx * dx + dy * dy) - 0.25);
+	oCenter.SetCoord(cx - dy * dSqrt, cy + dx * dSqrt);
+
+	return TRUE;
+}
+
+CATBoolean TestEnvelopeCmd::HasPointsInCircle(vector<CATMathPoint2D> ilstPt,vector<int> ilstIndex,CATMathPoint2D iptCenter,double idR,int adjIndex)
+{
+	for (int k = 0; k < ilstIndex.size(); k++)
+	{
+		if (ilstIndex[k] != adjIndex)
+		{
+			CATMathPoint2D pt=ilstPt[ilstIndex[k]];
+			if (pt.DistanceTo(iptCenter)<idR)
+			{
+				return TRUE;
+			}
+		}
+	}
+	return FALSE;
+}
+
+HRESULT TestEnvelopeCmd::GetTransformationBody(CATBody_var ispBody,CATMathTransformation itrans,CATBody_var& ospResultBody)
+{
+	HRESULT rc = S_OK;
+	ospResultBody = NULL_var;
+	if(NULL_var == ispBody)
+	{
+		return E_FAIL;
+	}
+	CATGeoFactory_var spGeoFac=ispBody->GetContainer();
+	if (spGeoFac==NULL_var)
+	{
+		return E_FAIL;
+	}
+
+	//先把Body也坐标变换到father一级
+	CATTransfoManager * pTransfoManager = new CATTransfoManager(itrans,spGeoFac,CATTransfoManager::FullDuplicate  , NULL); 		
+	if (NULL==pTransfoManager)
+	{
+		return E_FAIL;
+	}
+
+	pTransfoManager->Add(ispBody);
+	pTransfoManager->Run();
+
+	CATBody * piTransBody = (CATBody *)(pTransfoManager->ReadImage(ispBody));
+	if (piTransBody==NULL)
+	{
+		return E_FAIL;
+	}
+
+	ospResultBody = piTransBody;
+	delete pTransfoManager;
+	pTransfoManager = NULL;
+
+	return S_OK;
+}
+
+CATBody*TestEnvelopeCmd::CreateTopAssembly(CATGeoFactory* ipGeoFactory,CATTopData* itopdata,CATLISTP(CATBody) ListOfBodyLst)
+{
+	if(NULL == ipGeoFactory || NULL == itopdata || ListOfBodyLst.Size()<=0)
+	{
+		return NULL;
+	}
+
+	ListPOfCATBody * HListOfSurface=&ListOfBodyLst;
+	CATHybAssemble * pSurfaceHybAssemble=CATCreateTopAssemble(ipGeoFactory,itopdata,HListOfSurface);
+	if (pSurfaceHybAssemble==NULL)
+		return NULL;
+
+	pSurfaceHybAssemble->Run();
+	CATBody*pSurfaceBody= pSurfaceHybAssemble->GetResult();
+	if (pSurfaceBody==NULL)
+		return NULL;
+
+	delete pSurfaceHybAssemble; 
+	pSurfaceHybAssemble = NULL;
+
+	return pSurfaceBody;
+}
+
+CATBody* TestEnvelopeCmd::CreateTopIntersect( CATGeoFactory* ipGeoFactory, CATTopData* itopdata,CATBody*iBody1,CATBody*iBody2 )
+{
+	CATBody*pBody=NULL;
+
+	CATHybIntersect * ipHybIntersect=CATCreateTopIntersect( ipGeoFactory, itopdata, iBody1, iBody2);
+	if (ipHybIntersect==NULL)
+		return pBody;
+
+	ipHybIntersect->Run(); 
+	pBody=ipHybIntersect->GetResult();
+
+	delete ipHybIntersect; 
+	ipHybIntersect = NULL;
+	return pBody;
+}
+
+CATBoolean TestEnvelopeCmd::CreatePlaneBody( CATGeoFactory_var spGeoFactory,CATTopData * topdata, CATMathPlane iMathPlane,CATBody_var &ospPlaneBody )
+{
+	HRESULT hr=E_FAIL;
+
+	if (spGeoFactory==NULL_var)
+		return FALSE;
+
+	CATPlane *piNewPlane=NULL;
+	piNewPlane=spGeoFactory->CreatePlane(iMathPlane);
+	if (piNewPlane==NULL)
+	{
+		cout<<"CreatePlane Failed"<<endl;
+		return FALSE;
+	}
+
+	CATSurface *iNewSurface = NULL;
+	hr = piNewPlane->QueryInterface(IID_CATSurface,(void**)&iNewSurface);
+	if(FAILED(hr) || iNewSurface == NULL)
+	{
+		cout<<"QI to IID_CATSurface is failed!"<<endl;
+		return FALSE;
+	}
+
+	CATSurLimits surMaxLimits;
+	iNewSurface->GetLimits(surMaxLimits) ;
+
+	CATTopSkin * TopSkin =CATCreateTopSkin(spGeoFactory,topdata,iNewSurface,&surMaxLimits);
+	//CATICGMTopSkin * TopSkin =CATCGMCreateTopSkin(pGeoFactory,topdata,iNewSurface,&surMaxLimits);
+	if (TopSkin==NULL)
+	{
+		cout<<"CATCGMCreateTopSkin Failed"<<endl;
+		return FALSE;
+	}
+
+	TopSkin->Run();
+
+	CATBody*pTopPlaneBody=NULL;
+	pTopPlaneBody = TopSkin->GetResult();
+	if (pTopPlaneBody==NULL)
+	{
+		cout<<"pTopPlaneBody==NULL"<<endl;
+		return FALSE;
+	}
+
+	if (TopSkin!=NULL)
+	{
+		delete TopSkin;
+		TopSkin = NULL;
+	}
+
+	ospPlaneBody=pTopPlaneBody;
+
+	return TRUE;
 }

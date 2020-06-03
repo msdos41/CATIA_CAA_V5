@@ -50,6 +50,12 @@ TestEnvelopeCmd::TestEnvelopeCmd() :
 		_pHSO = _pEditor->GetHSO();
 		_pISO = _pEditor->GetISO();
 	}
+
+	_dMotionStep=0.8;
+
+	_dTessellateStep=2;
+
+	_dRadiusRolling=1.6;
 }
 
 //-------------------------------------------------------------------------
@@ -532,7 +538,7 @@ CATBoolean TestEnvelopeCmd::ActionOK5(void * data)
 	CATMathVector mathDir=pt1-pt2;
 	//
 	CATBody *pBodyAssy=NULL;
-	CreateTranslateTransformation(spBody,_spiProdSelA,30,mathDir,0.5,pBodyAssy);
+	CreateTranslateTransformation(spBody,_spiProdSelA,30,mathDir,0.8,pBodyAssy);
 	if (pBodyAssy==NULL)
 	{
 		return FALSE;
@@ -576,7 +582,7 @@ CATBoolean TestEnvelopeCmd::ActionOK5(void * data)
 				if (SUCCEEDED(CreateEdgeTessellation(pBodyResult,lstPt))&&lstPt.size()>0)
 				{
 					vector<CATMathPoint> lstPtOuter;
-					CalculateOuterHull(lstPt,0.7,"XY",lstPtOuter);
+					CalculateOuterHull(lstPt,1.6,"XY",lstPtOuter);
 					lstPtConcaveHull.push_back(lstPtOuter);
 				}
 			}
@@ -648,6 +654,180 @@ CATBoolean TestEnvelopeCmd::ActionOK5(void * data)
 	cout<<"======> SpecObj Run Time: "<<iTimeSpan.ConvertToString("%M:%S");
 
 	
+	return TRUE;
+}
+
+//Translate Optimize
+CATBoolean TestEnvelopeCmd::ActionOK6(void * data)
+{
+	if (NULL!=_pHSO) _pHSO->Empty();
+	if (NULL!=_pISO) _pISO->Empty();
+
+	CATTime iStartTime = CATTime::GetCurrentLocalTime();
+
+	//根据选择实体算出包围盒
+	CATBody_var spBody=_pGeneralCls->GetBodyFromFeature(_spBUSelectA);
+	if (spBody==NULL_var)
+	{
+		return FALSE;
+	}
+	CATMathBox mathBox;
+	_pGeneralCls->GetBodyBox(spBody,_spiProdSelA,mathBox);
+	double oXMin,oXMax,oYMin,oYMax,oZMin,oZMax;
+	mathBox.GetExtremities(oXMin,oXMax,oYMin,oYMax,oZMin,oZMax);
+	//
+	CATMathPoint pt1,pt2;
+	_pGeneralCls->GetPointFromCurve(_spBUSelectB,pt1,pt2);
+	if (pt1.DistanceTo(pt2)<=0.01)
+	{
+		return FALSE;
+	}
+
+	CATMathVector mathDir=pt1-pt2;
+	//
+
+	//
+	//先XY方向切面
+	double iStep=0.5;
+	int iNumRepeatX=(oXMax-oXMin)/iStep;
+	int iNumRepeatY=(oYMax-oYMin)/iStep;
+	int iNumRepeatZ=(oZMax-oZMin)/iStep;
+
+	double iStepX=(oXMax-oXMin)/iNumRepeatX;
+	double iStepY=(oYMax-oYMin)/iNumRepeatY;
+	double iStepZ=(oZMax-oZMin)/iNumRepeatZ;
+
+	//获取工厂
+	CATSoftwareConfiguration * pConfig = new CATSoftwareConfiguration();//配置指针
+	CATTopData * topdata =new CATTopData(pConfig, NULL);//topdata
+	CATIPrtContainer_var ospiCont=NULL_var;
+	CATGeoFactory*  pGeoFactory=_pGeneralCls->GetProductGeoFactoryAndPrtCont(_spiProdSelA,ospiCont);
+	if (topdata == NULL || pGeoFactory == NULL)
+	{
+		return FALSE;
+	}
+
+	vector<vector<CATMathPoint>> lstPtConcaveHull;
+	for (int i=0;i<=iNumRepeatZ;i++)
+	{
+		CATMathPoint pt(0,0,oZMin+i*iStep);
+		CATMathVector dir(0,0,1);
+		CATMathPlane planeIntersect(pt,dir);
+		CATBody_var spBodyPlane=NULL_var;
+		if (CreatePlaneBody(pGeoFactory,topdata,planeIntersect,spBodyPlane)&&spBodyPlane!=NULL_var)
+		{
+			CATBody *pBodyResult=CreateTopIntersect(pGeoFactory,topdata,spBody,spBodyPlane);
+
+			if (pBodyResult!=NULL)
+			{
+				//根据domain重新构建body
+
+				CATLISTP(CATDomain) lstDomainCurve;
+				pBodyResult->GetAllDomains(1,2,lstDomainCurve);
+				if (lstDomainCurve.Size()==0)
+				{
+					continue;
+				}
+				//对每个domain单独进行translate 和 ConcaveHull构建
+				for (int j=1;j<=lstDomainCurve.Size();j++)
+				{
+					CATDomain *pDomain=lstDomainCurve[j];
+					if (pDomain==NULL)
+					{
+						continue;
+					}
+					CATBody *pBodyDomain=this->CreateBodyFromDomain(pGeoFactory,pDomain,1);
+					if (pBodyDomain==NULL)
+					{
+						continue;
+					}
+
+					CATBody *pBodyAssy=NULL;
+					CreateTranslateTransformationUpdate(pBodyResult,_spiProdSelA,30,mathDir,_dMotionStep,pBodyAssy);
+					if (pBodyAssy==NULL)
+					{
+						return FALSE;
+					}
+
+					vector<CATMathPoint> lstPt;
+					if (SUCCEEDED(CreateEdgeTessellation(pBodyAssy,lstPt))&&lstPt.size()>0)
+					{
+						vector<CATMathPoint> lstPtOuter;
+						CalculateOuterHull(lstPt,_dRadiusRolling,"XY",lstPtOuter);
+						lstPtConcaveHull.push_back(lstPtOuter);
+					}
+
+				}
+
+			}
+			//////////////////////////////////////////////////////////////////////////
+			//相交结果挂模型树
+			CATUnicodeString strIndex;
+			strIndex.BuildFromNum(i);
+			CATUnicodeString strGeoSetName="TestIntersect_"+strIndex;
+			CATISpecObject_var spiGeoSet=NULL_var;
+			HRESULT rc=_pGeneralCls->CreateNewGeoSet(_spiProdSelA,strGeoSetName,spiGeoSet);
+			if (FAILED(rc)||spiGeoSet==NULL_var)
+			{
+				continue;;
+			}
+
+			CATISpecObject_var spiSpecObj=NULL_var;
+			_pGeneralCls->InsertObjOnTree(_spiProdSelA,spiGeoSet,"Curve",pBodyResult,spiSpecObj);
+
+			spiGeoSet->Update();
+		}
+	}
+	CATTime iEndTime = CATTime::GetCurrentLocalTime();
+
+	CATTimeSpan iTimeSpan=iEndTime-iStartTime;
+	cout<<"======> Translate Calculation Run Time: "<<iTimeSpan.ConvertToString("%M:%S");
+
+	//挂模型树 
+	for (int i=0;i<lstPtConcaveHull.size();i++)
+	{
+		vector<CATMathPoint> lstPtCurrentLayer=lstPtConcaveHull[i];
+		for (int j=0;j<lstPtCurrentLayer.size();j++)
+		{
+			CATUnicodeString strIndex;
+			strIndex.BuildFromNum(i);
+			CATUnicodeString strGeoSetName="Test_"+strIndex;
+			CATISpecObject_var spiGeoSet=NULL_var;
+			HRESULT rc=_pGeneralCls->CreateNewGeoSet(_spiProdSelA,strGeoSetName,spiGeoSet);
+			if (FAILED(rc)||spiGeoSet==NULL_var)
+			{
+				return FALSE;
+			}
+
+			CATMathPoint ptCurrent = lstPtCurrentLayer[j];
+			int iNext = (j+1)%lstPtCurrentLayer.size();	//封闭图形的序号取法，当i是最后的的时候，下一位是回到第一位
+			CATMathPoint ptNext = lstPtCurrentLayer[iNext];
+
+			CATBody *pBodyPtCurrent =::CATCreateTopPointXYZ( pGeoFactory,topdata,ptCurrent.GetX(),ptCurrent.GetY(),ptCurrent.GetZ());
+			CATBody *pBodyPtNext =::CATCreateTopPointXYZ( pGeoFactory,topdata,ptNext.GetX(),ptNext.GetY(),ptNext.GetZ());
+			if (pBodyPtCurrent==NULL||pBodyPtNext==NULL)
+			{
+				continue;
+			}
+			CATBody *pBodyLine=::CATCreateTopLineFromPoints(pGeoFactory,topdata,pBodyPtCurrent,pBodyPtNext);
+			if (pBodyLine==NULL)
+			{
+				continue;
+			}
+
+			CATISpecObject_var spiSpecObj=NULL_var;
+			_pGeneralCls->InsertObjOnTree(_spiProdSelA,spiGeoSet,"Line",pBodyLine,spiSpecObj);
+
+			spiGeoSet->Update();
+		}
+	}
+
+	CATTime iEndTime2 = CATTime::GetCurrentLocalTime();
+
+	iTimeSpan=iEndTime2-iEndTime;
+	cout<<"======> SpecObj Run Time: "<<iTimeSpan.ConvertToString("%M:%S");
+
+
 	return TRUE;
 }
 
@@ -1692,6 +1872,80 @@ HRESULT TestEnvelopeCmd::CreateTranslateTransformation(CATBody_var ispBody,CATIP
 	return rc;
 }
 
+HRESULT TestEnvelopeCmd::CreateTranslateTransformationUpdate(CATBody_var ispBody,CATIProduct_var ispiProd,double iDistance,CATMathVector iDir,double iStep,CATBody *&opBodyAssy)
+{
+	HRESULT rc=S_OK;
+
+	iDir.Normalize();
+
+	//
+
+	//获取工厂
+	CATSoftwareConfiguration * pConfig = new CATSoftwareConfiguration();//配置指针
+	CATTopData * topdata =new CATTopData(pConfig, NULL);//topdata
+	CATIPrtContainer_var ospiCont=NULL_var;
+	CATGeoFactory*  pGeoFactory=_pGeneralCls->GetProductGeoFactoryAndPrtCont(ispiProd,ospiCont);
+	if (topdata == NULL || pGeoFactory == NULL)
+	{
+		return E_FAIL;
+	}
+	//
+	CATLISTP(CATBody) lstBody;
+
+	//CATBody *pBody=NULL;
+	//if (SUCCEEDED(GetBodyFromBodyCells(ispBody,pGeoFactory,2,pBody))&&pBody!=NULL)
+	//{
+	//	lstBody.Append(pBody);
+	//}
+	lstBody.Append(ispBody);
+
+	int iRepeatNum=iDistance/iStep;
+	for (int i=1;i<=iRepeatNum;i++)
+	{
+		CATMathTransformation trans(i*iStep*iDir);
+		CATBody_var spBodyTrans=NULL_var;
+		GetTransformationBody(ispBody,trans,spBodyTrans);
+		if (spBodyTrans!=NULL_var)
+		{
+			//CATBody *pBody=NULL;
+			//if (SUCCEEDED(GetBodyFromBodyCells(spBodyTrans,pGeoFactory,2,pBody))&&pBody!=NULL)
+			//{
+			//	lstBody.Append(pBody);
+			//}
+			lstBody.Append(spBodyTrans);
+		}
+	}
+
+	double iRepeatLast=fmod(iDistance,iStep);
+	if (iRepeatLast>0.01)
+	{
+		CATMathTransformation trans(iDistance*iDir);
+		CATBody_var spBodyTrans=NULL_var;
+		GetTransformationBody(ispBody,trans,spBodyTrans);
+		if (spBodyTrans!=NULL_var)
+		{
+			//CATBody *pBody=NULL;
+			//if (SUCCEEDED(GetBodyFromBodyCells(spBodyTrans,pGeoFactory,2,pBody))&&pBody!=NULL)
+			//{
+			//	lstBody.Append(pBody);
+			//}
+			lstBody.Append(spBodyTrans);
+		}
+	}
+
+
+	//
+	CATBody *pBodyAssy=CreateTopAssembly(pGeoFactory,topdata,lstBody);
+	if (pBodyAssy==NULL)
+	{
+		return E_FAIL;
+	}
+
+	opBodyAssy=pBodyAssy;
+
+	return rc;
+}
+
 HRESULT TestEnvelopeCmd::CreateEdgeTessellation(CATBody *ipBodyCurve,vector<CATMathPoint> &olstVertices)
 {
 	HRESULT rc = S_OK;
@@ -1701,7 +1955,7 @@ HRESULT TestEnvelopeCmd::CreateEdgeTessellation(CATBody *ipBodyCurve,vector<CATM
 		return E_FAIL;
 	}
 	//Tessellate the body
-	double iStep   = 1;
+	double iStep   = _dTessellateStep;
 	double sag=	10;
 	//CATBodyTessellator * pTessellator = new CATBodyTessellator(spBody,sag);
 	CATCellTessellator * pTessellator = new CATCellTessellator(sag);
@@ -1840,13 +2094,19 @@ HRESULT TestEnvelopeCmd::CalculateOuterHull(vector<CATMathPoint> ilstPtAll, doub
 	CATMathPoint2D ptCurrent=mathPtFirst;
 	CATMathVector2D dirRef(0,1);
 
+	int iRepeatNum=0;
 	while(1)
 	{
 		CATMathPoint2D ptNext,ptCenter;
 		CATBoolean bIsFind=IsFindNextHullPoint(lstPt2D,ptCurrent,dirRef,idR,ptNext,ptCenter);
-		if (!bIsFind)
+		if (!bIsFind||ptNext.DistanceTo(mathPtFirst)<=0.001)
 		{
 			break;
+		}
+		iRepeatNum++;
+		if (iRepeatNum==1)
+		{
+			lstPt2D.push_back(mathPtFirst);
 		}
 		CATMathPoint oCenter;
 		CATMathVector dir;
@@ -2330,4 +2590,24 @@ HRESULT TestEnvelopeCmd::CreateCircle( CATGeoFactory_var spGeoFactory,CATTopData
 
 
 	return S_OK;
+}
+
+CATBody* TestEnvelopeCmd::CreateBodyFromDomain(CATGeoFactory *ipGeoFactory, CATDomain *ipDomain, int iDimension)
+{
+	CATBody *pBody = NULL;
+	if (ipDomain==NULL||ipGeoFactory==NULL)
+	{
+		return NULL;
+	}
+	CATLISTP(CATCell) lstCell;
+	ipDomain->GetAllCells(lstCell,iDimension);
+	pBody = ipGeoFactory->CreateBody();
+	CATDomain *pDomainCurr = pBody->CreateDomain(iDimension);
+	for (int j=1;j<=lstCell.Size();j++)
+	{
+		pDomainCurr->AddCell(lstCell[j]);
+	}
+	pBody->AddDomain(pDomainCurr);
+
+	return pBody;
 }

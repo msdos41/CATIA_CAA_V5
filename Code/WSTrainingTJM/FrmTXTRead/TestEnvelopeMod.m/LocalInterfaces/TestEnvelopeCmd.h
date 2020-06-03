@@ -119,6 +119,9 @@ class TestEnvelopeCmd: public CATStateCommand
   CATBoolean CreatePlaneBody( CATGeoFactory_var spGeoFactory,CATTopData * topdata, CATMathPlane iMathPlane,CATBody_var &ospPlaneBody );
   HRESULT GetBodyFromBodyCells(CATBody_var ispBody,CATGeoFactory *ipGeoFact,int iDimension,CATBody *&opBody);
   HRESULT CreateCircle( CATGeoFactory_var spGeoFactory,CATTopData * topdata,CATMathPlane iMathPlane,double Radius,CATBody_var &ospBody );
+  CATBoolean ActionOK6(void * data);
+  CATBody* CreateBodyFromDomain(CATGeoFactory *ipGeoFactory, CATDomain *ipDomain, int iDimension);
+  HRESULT CreateTranslateTransformationUpdate(CATBody_var ispBody,CATIProduct_var ispiProd,double iDistance,CATMathVector iDir,double iStep,CATBody *&opBodyAssy);
 private:
 
 	  TestEnvelopeDlg		*_pDlg;
@@ -147,6 +150,12 @@ private:
 	  CATIProduct_var		_spiProdSelA;
 
 	  CATIProduct_var		_spiProdSelB;
+
+	  double				_dMotionStep;
+
+	  double				_dTessellateStep;
+
+	  double				_dRadiusRolling;
 
 };
 

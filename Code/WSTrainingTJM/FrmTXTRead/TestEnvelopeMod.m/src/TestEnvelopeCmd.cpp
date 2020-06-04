@@ -56,6 +56,25 @@ TestEnvelopeCmd::TestEnvelopeCmd() :
 	_dTessellateStep=2;
 
 	_dRadiusRolling=1.6;
+
+	//vector<CATMathPoint> lstPt;
+	//vector<vector<CATMathPoint>> vecLstPtH(3000,lstPt);
+	//vector<vector<vector<CATMathPoint>>> vecLstPtAll(3000,vecLstPtH);
+
+	//int iSize = _mapXY[1][1].size();
+
+	//_mapXY[1][1].push_back(CATMathPoint(0,0,1));
+	//_mapXY[100][6].push_back(CATMathPoint(222,0,1));
+	//_mapXY[50][1].push_back(CATMathPoint(50,0,1));
+	//_mapXY[1][50].push_back(CATMathPoint(0,5555,1));
+	//_mapXY[1][20].push_back(CATMathPoint(0,22222,1));
+
+	//int iA=(int)1.5;	//1
+
+	//int iB=(int)(-1.5);	//-1
+
+
+	cout<<"---------------"<<endl;
 }
 
 //-------------------------------------------------------------------------
@@ -130,11 +149,13 @@ void TestEnvelopeCmd::BuildGraph()
 		(CATCommandMethod)&TestEnvelopeCmd::ActionExit,
 		NULL);
 
+	//Translate
 	AddAnalyseNotificationCB(_pDlg,
 		_pDlg->GetDiaOKNotification(),
-		(CATCommandMethod)&TestEnvelopeCmd::ActionOK5,
+		(CATCommandMethod)&TestEnvelopeCmd::ActionOK7,
 		NULL);
 
+	//Rotate
 	AddAnalyseNotificationCB(_pDlg,
 		_pDlg->GetDiaAPPLYNotification(),
 		(CATCommandMethod)&TestEnvelopeCmd::ActionOK3,
@@ -827,6 +848,49 @@ CATBoolean TestEnvelopeCmd::ActionOK6(void * data)
 	iTimeSpan=iEndTime2-iEndTime;
 	cout<<"======> SpecObj Run Time: "<<iTimeSpan.ConvertToString("%M:%S");
 
+
+	return TRUE;
+}
+//Translate Optimize Point Cloud
+CATBoolean TestEnvelopeCmd::ActionOK7(void * data)
+{
+	if (NULL!=_pHSO) _pHSO->Empty();
+	if (NULL!=_pISO) _pISO->Empty();
+
+	CATTime iStartTime = CATTime::GetCurrentLocalTime();
+
+	//
+	CATMathPoint pt1,pt2;
+	_pGeneralCls->GetPointFromCurve(_spBUSelectB,pt1,pt2);
+	if (pt1.DistanceTo(pt2)<=0.01)
+	{
+		return FALSE;
+	}
+	CATMathVector mathDir=pt1-pt2;
+
+	//
+	CreateSurfaceTessellation(_spBUSelectA,_mapXY,_mapXZ,_mapYZ);
+
+	//
+	CreateTranslateTransformation(30,mathDir,1,_mapXY,2);
+	CreateTranslateTransformation(30,mathDir,1,_mapXZ,1);
+	CreateTranslateTransformation(30,mathDir,1,_mapYZ,0);
+
+
+	CATTime iEndTime = CATTime::GetCurrentLocalTime();
+
+	CATTimeSpan iTimeSpan=iEndTime-iStartTime;
+	cout<<"======> Translate Calculation Run Time: "<<iTimeSpan.ConvertToString("%M:%S");
+
+	//模型上画出虚拟点，CATISO高亮
+	DrawTempPoints(_mapXY);
+	DrawTempPoints(_mapXZ);
+	DrawTempPoints(_mapYZ);
+
+	CATTime iEndTime2 = CATTime::GetCurrentLocalTime();
+
+	iTimeSpan=iEndTime2-iEndTime;
+	cout<<"======> TempPoint Run Time: "<<iTimeSpan.ConvertToString("%M:%S")<<endl;
 
 	return TRUE;
 }
@@ -2610,4 +2674,352 @@ CATBody* TestEnvelopeCmd::CreateBodyFromDomain(CATGeoFactory *ipGeoFactory, CATD
 	pBody->AddDomain(pDomainCurr);
 
 	return pBody;
+}
+
+//////////////////////////////////////////////////////////////////////////
+///////////////////////////Map 方式改写点云算法
+//////////////////////////////////////////////////////////////////////////
+HRESULT TestEnvelopeCmd::CreateSurfaceTessellation(CATBaseUnknown_var ispBUElement,
+												   map<int,map<int,vector<CATMathPoint>>> &iomapXY,
+												   map<int,map<int,vector<CATMathPoint>>> &iomapXZ,
+												   map<int,map<int,vector<CATMathPoint>>> &iomapYZ)
+{
+	HRESULT rc = S_OK;
+	//
+	if (ispBUElement==NULL_var)
+	{
+		return E_FAIL;
+	}
+	CATBody_var spBody = _pGeneralCls->GetBodyFromFeature(ispBUElement);
+	if (spBody==NULL_var)
+	{
+		return E_FAIL;
+	}
+	CAT3DBagRep* pBagRep = new CAT3DBagRep();
+	//Tessellate the body
+	double iStep   = 1;
+	double sag=	10;
+	//CATBodyTessellator * pTessellator = new CATBodyTessellator(spBody,sag);
+	CATCellTessellator * pTessellator = new CATCellTessellator(sag);
+	if( NULL == pTessellator ) 
+	{
+		cout << "==> Create CATCellTessellator error !" << endl;
+		return E_FAIL;
+	}
+	//Set the step to the CATCellTessellator.
+	pTessellator->SetStep(iStep);
+	cout << "==> The step is: " << iStep << endl;
+
+	//Add face to the CATCellTessellator.
+	CATLISTP(CATCell) cells;
+	spBody->GetAllCells( cells,2); 
+	int numberOfCells = cells.Size();
+	cout <<"==> Number of face: " << numberOfCells << endl;
+	for (int ifa=1 ; ifa<=numberOfCells ; ifa++)
+	{
+		pTessellator->AddFace((CATFace *)(cells[ifa]));
+	}
+	//Run the CATCellTessellator
+	pTessellator->Run();
+
+
+
+	//CATISpecObject_var spLine;
+	// For every face.
+	for(int i=1;i<=numberOfCells;i++) 
+	{
+		cout << "==> Face: " << i << endl;
+		// for each face, retrieve the tessellation results.
+		CATFace * piFace = (CATFace*) cells[i];
+		if( NULL == piFace )
+		{
+			return E_FAIL;
+		}
+		//Get the result.
+		CATBoolean isPlanar;
+		CATTessPointIter *    pVertices  = NULL;
+		CATTessStripeIter *   pStrips    = NULL;
+		CATTessFanIter *      pFans      = NULL;
+		CATTessPolyIter *     pPolygons  = NULL;
+		CATTessTrianIter *    pTriangles = NULL;
+		short side;
+		pTessellator->GetFace(piFace,isPlanar,&pVertices,&pStrips,&pFans,&pPolygons,&pTriangles,&side);		//获得的点都是局部坐标，按需转成全局
+
+		if (NULL==pVertices)
+		{
+			continue;
+		}
+
+		//获取所有点和法向的基础信息
+		float  (* aCoord)[3] = NULL;
+		float  (* aNormal)[3] = NULL;
+		int     * aNuPts     = NULL;
+		CATLONG32 nbp = 0;
+
+		nbp=pVertices->GetNbPoint();
+		aCoord = new float[nbp][3];
+		aNormal = new float[nbp][3];
+		pVertices->GetPointXyzAll(aCoord);	//获得所有的离散点
+		pVertices->GetPointNorAll(aNormal);	//获得每个离散点处的法向
+
+		//2维列表变成1维列表
+		int verticesArraySize=3*nbp;
+		int normalsArraySize=3*nbp;
+
+		cout << "  ==> Total point: " << nbp << endl;
+
+		float *vertices=new float[verticesArraySize];
+		float *normals=new float[normalsArraySize];
+		for(int j=0;j<nbp;j++) {
+			for(int k=0;k<3;k++) {
+				vertices[3*j+k] = aCoord[j][k];
+				normals[3*j+k] = aNormal[j][k];
+			}
+		}
+
+		//   循环画点
+		int iNum = 0;
+		while (0 == (pVertices->IsExhausted()))
+		{
+			const double *aCoord = pVertices->GetPointXyz();
+			////模型上画出虚拟点，CATISO高亮
+			//DumITempPoint *piTempPoint = NULL;
+			//HRESULT rc = ::CATInstantiateComponent("DumTempPointComp", IID_DumITempPoint, (void**)&piTempPoint);
+			//if (SUCCEEDED(rc) && piTempPoint != NULL)
+			//{
+			//	piTempPoint->SetDatas(&CATMathPoint(*aCoord,*(aCoord+1),*(aCoord+2)));
+			//	_pISO->AddElement(piTempPoint);
+			//}
+			double dX=*aCoord;
+			double dY=*(aCoord+1);
+			double dZ=*(aCoord+2);
+			CATMathPoint pt(dX,dY,dZ);
+			int iX=(int)dX;
+			int iY=(int)dY;
+			int iZ=(int)dZ;
+
+			if (dX<0) iX--;
+			if (dY<0) iY--;
+			if (dZ<0) iZ--;
+			
+			//XY
+			IsMaxOrMinPoint(pt,iomapXY[iX][iY],2);
+
+			//XZ
+			IsMaxOrMinPoint(pt,iomapXZ[iX][iZ],1);
+
+			//YZ
+			IsMaxOrMinPoint(pt,iomapYZ[iY][iZ],0);
+
+			pVertices->GoToNext();
+			iNum++;
+		}
+
+		cout<<"==> Vertex number: "<<iNum<<endl;
+
+
+		if (NULL!=aCoord)
+		{
+			delete []aCoord;
+		}
+		if (NULL!=aNormal)
+		{
+			delete []aNormal;
+		}
+	}
+	delete pTessellator;   pTessellator = NULL;
+
+	return rc;
+}
+
+//判断输入点在某个方向上是不是最大或者最小的极值点，是的话就加入列表，并更新原来的列表，使得最多只有2个点
+//每个列表中，极小值在前，极大值在后
+//iDir,2表示Z向，1表示Y向，0表示X向
+CATBoolean TestEnvelopeCmd::IsMaxOrMinPoint(CATMathPoint iPt,vector<CATMathPoint> &iolstPt,int iDir)
+{
+	int iIndexCompare=iDir;
+	double arrPt[3]={iPt.GetX(),iPt.GetY(),iPt.GetZ()};
+	double dValueComp=arrPt[iIndexCompare];
+	//
+	if (iolstPt.size()==0)
+	{
+		iolstPt.push_back(iPt);
+		return TRUE;
+	}
+	else if (iolstPt.size()==1)
+	{
+		CATMathPoint ptA=iolstPt[0];
+		double arrPtA[3]={ptA.GetX(),ptA.GetY(),ptA.GetZ()};
+		double dValueA=arrPtA[iIndexCompare];
+
+		if (dValueComp-dValueA>0.001)
+		{
+			iolstPt.push_back(iPt);
+			return TRUE;
+		}
+		else if (dValueComp-dValueA<-0.001)
+		{
+			iolstPt.insert(iolstPt.begin(),iPt);
+			return TRUE;
+		}
+		else
+		{
+			return FALSE;
+		}
+	}
+	else
+	{
+		CATMathPoint ptA=iolstPt[0];
+		double arrPtA[3]={ptA.GetX(),ptA.GetY(),ptA.GetZ()};
+		double dValueA=arrPtA[iIndexCompare];
+
+		CATMathPoint ptB=iolstPt[1];
+		double arrPtB[3]={ptB.GetX(),ptB.GetY(),ptB.GetZ()};
+		double dValueB=arrPtB[iIndexCompare];
+
+		if (dValueComp-dValueA<-0.001)	//输入比原来的小，则代替并删掉原来的
+		{
+			iolstPt.erase(iolstPt.begin());
+			iolstPt.insert(iolstPt.begin(),iPt);
+			return TRUE;
+		}
+		else if (dValueComp-dValueB>0.001)	//输入的比原来大的大，则代替并删掉原来的
+		{
+			iolstPt.pop_back();
+			iolstPt.push_back(iPt);
+			return TRUE;
+		}
+		else
+		{
+			return FALSE;
+		}
+
+	}
+
+}
+
+HRESULT TestEnvelopeCmd::CreateTranslateTransformation(double iDistance,CATMathVector iDir,double iStep,
+													   map<int,map<int,vector<CATMathPoint>>> &iomapPt,
+													   int iIndexDir)
+{
+	HRESULT rc=S_OK;
+
+	iDir.Normalize();
+
+	//
+	vector<vector<CATMathPoint>> vecLstPtTrans;
+
+	int iRepeatNum=iDistance/iStep;
+	for (int i=1;i<=iRepeatNum;i++)
+	{
+		CATMathTransformation trans(i*iStep*iDir);
+		vector<CATMathPoint> lstPtTrans;
+		
+		map<int,map<int,vector<CATMathPoint>>>::iterator itrOuter;
+		map<int,vector<CATMathPoint>>::iterator itrInner;
+		for (itrOuter=iomapPt.begin();itrOuter!=iomapPt.end();itrOuter++)
+		{
+			for (itrInner=itrOuter->second.begin();itrInner!=itrOuter->second.end();itrInner++)
+			{
+				vector<CATMathPoint> lstPt = itrInner->second;
+				for (int j=0;j<lstPt.size();j++)
+				{
+					CATMathPoint pt=lstPt[j];
+					pt=trans*pt;
+					lstPtTrans.push_back(pt);
+				}
+			}
+		}
+		vecLstPtTrans.push_back(lstPtTrans);
+	}
+
+	double iRepeatLast=fmod(iDistance,iStep);
+	if (iRepeatLast>0.01)
+	{
+		CATMathTransformation trans(iDistance*iDir);
+
+		vector<CATMathPoint> lstPtTrans;
+
+		map<int,map<int,vector<CATMathPoint>>>::iterator itrOuter;
+		map<int,vector<CATMathPoint>>::iterator itrInner;
+		for (itrOuter=iomapPt.begin();itrOuter!=iomapPt.end();itrOuter++)
+		{
+			for (itrInner=itrOuter->second.begin();itrInner!=itrOuter->second.end();itrInner++)
+			{
+				vector<CATMathPoint> lstPt = itrInner->second;
+				for (int j=0;j<lstPt.size();j++)
+				{
+					CATMathPoint pt=lstPt[j];
+					pt=trans*pt;
+					lstPtTrans.push_back(pt);
+				}
+			}
+		}
+		vecLstPtTrans.push_back(lstPtTrans);
+	}
+
+	//
+	for (int i=0;i<vecLstPtTrans.size();i++)
+	{
+		for (int j=0;j<vecLstPtTrans[i].size();j++)
+		{
+			CATMathPoint pt=vecLstPtTrans[i][j];
+			double dX=pt.GetX();
+			double dY=pt.GetY();
+			double dZ=pt.GetZ();
+
+			int iX=(int)(dX);
+			int iY=(int)(dY);
+			int iZ=(int)(dZ);
+
+			if (dX<0) iX--;
+			if (dY<0) iY--;
+			if (dZ<0) iZ--;
+
+			int iIndexOuter,iIndexInner;
+			if (iIndexDir==2)
+			{
+				iIndexOuter=iX;
+				iIndexInner=iY;
+			}
+			else if (iIndexDir==1)
+			{
+				iIndexOuter=iX;
+				iIndexInner=iZ;
+			}
+			else
+			{
+				iIndexOuter=iY;
+				iIndexInner=iZ;
+			}
+			IsMaxOrMinPoint(pt,iomapPt[iIndexOuter][iIndexInner],iIndexDir);
+		}
+	}
+
+	return rc;
+}
+
+void TestEnvelopeCmd::DrawTempPoints(map<int,map<int,vector<CATMathPoint>>> imapPt)
+{
+	map<int,map<int,vector<CATMathPoint>>>::iterator itrOuter;
+	map<int,vector<CATMathPoint>>::iterator itrInner;
+	for (itrOuter=imapPt.begin();itrOuter!=imapPt.end();itrOuter++)
+	{
+		for (itrInner=itrOuter->second.begin();itrInner!=itrOuter->second.end();itrInner++)
+		{
+			vector<CATMathPoint> lstPt = itrInner->second;
+			for (int j=0;j<lstPt.size();j++)
+			{
+				CATMathPoint pt=lstPt[j];
+
+				DumITempPoint *piTempPoint = NULL;
+				HRESULT rc = ::CATInstantiateComponent("DumTempPointComp", IID_DumITempPoint, (void**)&piTempPoint);
+				if (SUCCEEDED(rc) && piTempPoint != NULL)
+				{
+					piTempPoint->SetDatas(&pt);
+					_pISO->AddElement(piTempPoint);
+				}
+			}
+		}
+	}
 }

@@ -101,6 +101,7 @@ class TestEnvelopeCmd: public CATStateCommand
   HRESULT CreateRotationTransformationUpdate(vector<CATMathPoint> ilstVertices,double iDeg,CATMathLine iAxis,double iStep,vector<CATMathPoint> &olstVerticesAll);
   HRESULT CreateTranslateTransformation(vector<CATMathPoint> ilstVertices,double iDistance,CATMathVector iDir,double iStep,vector<CATMathPoint> &olstVerticesAll);
   HRESULT CreateTranslateTransformation(CATBody_var ispBody,CATIProduct_var ispiProd,double iDistance,CATMathVector iDir,double iStep,CATBody *&opBodyAssy);
+  HRESULT CreateTranslateTransformation(double iDistance,CATMathVector iDir,double iStep, map<int,map<int,vector<CATMathPoint>>> &iomap, int iIndexDir);
   CATBoolean ActionOK4(void * data);
   HRESULT CreateEdgeTessellation(CATBody *ipBodyCurve,vector<CATMathPoint> &olstVertices);
   HRESULT CalculateOuterHull(vector<CATMathPoint> ilstPtAll, double idR,CATUnicodeString istrDir,vector<CATMathPoint> &olstPtConcaveHull);
@@ -122,6 +123,10 @@ class TestEnvelopeCmd: public CATStateCommand
   CATBoolean ActionOK6(void * data);
   CATBody* CreateBodyFromDomain(CATGeoFactory *ipGeoFactory, CATDomain *ipDomain, int iDimension);
   HRESULT CreateTranslateTransformationUpdate(CATBody_var ispBody,CATIProduct_var ispiProd,double iDistance,CATMathVector iDir,double iStep,CATBody *&opBodyAssy);
+  HRESULT CreateSurfaceTessellation(CATBaseUnknown_var ispBUElement, map<int,map<int,vector<CATMathPoint>>> &omapXY, map<int,map<int,vector<CATMathPoint>>> &omapXZ, map<int,map<int,vector<CATMathPoint>>> &omapYZ);
+  CATBoolean IsMaxOrMinPoint(CATMathPoint iPt,vector<CATMathPoint> &iolstPt,int iDir);
+  CATBoolean ActionOK7(void * data);
+  void DrawTempPoints(map<int,map<int,vector<CATMathPoint>>> imapPt);
 private:
 
 	  TestEnvelopeDlg		*_pDlg;
@@ -156,6 +161,12 @@ private:
 	  double				_dTessellateStep;
 
 	  double				_dRadiusRolling;
+
+	  map<int,map<int,vector<CATMathPoint>>>	_mapXY;
+
+	  map<int,map<int,vector<CATMathPoint>>>	_mapXZ;
+
+	  map<int,map<int,vector<CATMathPoint>>>	_mapYZ;
 
 };
 

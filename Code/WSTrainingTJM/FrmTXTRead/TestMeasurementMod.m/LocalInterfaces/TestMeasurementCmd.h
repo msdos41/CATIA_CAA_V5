@@ -26,6 +26,11 @@
 
 #include "CATIMeasurableInContext.h"
 
+#include "CATIClashFactory.h"
+#include "CATIClashResult.h"
+#include "CATIClash.h"
+#include "CATIConflict.h"
+
 class CATIndicationAgent;
 
 //----------------------------------------------------------------------
@@ -69,6 +74,8 @@ class TestMeasurementCmd: public CATStateCommand
   HRESULT GetMinDistanceByMeasure(CATISpecObject_var ispiSpec1,CATIProduct_var ispiProd1,CATISpecObject_var ispiSpec2,CATIProduct_var ispiProd2,CATMathPoint &omathPt1,CATMathPoint &omathPt2,double &oDistance);
   CATMathTransformation GetMatrixTransformation( CATISpecObject_var spSpecOne, CATISpecObject_var spSpecTwo );
   CATMathTransformation GetAbsTransformation( CATISpecObject_var ispSpecOne );
+  HRESULT CheckClash(CATIProduct_var ispiPrd1,CATIProduct_var ispiPrd2);
+  CATBoolean ActionOK2(void * data);
 private:
 
 	  TestMeasurementDlg		*_pDlg;

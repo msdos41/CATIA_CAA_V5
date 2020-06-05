@@ -17,6 +17,7 @@
 #include "CATMathPlane.h"
 
 #include "CATCreateExternalObject.h"
+
 CATCreateClass( TestMeasurementCmd);
 
 
@@ -121,7 +122,7 @@ void TestMeasurementCmd::BuildGraph()
 
 	AddAnalyseNotificationCB(_pDlg,
 		_pDlg->GetDiaOKNotification(),
-		(CATCommandMethod)&TestMeasurementCmd::ActionOK,
+		(CATCommandMethod)&TestMeasurementCmd::ActionOK2,
 		NULL);
 	//
 	_pSelAFieldAgent = new CATDialogAgent("Select A");
@@ -336,4 +337,109 @@ CATMathTransformation TestMeasurementCmd::GetAbsTransformation( CATISpecObject_v
 	spiMovableOne->GetAbsPosition(pMathTrans);
 
 	return pMathTrans;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+////////////////////Test Clash////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+CATBoolean TestMeasurementCmd::ActionOK2(void * data)
+{
+	if (NULL!=_pHSO) _pHSO->Empty();
+	//
+	HRESULT rc=CheckClash(_spBUSelectA,_spBUSelectB);
+	if (FAILED(rc))
+	{
+		return FALSE;
+	}
+	
+	return TRUE;
+}
+//检查干涉
+HRESULT TestMeasurementCmd::CheckClash(CATIProduct_var ispiPrd1,CATIProduct_var ispiPrd2)
+{
+	HRESULT rc=S_OK;
+
+	if (NULL_var==ispiPrd1||NULL_var==ispiPrd2)		return E_FAIL;
+
+	CATFrmEditor * pEditor = CATFrmEditor::GetCurrentEditor();
+	if (NULL == pEditor)	return E_FAIL;
+
+	CATDocument *pDoc = pEditor->GetDocument(); 
+	if(NULL==pDoc) return E_FAIL;
+
+	CATIClashFactory* piClashFact = NULL;//干涉factory
+	CATIClashResult *piClashResult = NULL;//干涉结果
+	CATIClash		*piClash = NULL;//碰撞
+	CATListValCATBaseUnknown_var
+		listPrd1,//产品集1
+		listPrd2;//产品集2
+	CATComputationCase modeComputation=CATComputationCaseClashContact;//计算间隙参数
+	CATGroupMode modeGroup=CATGroupModeBetweenTwo;//分组类型
+	rc=pDoc->QueryInterface(IID_CATIClashFactory,(void**)&piClashFact);//干涉factory赋值
+	if (FAILED(rc) || NULL==piClashFact)
+	{
+		cout << "SJDIIBasic::GetClashFactory ==> QI CATIClashFactory Failed!" << endl;
+		return E_FAIL;
+	}
+
+	rc=piClashFact->Create(piClash);//创建干涉
+	if (FAILED(rc) || NULL==piClash)
+	{
+		cout << "SJDIIClash::ComputeAndAddToList ==> _piClashFact->Create Failed!" << endl;
+		return E_FAIL;
+	}
+
+	//干涉设定
+	listPrd1.Append(ispiPrd1);
+	listPrd2.Append(ispiPrd2);
+	rc=piClash->SetGroup(1, listPrd1);//第一组产品赋值
+	rc=piClash->SetGroup(2, listPrd2);//第二组产品赋值
+	rc=piClash->SetComputationCase(modeComputation);//设定计算间隙参数
+	rc=piClash->SetClearance(0);//设定容差
+	rc=piClash->SetGroupMode(modeGroup);//设定分组模式
+	rc=piClash->Compute();//执行计算
+
+	piClash->GetResult(piClashResult);//获取干涉结果
+	if (FAILED(rc) || NULL==piClashResult)
+	{
+		cout << "SJDIIClash::ComputeAndAddToList ==> piClash->GetResult Failed!" << endl;
+		return E_FAIL;
+	}
+
+	int iNumOfConflicts=0;//冲突个数
+	piClashResult->CountConflicts(iNumOfConflicts);//获取干涉冲突的个数
+	cout<<"num:"<<iNumOfConflicts<<endl;
+	for (int i=0;i<iNumOfConflicts;i++)//循环获取冲突内信息
+	{
+		CATIConflict *piConflict = NULL;
+		piClashResult->GetConflict(i,piConflict);//获取指定的冲突
+
+		if (piConflict==NULL)	continue;
+
+		CATResultType oResultType;
+		piConflict->GetResultType(oResultType);
+		if (CATTypeClash==oResultType)
+		{
+			double dValue;
+			piConflict->GetValue(dValue);
+
+			double *arrPt1 = new double[3];
+			double *arrPt2 = new double[3];
+			piConflict->GetMinOrExtractionVectorCoordinates(arrPt1,arrPt2);
+
+			cout<<"==>"<<i<<" : "<<"Clash Value: "<<dValue<<endl;
+			CATMathPoint pt1(arrPt1);
+			CATMathPoint pt2(arrPt2);
+			pt1.Dump();
+			pt2.Dump();
+			cout<<"---------------"<<endl;
+
+			delete[]arrPt1; delete[]arrPt2;
+
+		}
+		piConflict->Release();piConflict=NULL;
+	}
+
+	return S_OK;
 }

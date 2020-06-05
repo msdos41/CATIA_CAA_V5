@@ -880,8 +880,9 @@ CATBoolean TestEnvelopeCmd::ActionOK7(void * data)
 	CATTime iEndTime = CATTime::GetCurrentLocalTime();
 
 	CATTimeSpan iTimeSpan=iEndTime-iStartTime;
-	cout<<"======> Translate Calculation Run Time: "<<iTimeSpan.ConvertToString("%M:%S");
+	cout<<"======> Translate Calculation Run Time: "<<iTimeSpan.ConvertToString("%M:%S")<<endl;
 
+	/*
 	//模型上画出虚拟点，CATISO高亮
 	DrawTempPoints(_mapXY);
 	DrawTempPoints(_mapXZ);
@@ -891,6 +892,18 @@ CATBoolean TestEnvelopeCmd::ActionOK7(void * data)
 
 	iTimeSpan=iEndTime2-iEndTime;
 	cout<<"======> TempPoint Run Time: "<<iTimeSpan.ConvertToString("%M:%S")<<endl;
+	*/
+
+	//
+	CATUnicodeString strSavePath="c:\\envelop.cgr";
+	HRESULT rc = PointsSaveAsCgr(_mapXY,_mapXZ,_mapYZ,strSavePath);
+
+	if (FAILED(rc))
+	{
+		return FALSE;
+	}
+
+	cout<<"=====>>> Save as Cgr finished!................."<<endl;
 
 	return TRUE;
 }
@@ -3022,4 +3035,167 @@ void TestEnvelopeCmd::DrawTempPoints(map<int,map<int,vector<CATMathPoint>>> imap
 			}
 		}
 	}
+}
+
+HRESULT TestEnvelopeCmd::PointsSaveAsCgr(map<int,map<int,vector<CATMathPoint>>> imapPtXY,
+										 map<int,map<int,vector<CATMathPoint>>> imapPtXZ,
+										 map<int,map<int,vector<CATMathPoint>>> imapPtYZ,
+										 CATUnicodeString istrSavePath)
+{
+	HRESULT rc=S_OK;
+
+	//
+	CATDocument *pDocNew=NULL;
+	rc=CATDocumentServices::New("Part",pDocNew);
+	if (FAILED(rc)||pDocNew==NULL)
+	{
+		return E_FAIL;
+	}
+	CATIProduct_var spiProdNew=NULL_var;
+	spiProdNew=GetRootProductFromDoc(pDocNew);
+	if (spiProdNew==NULL_var)
+	{
+		return E_FAIL;
+	}
+
+	//获取工厂
+	CATSoftwareConfiguration * pConfig = new CATSoftwareConfiguration();//配置指针
+	CATTopData * topdata =new CATTopData(pConfig, NULL);//topdata
+	CATIPrtContainer_var ospiCont=NULL_var;
+	CATGeoFactory*  pGeoFactory=_pGeneralCls->GetProductGeoFactoryAndPrtCont(spiProdNew,ospiCont);
+	if (topdata == NULL || pGeoFactory == NULL)
+	{
+		return FALSE;
+	}
+
+	//挂模型树
+	CATISpecObject_var spiGeoSet=NULL_var;
+	rc=_pGeneralCls->CreateNewGeoSet(spiProdNew,"Test",spiGeoSet);
+	if (FAILED(rc)||spiGeoSet==NULL_var)
+	{
+		return FALSE;
+	}
+
+	CATTime iStartTime = CATTime::GetCurrentLocalTime();
+
+
+	int iCount=0;
+	map<int,map<int,vector<CATMathPoint>>>::iterator itrOuter;
+	map<int,vector<CATMathPoint>>::iterator itrInner;
+	for (itrOuter=imapPtXY.begin();itrOuter!=imapPtXY.end();itrOuter++)
+	{
+		for (itrInner=itrOuter->second.begin();itrInner!=itrOuter->second.end();itrInner++)
+		{
+			vector<CATMathPoint> lstPt = itrInner->second;
+			for (int j=0;j<lstPt.size();j++)
+			{
+				CATMathPoint pt=lstPt[j];
+				CATBody *pBodyPt =::CATCreateTopPointXYZ( pGeoFactory,topdata,pt.GetX(),pt.GetY(),pt.GetZ());
+				if (pBodyPt==NULL)
+				{
+					continue;
+				}
+				CATISpecObject_var spiSpecObj=NULL_var;
+				_pGeneralCls->InsertObjOnTree(spiProdNew,spiGeoSet,"Point",pBodyPt,spiSpecObj);
+				iCount++;
+			}
+		}
+	}
+
+	CATTime iEndTime = CATTime::GetCurrentLocalTime();
+
+	CATTimeSpan iTimeSpan=iEndTime-iStartTime;
+	cout<<"======> MaxXY Points Count: "<<iCount<<"  ======> MapXY Run Time: "<<iTimeSpan.ConvertToString("%M:%S")<<endl;
+
+
+	iCount=0;
+	for (itrOuter=imapPtXZ.begin();itrOuter!=imapPtXZ.end();itrOuter++)
+	{
+		for (itrInner=itrOuter->second.begin();itrInner!=itrOuter->second.end();itrInner++)
+		{
+			vector<CATMathPoint> lstPt = itrInner->second;
+			for (int j=0;j<lstPt.size();j++)
+			{
+				CATMathPoint pt=lstPt[j];
+				CATBody *pBodyPt =::CATCreateTopPointXYZ( pGeoFactory,topdata,pt.GetX(),pt.GetY(),pt.GetZ());
+				if (pBodyPt==NULL)
+				{
+					continue;
+				}
+				CATISpecObject_var spiSpecObj=NULL_var;
+				_pGeneralCls->InsertObjOnTree(spiProdNew,spiGeoSet,"Point",pBodyPt,spiSpecObj);
+				iCount++;
+			}
+		}
+	}
+
+	CATTime iEndTime2 = CATTime::GetCurrentLocalTime();
+	iTimeSpan=iEndTime2-iEndTime;
+	cout<<"======> MaxXZ Points Count: "<<iCount<<"  ======> MapXZ Run Time: "<<iTimeSpan.ConvertToString("%M:%S")<<endl;
+
+	iCount=0;
+	for (itrOuter=imapPtYZ.begin();itrOuter!=imapPtYZ.end();itrOuter++)
+	{
+		for (itrInner=itrOuter->second.begin();itrInner!=itrOuter->second.end();itrInner++)
+		{
+			vector<CATMathPoint> lstPt = itrInner->second;
+			for (int j=0;j<lstPt.size();j++)
+			{
+				CATMathPoint pt=lstPt[j];
+				CATBody *pBodyPt =::CATCreateTopPointXYZ( pGeoFactory,topdata,pt.GetX(),pt.GetY(),pt.GetZ());
+				if (pBodyPt==NULL)
+				{
+					continue;
+				}
+				CATISpecObject_var spiSpecObj=NULL_var;
+				_pGeneralCls->InsertObjOnTree(spiProdNew,spiGeoSet,"Point",pBodyPt,spiSpecObj);
+				iCount++;
+			}
+		}
+	}
+
+	CATTime iEndTime3 = CATTime::GetCurrentLocalTime();
+	iTimeSpan=iEndTime3-iEndTime2;
+	cout<<"======> MaxYZ Points Count: "<<iCount<<"  ======> MapYZ Run Time: "<<iTimeSpan.ConvertToString("%M:%S")<<endl;
+
+	spiGeoSet->Update();
+
+	//另存为cgr
+	rc=CATDocumentServices::SaveAs(*pDocNew,istrSavePath);
+
+	if (FAILED(rc))
+	{
+		return E_FAIL;
+	}
+
+	return rc;
+}
+
+CATIProduct_var TestEnvelopeCmd::GetRootProductFromDoc( CATDocument * ipDocument )
+{
+	HRESULT rc = E_FAIL;
+	CATIProduct_var spRootProduct = NULL_var;
+	if ( NULL != ipDocument)
+	{
+		//获取根元素集合的第一个，就是根product,最终要转到CATIProduct
+		CATIDocRoots *piDocRootsOnDoc = NULL;
+		HRESULT rc = ipDocument->QueryInterface(IID_CATIDocRoots,(void**)&piDocRootsOnDoc);
+		if (FAILED(rc))
+		{
+			return NULL_var;
+		}
+		CATListValCATBaseUnknown_var *pRootProducts = piDocRootsOnDoc->GiveDocRoots();
+		CATIProduct_var spRootProduct = NULL_var;
+		if (pRootProducts->Size())
+		{
+			spRootProduct = (*pRootProducts)[1];
+			delete pRootProducts;
+			pRootProducts = NULL;
+		}
+
+		piDocRootsOnDoc->Release();
+
+		return spRootProduct;
+	}
+	return NULL_var;
 }

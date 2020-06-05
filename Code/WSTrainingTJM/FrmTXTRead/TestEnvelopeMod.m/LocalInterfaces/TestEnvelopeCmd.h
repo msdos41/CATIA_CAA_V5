@@ -127,6 +127,8 @@ class TestEnvelopeCmd: public CATStateCommand
   CATBoolean IsMaxOrMinPoint(CATMathPoint iPt,vector<CATMathPoint> &iolstPt,int iDir);
   CATBoolean ActionOK7(void * data);
   void DrawTempPoints(map<int,map<int,vector<CATMathPoint>>> imapPt);
+  HRESULT PointsSaveAsCgr(map<int,map<int,vector<CATMathPoint>>> imapPtXY, map<int,map<int,vector<CATMathPoint>>> imapPtXZ, map<int,map<int,vector<CATMathPoint>>> imapPtYZ, CATUnicodeString istrSavePath);
+  CATIProduct_var GetRootProductFromDoc( CATDocument * ipDocument );
 private:
 
 	  TestEnvelopeDlg		*_pDlg;

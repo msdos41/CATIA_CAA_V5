@@ -40,6 +40,8 @@ CATVisualization	\
 CATGeometricOperators \
 CATSaiSpaceAnalysisItf	\
 CATTessellation		\
+CATKiiKinematicsItf		\
+CATAssemblyInterfaces	\
 
 # System dependant variables
 #

@@ -158,7 +158,7 @@ void TestEnvelopeCmd::BuildGraph()
 	//Rotate
 	AddAnalyseNotificationCB(_pDlg,
 		_pDlg->GetDiaAPPLYNotification(),
-		(CATCommandMethod)&TestEnvelopeCmd::ActionOK3,
+		(CATCommandMethod)&TestEnvelopeCmd::ActionOK8,
 		NULL);
 	//
 	_pSelAFieldAgent = new CATDialogAgent("Select A");
@@ -175,8 +175,8 @@ void TestEnvelopeCmd::BuildGraph()
 	_pSelAAgent->SetBehavior(CATDlgEngWithPrevaluation|CATDlgEngWithCSO|CATDlgEngOneShot);
 
 	//选择Solid
-	//_pSelBAgent = new CATFeatureImportAgent("Select B");
-	_pSelBAgent = new CATPathElementAgent("Select B");
+	_pSelBAgent = new CATFeatureImportAgent("Select B");
+	//_pSelBAgent = new CATPathElementAgent("Select B");
 	//_pSelBAgent->AddElementType("CATRep");
 	//_pSelBAgent->AddElementType("CATIMfMonoDimResult");
 	//_pSolidAgent->AddElementType("CATSurface");
@@ -918,6 +918,18 @@ CATBoolean TestEnvelopeCmd::ActionOK7(void * data)
 	return TRUE;
 }
 
+//
+CATBoolean TestEnvelopeCmd::ActionOK8(void * data)
+{
+	vector<CATIProduct_var> lstProd;
+	HRESULT rc=CreateMechanism(lstProd,_spBUSelectB,_spiProdSelB,NULL_var,NULL_var);
+	if (FAILED(rc))
+	{
+		return FALSE;
+	}
+	return TRUE;
+}
+
 void TestEnvelopeCmd::selectObjAFunc(void * data)
 {
 	if (_pHSO!=NULL)
@@ -956,14 +968,14 @@ void TestEnvelopeCmd::selectObjBFunc(void * data)
 	
 	CATBaseUnknown *pBUSelect = NULL;
 	CATIProduct_var spiProdSelect = NULL_var;
-	//_pGeneralCls->TransferSelectToBU(_pSelBAgent,pBUSelect,spiProdSelect);
+	_pGeneralCls->TransferSelectToBU(_pSelBAgent,pBUSelect,spiProdSelect);
 
-	pBUSelect = _pSelBAgent->GetElementValue();
-	if (pBUSelect == NULL /*|| spiProdSelect == NULL_var*/)
-	{
-		_pSelBAgent->InitializeAcquisition();
-		return;
-	}
+	//pBUSelect = _pSelBAgent->GetElementValue();
+	//if (pBUSelect == NULL /*|| spiProdSelect == NULL_var*/)
+	//{
+	//	_pSelBAgent->InitializeAcquisition();
+	//	return;
+	//}
 	_pDlg->GetSelectorListObjB()->ClearLine();
 	CATUnicodeString strAlias = _pGeneralCls->GetNameFromBaseUnknownFunc(pBUSelect);
 	_pDlg->GetSelectorListObjB()->SetLine(strAlias,-1,CATDlgDataAdd);
@@ -3251,38 +3263,69 @@ HRESULT TestEnvelopeCmd::CreateMechanism(vector<CATIProduct_var> ilstProd,CATBas
 {
 	HRESULT rc=S_OK;
 	//
-	if (ispBUSel1==NULL_var)
-	{
-		return E_FAIL;
-	}
-	CATISpecObject_var spiSpecSel1=NULL_var;
-	CATISpecObject_var spiSpecSel2=NULL_var;
-	spiSpecSel1=_pGeneralCls->GetSpecFromBaseUnknownFunc(ispBUSel1);
-	if (spiSpecSel1==NULL_var)
+	if (ispBUSel1==NULL_var||ispiProdSel1==NULL_var)
 	{
 		return E_FAIL;
 	}
 	//
-	int iType=-1;	//旋转或者移动
-	if (ispBUSel2==NULL_var)
+	CATFrmEditor *pEditor=CATFrmEditor::GetCurrentEditor();
+	if (pEditor==NULL)
 	{
-		iType=0;	//旋转
+		return E_FAIL;
 	}
-	else	
+	CATDocument *pDoc=pEditor->GetDocument();
+	if (pDoc==NULL)
 	{
-		iType=1;	//移动
-
-		spiSpecSel2=_pGeneralCls->GetSpecFromBaseUnknownFunc(ispBUSel2);
-		if (spiSpecSel2==NULL_var)
-		{
-			return E_FAIL;
-		}
+		return E_FAIL;
 	}
 
+	CATIKinMechanismFactory* piDocumentAsMechanismFactory = NULL;
+	if (FAILED(pDoc->QueryInterface(IID_CATIKinMechanismFactory, (void**)&piDocumentAsMechanismFactory))||piDocumentAsMechanismFactory==NULL)
+	{
+		return E_FAIL;
+	}
+	CATIKinMechanism *piMechanism=NULL;
+	if (FAILED(piDocumentAsMechanismFactory->CreateInstance(&piMechanism))||piMechanism==NULL)
+	{
+		return E_FAIL;
+	}
 
-	//把所选元素拷贝到两个新建的part内
+	//创建2个part用于mechanism
+	CATIProduct_var spiProdNew1=NULL_var;
+	CATIProduct_var spiProdNew2=NULL_var;
+	CATISpecObject_var spiSpecLine1=NULL_var;
+	CATISpecObject_var spiSpecLine2=NULL_var;
+	CATISpecObject_var spiSpecPlane1=NULL_var;
+	CATISpecObject_var spiSpecPlane2=NULL_var;
 
-	
+	CATIProduct_var spiProdRoot=NULL_var;
+	_pGeneralCls->GetRootProductUpdate(spiProdRoot);
+	if (spiProdRoot==NULL_var)
+	{
+		return E_FAIL;
+	}
+	rc=CreateNewPartForMechanism(spiProdRoot,ispBUSel1,ispiProdSel1,ispBUSel2,ispiProdSel2,spiProdNew1,spiSpecLine1,spiSpecPlane1);
+	if (FAILED(rc)||spiProdNew1==NULL_var||spiSpecLine1==NULL_var||spiSpecPlane1==NULL_var)
+	{
+		return E_FAIL;
+	}
+	rc=CreateNewPartForMechanism(spiProdRoot,ispBUSel1,ispiProdSel1,ispBUSel2,ispiProdSel2,spiProdNew2,spiSpecLine2,spiSpecPlane2);
+	if (FAILED(rc)||spiProdNew2==NULL_var||spiSpecLine2==NULL_var||spiSpecPlane2==NULL_var)
+	{
+		return E_FAIL;
+	}
+
+	//先把prod2固定
+	boolean iCreateConstraintsForFixed = 1;
+	piMechanism->SetFixedProduct(spiProdNew2,iCreateConstraintsForFixed);
+
+	//
+	rc = CreateRevoluteJoint(piMechanism,spiProdRoot,spiProdNew1,spiSpecLine1,spiSpecPlane1,spiProdNew2,spiSpecLine2,spiSpecPlane2);
+	if (FAILED(rc))
+	{
+		return E_FAIL;
+	}
+
 	return rc;
 }
 
@@ -3389,8 +3432,9 @@ HRESULT TestEnvelopeCmd::CreateNewPartForMechanism(CATIProduct_var ispiProdRoot,
 	}
 	
 	//
-	CATISpecObject_var spiSpecLine=NULL_var;
-	CATISpecObject_var spiSpecPlane=NULL_var;
+	CATMathPoint pt;
+	CATMathVector dir;
+	CATMathPlane mathPlane;
 
 	if (ispBUSel2==NULL_var)	//只有一个元素，说明是选的轴线，旋转操作
 	{
@@ -3415,33 +3459,12 @@ HRESULT TestEnvelopeCmd::CreateNewPartForMechanism(CATIProduct_var ispiProdRoot,
 		CATMathTransformation transAbs=_pGeneralCls->GetAbsTransformation(ispiProdSel1);
 		ptOrigin=transAbs*ptOrigin;
 		dirLine=transAbs*dirLine;
-		CATMathPlane mathPlane(ptOrigin,dirLine);
+		CATMathPlane mathPlaneNormal(ptOrigin,dirLine);
 
 		//
-		CATBody *pBodyPt=CATCreateTopPointXYZ(pGeoFactory,topdata,ptOrigin.GetX(),ptOrigin.GetY(),ptOrigin.GetZ());
-		if (pBodyPt==NULL)
-		{
-			return E_FAIL;
-		}
-		CATBody *pBodyLine=CATCreateTopLineFromDirection(pGeoFactory,topdata,pBodyPt,dirLine,20);
-		if (pBodyLine==NULL)
-		{
-			return E_FAIL;
-		}
-		CATBody *pBodyPlane=NULL;
-		CreatePlaneBody(pGeoFactory,topdata,mathPlane,pBodyPlane);
-		if (pBodyPlane==NULL)
-		{
-			return E_FAIL;
-		}
-		//
-		rc=_pGeneralCls->InsertObjOnTree(spiProdInstNew,spiSpecGeoSet,"Line",pBodyLine,spiSpecLine);
-		rc=_pGeneralCls->InsertObjOnTree(spiProdInstNew,spiSpecGeoSet,"Plane",pBodyPlane,spiSpecPlane);
-		if (spiSpecLine==NULL_var||spiSpecPlane==NULL_var)
-		{
-			return E_FAIL;
-		}
-		//
+		pt=ptOrigin;
+		dir=dirLine;
+		mathPlane=mathPlaneNormal;
 	}
 	else
 	{
@@ -3473,23 +3496,131 @@ HRESULT TestEnvelopeCmd::CreateNewPartForMechanism(CATIProduct_var ispiProdRoot,
 		}
 		CATMathVector dirLine=pt2-pt1;
 		CATMathPlane mathPlane(pt1,dirLine);
+		CATMathVector dirLineNormal;
+		mathPlane.GetFirstDirection(dirLineNormal);
+		dirLineNormal.Normalize();
+		CATMathPoint pt3=pt1+10*dirLineNormal;
+		CATMathPlane mathPlaneParrallel(pt1,pt2,pt3);
 		//
-		CATBody *pBodyPt=CATCreateTopPointXYZ(pGeoFactory,topdata,pt1.GetX(),pt1.GetY(),pt1.GetZ());
-		if (pBodyPt==NULL)
-		{
-			return E_FAIL;
-		}
-		CATBody *pBodyLine=CATCreateTopLineFromDirection(pGeoFactory,topdata,pBodyPt,dirLine,20);
-		if (pBodyLine==NULL)
-		{
-			return E_FAIL;
-		}
-
+		pt=pt1;
+		dir=dirLine;
+		mathPlane=mathPlaneParrallel;
 	}
-
+	//
+	CATBody *pBodyPt=CATCreateTopPointXYZ(pGeoFactory,topdata,pt.GetX(),pt.GetY(),pt.GetZ());
+	if (pBodyPt==NULL)
+	{
+		return E_FAIL;
+	}
+	CATBody *pBodyLine=CATCreateTopLineFromDirection(pGeoFactory,topdata,pBodyPt,dir,20);
+	if (pBodyLine==NULL)
+	{
+		return E_FAIL;
+	}
+	CATBody_var spBodyPlane=NULL_var;
+	CreatePlaneBody(pGeoFactory,topdata,mathPlane,spBodyPlane);
+	if (spBodyPlane==NULL)
+	{
+		return E_FAIL;
+	}
+	//
+	CATISpecObject_var spiSpecLine=NULL_var;
+	CATISpecObject_var spiSpecPlane=NULL_var;
+	rc=_pGeneralCls->InsertObjOnTree(spiProdInstNew,spiSpecGeoSet,"Line",pBodyLine,spiSpecLine);
+	rc=_pGeneralCls->InsertObjOnTree(spiProdInstNew,spiSpecGeoSet,"Plane",spBodyPlane,spiSpecPlane);
+	if (spiSpecLine==NULL_var||spiSpecPlane==NULL_var)
+	{
+		return E_FAIL;
+	}
 	//
 	ospiSpecLine=spiSpecLine;
 	ospiSpecPlane=spiSpecPlane;
+	ospiProdInstNew=spiProdInstNew;
 
 	return rc;
+}
+
+HRESULT TestEnvelopeCmd::CreateRevoluteJoint(CATIKinMechanism *ipiMechanism,CATIProduct_var ispiProdRoot,
+											 CATIProduct_var ispiProd1,CATISpecObject_var ispiSpecLine1,CATISpecObject_var ispiSpecPlane1,
+											 CATIProduct_var ispiProd2,CATISpecObject_var ispiSpecLine2,CATISpecObject_var ispiSpecPlane2)
+{
+	HRESULT rc=S_OK;
+	//
+	CATLISTP(CATBaseUnknown) lstConnector;
+	CATBaseUnknown *pConnectorLine1=CreateConnector(ispiProdRoot,ispiProd1,ispiSpecLine1);
+	CATBaseUnknown *pConnectorLine2=CreateConnector(ispiProdRoot,ispiProd2,ispiSpecLine2);
+	CATBaseUnknown *pConnectorPlane1=CreateConnector(ispiProdRoot,ispiProd1,ispiSpecPlane1);
+	CATBaseUnknown *pConnectorPlane2=CreateConnector(ispiProdRoot,ispiProd2,ispiSpecPlane2);
+	if (pConnectorLine1==NULL||pConnectorLine2==NULL||pConnectorPlane1==NULL||pConnectorPlane2==NULL)
+	{
+		return E_FAIL;
+	}
+	lstConnector.Append(pConnectorLine1);
+	lstConnector.Append(pConnectorLine2);
+	lstConnector.Append(pConnectorPlane1);
+	lstConnector.Append(pConnectorPlane2);
+
+	//
+	CATIKinJoint* piJoint = NULL;
+	const char* jointType = CATKinRevoluteJoint;
+	boolean iCreateConstraintsForJoint = 1;
+	if (FAILED(ipiMechanism->AddJoint(jointType,&lstConnector, iCreateConstraintsForJoint, &piJoint))||piJoint==NULL)
+	{
+		return E_FAIL;
+	}
+	//
+	CATIKinCmd* piCmd = NULL;
+	const char* cmdType = CATKinAngleCmd;
+	if (FAILED(ipiMechanism->AddCommand(piJoint, cmdType, &piCmd)))
+	{
+		return E_FAIL;
+	}
+	double a=0;		//对于角度来说此处单位是度，不是弧度
+	double* ListCommandValueToSet=&a;
+
+	ipiMechanism->SetCmdValues(1,ListCommandValueToSet);
+
+	//
+
+	piCmd->Release();
+	piCmd = NULL;
+
+	piJoint->Release();
+	piJoint = NULL;
+
+	return rc;
+}
+
+CATBaseUnknown* TestEnvelopeCmd::CreateConnector(CATIProduct_var ispiProdRoot,CATIProduct_var ispiProd,CATISpecObject_var ispiSpecObj)
+{
+	CATBaseUnknown* pBUConnector = NULL;
+	
+	if (ispiProdRoot==NULL_var||ispiProd==NULL_var||ispiSpecObj==NULL_var)
+	{
+		return NULL;
+	}
+
+	CATILinkableObject *piLinkObj = NULL;
+	HRESULT rc = ispiSpecObj->QueryInterface(IID_CATILinkableObject ,(void **) &piLinkObj);
+	if ( SUCCEEDED(rc) ) 
+	{
+		CATIConnector* piConnector = NULL;
+		int xCreation = 0;
+
+		rc =::GetProductConnector(piLinkObj, ispiProd, ispiProdRoot, 0, piConnector, xCreation);
+		//old: GetProductConnector(spLinkableOnLine,(*pProductList)[i],spRootProduct);//
+		if (piConnector!=NULL)
+		{
+
+			//CATMathTransformation* matrix1;
+			//matrix1=spConnectorOnLine1->GiveContext();
+			//cout<<"spConnectorOnLine1:";
+			//matrix1->Dump();
+			cout<<"Get piConnector"<<endl;
+			// Store the connector as a CATBaseUnknown
+			rc = piConnector->QueryInterface(IID_CATBaseUnknown, (void**)&pBUConnector);
+		}
+	}
+
+	return pBUConnector;
 }

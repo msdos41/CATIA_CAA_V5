@@ -43,6 +43,21 @@
 #include "CATTessTrianIter.h"
 #include "CATCellTessellator.h"
 
+#include "CATIKinMechanism.h"
+#include "CATIKinMechanismFactory.h"
+#include "CATIKinCmd.h"
+#include "CATIKinJoint.h"
+
+#include "CATAsmConnectorServices.h"
+
+#include "CATIRedrawEvent.h"
+
+#include "CATMmrInterPartCopy.h"
+
+#include "CATIMeasurableLine.h"
+#include "CATIMeasurablePoint.h"
+
+
 #include <strstream>
 
 using namespace std;
@@ -134,6 +149,14 @@ class TestEnvelopeCmd: public CATStateCommand
   HRESULT PointsSaveAsCgr(map<int,map<int,vector<CATMathPoint>>> imapPtXY, map<int,map<int,vector<CATMathPoint>>> imapPtXZ, map<int,map<int,vector<CATMathPoint>>> imapPtYZ, CATUnicodeString istrSavePath);
   CATIProduct_var GetRootProductFromDoc( CATDocument * ipDocument );
   void PointsOutputTxt(map<int,map<int,vector<CATMathPoint>>> imapPt, CATUnicodeString istrSavePath);
+  HRESULT CreateMechanism(vector<CATIProduct_var> ilstProd,CATBaseUnknown_var ispBUSel1,CATIProduct_var ispiProdSel1,CATBaseUnknown_var ispBUSel2,CATIProduct_var ispiProdSel2);
+  CATIProduct_var CreateNewPart();
+  void RefreshViewTree(const CATISpecObject_var spObject);
+  CATISpecObject_var CopyAndPasteSpecObj(CATIProduct_var spPrdSrc, CATISpecObject_var spiSpecSrc, CATIProduct_var spPrdTgt, CATISpecObject_var spSpecTgt, CATBoolean bLink);
+  HRESULT CreateNewPartForMechanism(CATIProduct_var ispiProdRoot, CATBaseUnknown_var ispBUSel1, CATIProduct_var ispiProdSel1, CATBaseUnknown_var ispBUSel2, CATIProduct_var ispiProdSel2, CATIProduct_var &ospiProdInstNew, CATISpecObject_var &ospiSpecLine, CATISpecObject_var &ospiSpecPlane);
+  HRESULT CreateRevoluteJoint(CATIKinMechanism *ipiMechanism,CATIProduct_var ispiProdRoot, CATIProduct_var ispiProd1,CATISpecObject_var ispiSpecLine1,CATISpecObject_var ispiSpecPlane1, CATIProduct_var ispiProd2,CATISpecObject_var ispiSpecLine2,CATISpecObject_var ispiSpecPlane2);
+  CATBaseUnknown* CreateConnector(CATIProduct_var ispiProdRoot,CATIProduct_var ispiProd,CATISpecObject_var ispiSpecObj);
+  CATBoolean ActionOK8(void * data);
 private:
 
 	  TestEnvelopeDlg		*_pDlg;
@@ -148,8 +171,8 @@ private:
 
 	  CATFeatureImportAgent * _pSelAAgent;
 
-	  //CATFeatureImportAgent * _pSelBAgent;
-	  CATPathElementAgent	*_pSelBAgent;
+	  CATFeatureImportAgent * _pSelBAgent;
+	  //CATPathElementAgent	*_pSelBAgent;
 
 	  CATDialogAgent		* _pSelAFieldAgent;
 

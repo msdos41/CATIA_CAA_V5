@@ -43,6 +43,10 @@
 #include "CATTessTrianIter.h"
 #include "CATCellTessellator.h"
 
+#include <strstream>
+
+using namespace std;
+
 class CATIndicationAgent;
 
 //----------------------------------------------------------------------
@@ -129,6 +133,7 @@ class TestEnvelopeCmd: public CATStateCommand
   void DrawTempPoints(map<int,map<int,vector<CATMathPoint>>> imapPt);
   HRESULT PointsSaveAsCgr(map<int,map<int,vector<CATMathPoint>>> imapPtXY, map<int,map<int,vector<CATMathPoint>>> imapPtXZ, map<int,map<int,vector<CATMathPoint>>> imapPtYZ, CATUnicodeString istrSavePath);
   CATIProduct_var GetRootProductFromDoc( CATDocument * ipDocument );
+  void PointsOutputTxt(map<int,map<int,vector<CATMathPoint>>> imapPt, CATUnicodeString istrSavePath);
 private:
 
 	  TestEnvelopeDlg		*_pDlg;

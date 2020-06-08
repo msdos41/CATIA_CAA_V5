@@ -894,6 +894,7 @@ CATBoolean TestEnvelopeCmd::ActionOK7(void * data)
 	cout<<"======> TempPoint Run Time: "<<iTimeSpan.ConvertToString("%M:%S")<<endl;
 	*/
 
+	/*
 	//
 	CATUnicodeString strSavePath="c:\\envelop.cgr";
 	HRESULT rc = PointsSaveAsCgr(_mapXY,_mapXZ,_mapYZ,strSavePath);
@@ -904,6 +905,15 @@ CATBoolean TestEnvelopeCmd::ActionOK7(void * data)
 	}
 
 	cout<<"=====>>> Save as Cgr finished!................."<<endl;
+	*/
+	
+	//点坐标写入txt中
+	CATUnicodeString strTxtPath="c:\\Temp\\points.txt";
+	PointsOutputTxt(_mapXY,strTxtPath);
+	PointsOutputTxt(_mapXZ,strTxtPath);
+	PointsOutputTxt(_mapYZ,strTxtPath);
+
+	cout<<"OutputTxt Finished!..........."<<endl;
 
 	return TRUE;
 }
@@ -3198,4 +3208,288 @@ CATIProduct_var TestEnvelopeCmd::GetRootProductFromDoc( CATDocument * ipDocument
 		return spRootProduct;
 	}
 	return NULL_var;
+}
+
+void TestEnvelopeCmd::PointsOutputTxt(map<int,map<int,vector<CATMathPoint>>> imapPt,
+									  CATUnicodeString istrSavePath)
+{
+	ofstream outputFile(istrSavePath.ConvertToChar(),ios::app);
+	
+	map<int,map<int,vector<CATMathPoint>>>::iterator itrOuter;
+	map<int,vector<CATMathPoint>>::iterator itrInner;
+	for (itrOuter=imapPt.begin();itrOuter!=imapPt.end();itrOuter++)
+	{
+		for (itrInner=itrOuter->second.begin();itrInner!=itrOuter->second.end();itrInner++)
+		{
+			vector<CATMathPoint> lstPt = itrInner->second;
+			for (int j=0;j<lstPt.size();j++)
+			{
+				CATMathPoint pt=lstPt[j];
+				double dX=pt.GetX();
+				double dY=pt.GetY();
+				double dZ=pt.GetZ();
+				strstream ssX,ssY,ssZ;
+				string strX,strY,strZ;
+				ssX<<dX;	ssX>>strX;
+				ssY<<dY;	ssY>>strY;
+				ssZ<<dZ;	ssZ>>strZ;
+
+				string strMsg=strX+","+strY+","+strZ;
+				outputFile<<strMsg<<"\n";
+
+			}
+		}
+	}
+	outputFile.close();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+/////////////////使用DMU创建包络///////////////
+//////////////////////////////////////////////////////////////////////////
+HRESULT TestEnvelopeCmd::CreateMechanism(vector<CATIProduct_var> ilstProd,CATBaseUnknown_var ispBUSel1,CATIProduct_var ispiProdSel1,CATBaseUnknown_var ispBUSel2,CATIProduct_var ispiProdSel2)
+{
+	HRESULT rc=S_OK;
+	//
+	if (ispBUSel1==NULL_var)
+	{
+		return E_FAIL;
+	}
+	CATISpecObject_var spiSpecSel1=NULL_var;
+	CATISpecObject_var spiSpecSel2=NULL_var;
+	spiSpecSel1=_pGeneralCls->GetSpecFromBaseUnknownFunc(ispBUSel1);
+	if (spiSpecSel1==NULL_var)
+	{
+		return E_FAIL;
+	}
+	//
+	int iType=-1;	//旋转或者移动
+	if (ispBUSel2==NULL_var)
+	{
+		iType=0;	//旋转
+	}
+	else	
+	{
+		iType=1;	//移动
+
+		spiSpecSel2=_pGeneralCls->GetSpecFromBaseUnknownFunc(ispBUSel2);
+		if (spiSpecSel2==NULL_var)
+		{
+			return E_FAIL;
+		}
+	}
+
+
+	//把所选元素拷贝到两个新建的part内
+
+	
+	return rc;
+}
+
+CATIProduct_var TestEnvelopeCmd::CreateNewPart()
+{
+	CATDocument *pDocNew=NULL;
+	HRESULT rc=CATDocumentServices::New("Part",pDocNew);
+	if (FAILED(rc)||pDocNew==NULL)
+	{
+		return NULL_var;
+	}
+	CATIProduct_var spiProdNew=NULL_var;
+	spiProdNew=GetRootProductFromDoc(pDocNew);
+	
+	return spiProdNew;
+}
+//刷新视图和模型树
+void TestEnvelopeCmd::RefreshViewTree(const CATISpecObject_var spObject)
+{
+	if(spObject==NULL_var)
+		return;
+	//Update the 3D view
+	CATModify ModifyEvent(spObject);
+	CATIModelEvents_var spEvents = spObject;
+	if(spEvents!=NULL_var)
+		spEvents -> Dispatch (ModifyEvent);
+
+	//Update the graph view tree
+	CATIRedrawEvent_var spRedraw = spObject;
+	if(spRedraw!=NULL_var)
+		spRedraw -> Redraw();
+}
+
+
+CATISpecObject_var TestEnvelopeCmd::CopyAndPasteSpecObj(CATIProduct_var spPrdSrc, CATISpecObject_var spiSpecSrc, CATIProduct_var spPrdTgt, CATISpecObject_var spSpecTgt, CATBoolean bLink)
+{
+	CATMmrInterPartCopy* ptCATMmrInterPartCopy = NULL;
+	ptCATMmrInterPartCopy = new CATMmrInterPartCopy (spiSpecSrc, spSpecTgt);
+	ptCATMmrInterPartCopy->SetSourceInstance(spPrdSrc);
+	ptCATMmrInterPartCopy->SetTargetInstance(spPrdTgt);
+	//ptCATMmrInterPartCopy->SetImportApplicativeId(guidApplicative);
+	ptCATMmrInterPartCopy->SetLinkMode(bLink);
+
+	//int iMode=0; // Copy attribute and color
+	//ptCATMmrInterPartCopy->SetAttributeMode(iMode);
+
+	CATUnicodeString ErrorMsg;
+	HRESULT rc = ptCATMmrInterPartCopy->Run(&ErrorMsg);
+	if ( FAILED(rc) ){
+		cout <<"  CopyWithLink: " << ErrorMsg.CastToCharPtr() << endl;
+		return NULL_var;
+	}
+
+	CATISpecObject_var spCopyResult = NULL_var;
+	rc = ptCATMmrInterPartCopy->GetResult(spCopyResult);
+	if ( FAILED(rc) || (NULL_var == spCopyResult) )
+		return NULL_var;
+
+	delete ptCATMmrInterPartCopy;
+	ptCATMmrInterPartCopy = NULL;
+
+	return spCopyResult;
+}
+
+HRESULT TestEnvelopeCmd::CreateNewPartForMechanism(CATIProduct_var ispiProdRoot,
+												   CATBaseUnknown_var ispBUSel1,
+												   CATIProduct_var ispiProdSel1,
+												   CATBaseUnknown_var ispBUSel2,
+												   CATIProduct_var ispiProdSel2,
+												   CATIProduct_var &ospiProdInstNew,
+												   CATISpecObject_var &ospiSpecLine,
+												   CATISpecObject_var &ospiSpecPlane)
+{
+	HRESULT rc=S_OK;
+	//新建空的part，挂在root下
+	CATIProduct_var spiProdNew=CreateNewPart();
+	if (spiProdNew==NULL_var)
+	{
+		return E_FAIL;
+	}
+	CATIProduct_var spiProdInstNew=ispiProdRoot->AddProduct(spiProdNew);
+	if (spiProdInstNew==NULL_var)
+	{
+		return E_FAIL;
+	}
+	RefreshViewTree(ispiProdRoot);
+
+	//创建工厂
+	CATSoftwareConfiguration * pConfig = new CATSoftwareConfiguration();//配置指针
+	CATTopData * topdata =new CATTopData(pConfig, NULL);//topdata
+	CATIPrtContainer_var ospiCont=NULL_var;
+	CATGeoFactory*  pGeoFactory=_pGeneralCls->GetProductGeoFactoryAndPrtCont(spiProdInstNew,ospiCont);
+	if (topdata == NULL || pGeoFactory == NULL)
+	{
+		return E_FAIL;
+	}
+
+	//创建GeoSet
+	CATISpecObject_var spiSpecGeoSet=NULL_var;
+	rc=_pGeneralCls->CreateNewGeoSet(spiProdInstNew,"Mechanism",spiSpecGeoSet);
+	if (FAILED(rc)||spiSpecGeoSet==NULL_var)
+	{
+		return E_FAIL;
+	}
+	
+	//
+	CATISpecObject_var spiSpecLine=NULL_var;
+	CATISpecObject_var spiSpecPlane=NULL_var;
+
+	if (ispBUSel2==NULL_var)	//只有一个元素，说明是选的轴线，旋转操作
+	{
+		CATIMeasurableLine_var spiMeasurableLine=ispBUSel1;
+		if (spiMeasurableLine==NULL_var)
+		{
+			return E_FAIL;
+		}
+		CATMathPoint ptOrigin;
+		CATMathVector dirLine;
+		rc=spiMeasurableLine->GetOrigin(ptOrigin);
+		if (FAILED(rc))
+		{
+			return E_FAIL;
+		}
+		rc=spiMeasurableLine->GetDirection(dirLine);
+		if (FAILED(rc))
+		{
+			return E_FAIL;
+		}
+		//
+		CATMathTransformation transAbs=_pGeneralCls->GetAbsTransformation(ispiProdSel1);
+		ptOrigin=transAbs*ptOrigin;
+		dirLine=transAbs*dirLine;
+		CATMathPlane mathPlane(ptOrigin,dirLine);
+
+		//
+		CATBody *pBodyPt=CATCreateTopPointXYZ(pGeoFactory,topdata,ptOrigin.GetX(),ptOrigin.GetY(),ptOrigin.GetZ());
+		if (pBodyPt==NULL)
+		{
+			return E_FAIL;
+		}
+		CATBody *pBodyLine=CATCreateTopLineFromDirection(pGeoFactory,topdata,pBodyPt,dirLine,20);
+		if (pBodyLine==NULL)
+		{
+			return E_FAIL;
+		}
+		CATBody *pBodyPlane=NULL;
+		CreatePlaneBody(pGeoFactory,topdata,mathPlane,pBodyPlane);
+		if (pBodyPlane==NULL)
+		{
+			return E_FAIL;
+		}
+		//
+		rc=_pGeneralCls->InsertObjOnTree(spiProdInstNew,spiSpecGeoSet,"Line",pBodyLine,spiSpecLine);
+		rc=_pGeneralCls->InsertObjOnTree(spiProdInstNew,spiSpecGeoSet,"Plane",pBodyPlane,spiSpecPlane);
+		if (spiSpecLine==NULL_var||spiSpecPlane==NULL_var)
+		{
+			return E_FAIL;
+		}
+		//
+	}
+	else
+	{
+		CATIMeasurablePoint_var spiMeasurablePt1=ispBUSel1;
+		CATIMeasurablePoint_var spiMeasurablePt2=ispBUSel2;
+		if (spiMeasurablePt1==NULL_var||spiMeasurablePt2==NULL_var)
+		{
+			return E_FAIL;
+		}
+		CATMathPoint pt1,pt2;
+		rc=spiMeasurablePt1->GetPoint(pt1);
+		if (FAILED(rc))
+		{
+			return E_FAIL;
+		}
+		rc=spiMeasurablePt2->GetPoint(pt2);
+		if (FAILED(rc))
+		{
+			return E_FAIL;
+		}
+		//
+		CATMathTransformation transAbs1=_pGeneralCls->GetAbsTransformation(ispiProdSel1);
+		CATMathTransformation transAbs2=_pGeneralCls->GetAbsTransformation(ispiProdSel2);
+		pt1=transAbs1*pt1;
+		pt2=transAbs2*pt2;
+		if (pt1.DistanceTo(pt2)<=0.001)
+		{
+			return E_FAIL;
+		}
+		CATMathVector dirLine=pt2-pt1;
+		CATMathPlane mathPlane(pt1,dirLine);
+		//
+		CATBody *pBodyPt=CATCreateTopPointXYZ(pGeoFactory,topdata,pt1.GetX(),pt1.GetY(),pt1.GetZ());
+		if (pBodyPt==NULL)
+		{
+			return E_FAIL;
+		}
+		CATBody *pBodyLine=CATCreateTopLineFromDirection(pGeoFactory,topdata,pBodyPt,dirLine,20);
+		if (pBodyLine==NULL)
+		{
+			return E_FAIL;
+		}
+
+	}
+
+	//
+	ospiSpecLine=spiSpecLine;
+	ospiSpecPlane=spiSpecPlane;
+
+	return rc;
 }

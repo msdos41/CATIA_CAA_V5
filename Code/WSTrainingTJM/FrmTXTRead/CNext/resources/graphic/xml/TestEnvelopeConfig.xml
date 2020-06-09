@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Config>
+	<parameters>
+		<!--LOD Mode-->
+		<value>0</value>
+		<!--Accuracy-->
+		<value>0.2</value>
+		<!--PerformWrapping-->
+		<value>1</value>
+		<!--PerformSimplif-->
+		<value>1</value>
+		<!--WrappingGrain-->
+		<value>10</value>
+		<!--WrappingRatio-->
+		<value>0.1</value>
+		<!--SimplifAccuracy-->
+		<value>5</value>
+		<!--Silhouette-->
+		<value>0</value>
+		<!--SpatialSplit-->
+		<value>0</value>
+	</parameters>
+</Config>

@@ -42,6 +42,11 @@ CATSaiSpaceAnalysisItf	\
 CATTessellation		\
 CATKiiKinematicsItf		\
 CATAssemblyInterfaces	\
+CATSimulationInterfaces		\
+SMTInterfacesItf	\
+YFAirventXMLM		\
+CATInfInterfaces	\
+ProductStructureItf		\
 
 # System dependant variables
 #

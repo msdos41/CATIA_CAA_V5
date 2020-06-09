@@ -23,6 +23,7 @@
 
 #include "TestEnvelopeDlg.h"
 #include "GeneralClass.h"
+#include "YFAirventXMLClass.h"
 
 #include "CATDynTransformation.h"
 #include "CATDynBoolean.h"
@@ -47,6 +48,16 @@
 #include "CATIKinMechanismFactory.h"
 #include "CATIKinCmd.h"
 #include "CATIKinJoint.h"
+
+#include "CATIReplayFactory.h"
+#include "CATIReplay.h"
+#include "CATIReplayChannelProductMoveFactory.h"
+#include "CATIReplayChannelProductMove.h"
+
+#include "CATISweptVolumeFactory.h"
+#include "CATIAReplay.h"
+#include "CATIAProduct.h"
+#include "CATIAProducts.h"
 
 #include "CATAsmConnectorServices.h"
 
@@ -150,13 +161,19 @@ class TestEnvelopeCmd: public CATStateCommand
   CATIProduct_var GetRootProductFromDoc( CATDocument * ipDocument );
   void PointsOutputTxt(map<int,map<int,vector<CATMathPoint>>> imapPt, CATUnicodeString istrSavePath);
   HRESULT CreateMechanism(vector<CATIProduct_var> ilstProd,CATBaseUnknown_var ispBUSel1,CATIProduct_var ispiProdSel1,CATBaseUnknown_var ispBUSel2,CATIProduct_var ispiProdSel2);
+  HRESULT CreateMechanism(vector<CATIProduct_var> ilstProd,CATBaseUnknown_var ispBUSel1,CATIProduct_var ispiProdSel1,CATBaseUnknown_var ispBUSel2,CATIProduct_var ispiProdSel2,vector<double*> &olstPos,vector<CATIProduct_var> &olstProd);
   CATIProduct_var CreateNewPart();
   void RefreshViewTree(const CATISpecObject_var spObject);
   CATISpecObject_var CopyAndPasteSpecObj(CATIProduct_var spPrdSrc, CATISpecObject_var spiSpecSrc, CATIProduct_var spPrdTgt, CATISpecObject_var spSpecTgt, CATBoolean bLink);
   HRESULT CreateNewPartForMechanism(CATIProduct_var ispiProdRoot, CATBaseUnknown_var ispBUSel1, CATIProduct_var ispiProdSel1, CATBaseUnknown_var ispBUSel2, CATIProduct_var ispiProdSel2, CATIProduct_var &ospiProdInstNew, CATISpecObject_var &ospiSpecLine, CATISpecObject_var &ospiSpecPlane);
   HRESULT CreateRevoluteJoint(CATIKinMechanism *ipiMechanism,CATIProduct_var ispiProdRoot, CATIProduct_var ispiProd1,CATISpecObject_var ispiSpecLine1,CATISpecObject_var ispiSpecPlane1, CATIProduct_var ispiProd2,CATISpecObject_var ispiSpecLine2,CATISpecObject_var ispiSpecPlane2);
+  HRESULT CreateRevoluteJoint(CATIKinMechanism *ipiMechanism,CATIProduct_var ispiProdRoot, CATIProduct_var ispiProd1,CATISpecObject_var ispiSpecLine1,CATISpecObject_var ispiSpecPlane1, CATIProduct_var ispiProd2,CATISpecObject_var ispiSpecLine2,CATISpecObject_var ispiSpecPlane2, vector<double*> &olstPos);
   CATBaseUnknown* CreateConnector(CATIProduct_var ispiProdRoot,CATIProduct_var ispiProd,CATISpecObject_var ispiSpecObj);
   CATBoolean ActionOK8(void * data);
+  HRESULT CreateReplay(vector<CATIProduct_var> ilstProd,vector<double*> ilstPos,CATIReplay *&opiReplay);
+  HRESULT CreateSweptVol(vector<CATIProduct_var> ilstProd,CATIReplay *ipiReplay,CATUnicodeString istrSavePath);
+  HRESULT GetInfoFromXML(CATUnicodeString istrFullPath, CATListOfCATUnicodeString &olstParmNames);
+  int GetResourcePath(CATUnicodeString istrFileName,CATUnicodeString istrFilePath,CATUnicodeString &oPath);
 private:
 
 	  TestEnvelopeDlg		*_pDlg;
@@ -197,6 +214,10 @@ private:
 	  map<int,map<int,vector<CATMathPoint>>>	_mapXZ;
 
 	  map<int,map<int,vector<CATMathPoint>>>	_mapYZ;
+
+	  CATUnicodeString		_strXmlPath;
+
+	  CATListOfCATUnicodeString		_lstSweptVolConfig;
 
 };
 

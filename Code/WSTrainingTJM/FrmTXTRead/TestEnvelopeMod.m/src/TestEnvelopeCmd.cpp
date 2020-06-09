@@ -17,6 +17,7 @@
 #include "CATMathPlane.h"
 
 #include "CATCreateExternalObject.h"
+
 CATCreateClass( TestEnvelopeCmd);
 
 
@@ -72,6 +73,25 @@ TestEnvelopeCmd::TestEnvelopeCmd() :
 	//int iA=(int)1.5;	//1
 
 	//int iB=(int)(-1.5);	//-1
+
+	//获取xml路径
+	CATUnicodeString strFilePath="xml";
+	CATUnicodeString strFileName = "TestEnvelopeConfig.xml";
+	int iGetPath = GetResourcePath(strFileName, strFilePath,_strXmlPath);
+	if (iGetPath == -1)
+	{
+		//MessageOutputError(CAAUStringBuildFromChar("船体配置文件获取失败"),"Error");
+		RequestDelayedDestruction();
+		return ;
+	}
+	//中文路径重新转换下
+	wchar_t strchar[1000];
+	CAAUStringConvertToWChar(_strXmlPath,strchar);
+	_strXmlPath.BuildFromWChar(strchar);
+
+
+	this->GetInfoFromXML(_strXmlPath,_lstSweptVolConfig);
+
 
 
 	cout<<"---------------"<<endl;
@@ -922,11 +942,37 @@ CATBoolean TestEnvelopeCmd::ActionOK7(void * data)
 CATBoolean TestEnvelopeCmd::ActionOK8(void * data)
 {
 	vector<CATIProduct_var> lstProd;
-	HRESULT rc=CreateMechanism(lstProd,_spBUSelectB,_spiProdSelB,NULL_var,NULL_var);
+	vector<CATIProduct_var> olstProd;
+	vector<double*> lstPos;
+	HRESULT rc=CreateMechanism(lstProd,_spBUSelectB,_spiProdSelB,NULL_var,NULL_var,lstPos,olstProd);
 	if (FAILED(rc))
 	{
 		return FALSE;
 	}
+
+	//
+	CATIReplay *piReplay=NULL;
+	rc=CreateReplay(olstProd,lstPos,piReplay);
+	if (FAILED(rc)||piReplay==NULL)
+	{
+		return FALSE;
+	}
+
+	CATTime iStartTime = CATTime::GetCurrentLocalTime();
+
+	//
+	CATUnicodeString iPath="c://Temp//TestEnvelopeInst.cgr";
+	rc=CreateSweptVol(olstProd,piReplay,iPath);
+	if (FAILED(rc))
+	{
+		return FALSE;
+	}
+
+	CATTime iEndTime = CATTime::GetCurrentLocalTime();
+
+	CATTimeSpan iTimeSpan=iEndTime-iStartTime;
+	cout<<"======> SweptVol Output Run Time: "<<iTimeSpan.ConvertToString("%M:%S")<<endl;
+
 	return TRUE;
 }
 
@@ -3259,7 +3305,7 @@ void TestEnvelopeCmd::PointsOutputTxt(map<int,map<int,vector<CATMathPoint>>> ima
 //////////////////////////////////////////////////////////////////////////
 /////////////////使用DMU创建包络///////////////
 //////////////////////////////////////////////////////////////////////////
-HRESULT TestEnvelopeCmd::CreateMechanism(vector<CATIProduct_var> ilstProd,CATBaseUnknown_var ispBUSel1,CATIProduct_var ispiProdSel1,CATBaseUnknown_var ispBUSel2,CATIProduct_var ispiProdSel2)
+HRESULT TestEnvelopeCmd::CreateMechanism(vector<CATIProduct_var> ilstProd,CATBaseUnknown_var ispBUSel1,CATIProduct_var ispiProdSel1,CATBaseUnknown_var ispBUSel2,CATIProduct_var ispiProdSel2,vector<double*> &olstPos,vector<CATIProduct_var> &olstProd)
 {
 	HRESULT rc=S_OK;
 	//
@@ -3320,11 +3366,341 @@ HRESULT TestEnvelopeCmd::CreateMechanism(vector<CATIProduct_var> ilstProd,CATBas
 	piMechanism->SetFixedProduct(spiProdNew2,iCreateConstraintsForFixed);
 
 	//
-	rc = CreateRevoluteJoint(piMechanism,spiProdRoot,spiProdNew1,spiSpecLine1,spiSpecPlane1,spiProdNew2,spiSpecLine2,spiSpecPlane2);
+	rc = CreateRevoluteJoint(piMechanism,spiProdRoot,spiProdNew1,spiSpecLine1,spiSpecPlane1,spiProdNew2,spiSpecLine2,spiSpecPlane2,olstPos);
 	if (FAILED(rc))
 	{
 		return E_FAIL;
 	}
+	olstProd.push_back(spiProdNew1);
+	olstProd.push_back(ispiProdSel1);
+
+	return rc;
+}
+
+HRESULT TestEnvelopeCmd::CreateReplay(vector<CATIProduct_var> ilstProd,vector<double*> ilstPos,CATIReplay *&opiReplay)
+{
+	HRESULT rc=S_OK;
+
+	//
+	CATFrmEditor *pEditor=CATFrmEditor::GetCurrentEditor();
+	if (pEditor==NULL)
+	{
+		return E_FAIL;
+	}
+	CATDocument *pDoc=pEditor->GetDocument();
+	if (pDoc==NULL)
+	{
+		return E_FAIL;
+	}
+	//
+	const int numberOfProducts = ilstProd.size();
+	//CATIProduct* piProductOnProduct[numberOfProducts] = {NULL};
+
+	int iNumStep=ilstPos.size();
+	vector<double> lstInputTime;
+	vector<double*> lstInputProductMove;
+	lstInputProductMove.insert(lstInputProductMove.end(),ilstPos.begin(),ilstPos.end());
+
+	for (int i=0;i<iNumStep;i++)
+	{
+		lstInputTime.push_back(0.2*i);
+	}
+
+	//
+	CATIReplayFactory* piReplayFactory = NULL;
+	rc = pDoc->QueryInterface(IID_CATIReplayFactory,(void**)&piReplayFactory);
+	if (SUCCEEDED(rc)) 
+	{
+		// Create the replay
+		CATIReplay* piReplay = NULL;
+		rc = piReplayFactory->CreateInstance (&piReplay);
+		if (SUCCEEDED(rc)) 
+		{
+			// Search for the factory of channels
+			CATIReplayChannelProductMoveFactory* piReplayChannelProductMoveFactory = NULL;
+			rc = piReplay->QueryInterface(IID_CATIReplayChannelProductMoveFactory,(void**)&piReplayChannelProductMoveFactory);
+			if (SUCCEEDED(rc)) 
+			{
+				for (int j = 0; j < numberOfProducts; j++)
+				{
+
+					//====================================================================================
+					// 5 - Create a channel for each product and fill it
+					//====================================================================================
+					CATIReplayChannelProductMove* piReplayChannelProductMove = NULL;
+					rc = piReplayChannelProductMoveFactory->CreateInstance ((CATBaseUnknown**)&ilstProd[j],&piReplayChannelProductMove);
+					if (SUCCEEDED(rc)) 
+					{
+						// Create the samples
+						for (int i = 0; i < iNumStep && SUCCEEDED(rc); i++)
+						{
+
+							rc = piReplayChannelProductMove->AddSample (lstInputTime[i], lstInputProductMove[i]);
+						}
+						// Release the reference to the channel
+						piReplayChannelProductMove->Release();
+						piReplayChannelProductMove = NULL;
+
+						opiReplay=piReplay;
+					}
+				}
+				// Release the reference to the factory
+				piReplayChannelProductMoveFactory->Release();
+				piReplayChannelProductMoveFactory = NULL;
+			}
+			//// Release the reference to the replay
+			//piReplay->Release();
+			//piReplay = NULL;
+		}
+		piReplayFactory->Release();
+		piReplayFactory = NULL;
+	}
+	return rc;
+}
+
+HRESULT TestEnvelopeCmd::CreateSweptVol(vector<CATIProduct_var> ilstProd,CATIReplay *ipiReplay,CATUnicodeString istrSavePath)
+{
+	HRESULT rc=S_OK;
+	if (ilstProd.size()==0||ipiReplay==NULL)
+	{
+		return E_FAIL;
+	}
+	//
+	CATFrmEditor *pEditor=CATFrmEditor::GetCurrentEditor();
+	if (pEditor==NULL)
+	{
+		return E_FAIL;
+	}
+	CATDocument *pDoc=pEditor->GetDocument();
+	if (pDoc==NULL)
+	{
+		return E_FAIL;
+	}
+	CATISweptVolumeFactory * piSweptVolumeFactory = NULL;
+	rc = pDoc->QueryInterface(IID_CATISweptVolumeFactory, (void **)&piSweptVolumeFactory);
+	if (FAILED(rc)||piSweptVolumeFactory==NULL)
+	{
+		return E_FAIL;
+	}
+	//
+	CATIAReplay * piCATIAReplay = NULL;
+	rc = ipiReplay->QueryInterface(IID_CATIAReplay, (void **)&piCATIAReplay);
+	if (FAILED(rc)||piCATIAReplay==NULL)
+	{
+		return E_FAIL;
+	}
+	CATIAProduct * iProductReference=NULL;
+
+	//
+	int NumOfSwepTPart=ilstProd.size();
+	cout<<"需要计算的包络体个数："<<NumOfSwepTPart<<endl;
+	CATBaseDispatch ** iObjectArray = new CATBaseDispatch *[NumOfSwepTPart];
+
+	for (int i=0;i<NumOfSwepTPart;i++)
+	{
+
+		CATIProduct_var spPrdSwept1=NULL_var;
+		//CATIProduct_var spPrdSwept2;
+		//CATIProduct_var spPrdSwept3;
+
+		spPrdSwept1 = ilstProd[i];
+		if (NULL_var==spPrdSwept1)
+		{
+			cout<<"NULL_var==spPrdSwept1"<<endl;
+			continue;
+		}
+
+		CATBaseDispatch * iBaseDispatch1 = NULL;
+		rc = spPrdSwept1->QueryInterface(IID_CATBaseDispatch, (void**)&iBaseDispatch1);
+		if(FAILED(rc) || iBaseDispatch1==NULL)
+		{
+			cout<<"Failed QI iBaseDispatch1"<<endl;
+			return E_FAIL;
+		}
+		else
+			cout<<"Succeed QI iBaseDispatch1"<<endl;
+
+		iObjectArray[i] = iBaseDispatch1;
+	}
+
+	CATSafeArrayVariant * pArrayVariant = BuildSafeArrayVariant((const CATBaseDispatch **)iObjectArray, NumOfSwepTPart);
+
+	cout<<"1"<<endl;
+
+	//输出列表
+	CATBaseDispatch ** iObjectArrayOut = new CATBaseDispatch *[NumOfSwepTPart];
+	for (int i=0;i<NumOfSwepTPart;i++)
+	{
+		iObjectArrayOut[i] = NULL;
+
+
+	}
+	//iObjectArrayOut[1] = NULL;
+	//iObjectArrayOut[2] = NULL;
+	CATSafeArrayVariant * oSweptVolumeDocuments=
+		::BuildSafeArrayVariant((const CATBaseDispatch **)iObjectArrayOut,NumOfSwepTPart);
+
+	cout<<"2"<<endl;
+
+
+	//创建包络
+	long iLODMode,iPerformWrapping,iPerformSimplif;
+	double iAccuracy,iWrappingGrain,iWrappingRatio,iSimplifAccuracy;
+	int iSilhouette,iSpatialSplit;
+	_lstSweptVolConfig[1].ConvertToNum(&iLODMode);
+	_lstSweptVolConfig[2].ConvertToNum(&iAccuracy);
+	_lstSweptVolConfig[3].ConvertToNum(&iPerformWrapping);
+	_lstSweptVolConfig[4].ConvertToNum(&iPerformSimplif);
+	_lstSweptVolConfig[5].ConvertToNum(&iWrappingGrain);
+	_lstSweptVolConfig[6].ConvertToNum(&iWrappingRatio);
+	_lstSweptVolConfig[7].ConvertToNum(&iSimplifAccuracy);
+	_lstSweptVolConfig[8].ConvertToNum(&iSilhouette);
+	_lstSweptVolConfig[9].ConvertToNum(&iSpatialSplit);
+	rc = piSweptVolumeFactory->ComputeSweptVolumesFromReplay(piCATIAReplay, 
+		*pArrayVariant,iProductReference, iLODMode, iAccuracy, iPerformWrapping, iPerformSimplif, iWrappingGrain, iWrappingRatio, iSimplifAccuracy, *oSweptVolumeDocuments,iSilhouette,iSpatialSplit);
+
+	if (FAILED(rc)||oSweptVolumeDocuments==NULL)
+	{
+		return E_FAIL;
+	}
+
+	//
+	//输出列表长度
+	long arraySize = GetVariantArraySize(oSweptVolumeDocuments);
+	cout<<"arraySize: "<<arraySize<<endl;
+
+	//获得输出的包络列表
+	CATBaseDispatch ** ioObjectArrayOut = new CATBaseDispatch *[arraySize];
+	//long ret = ConvertSafeArrayVariant(pArrayVariant, ioObjectArrayOut, 3);
+	long ret = ConvertSafeArrayVariant(oSweptVolumeDocuments,ioObjectArrayOut,1);
+	cout<<"ret: "<<ret<<endl;
+
+	//cout<<ioObjectArrayOut[0]<<endl;
+	//cout<<ioObjectArrayOut[1]<<endl;
+	//cout<<ioObjectArrayOut[2]<<endl;
+
+	//
+	CATIProduct_var spiProdRoot=NULL_var;
+	_pGeneralCls->GetRootProductUpdate(spiProdRoot);
+	if (spiProdRoot==NULL_var)
+	{
+		return E_FAIL;
+	}
+
+	for (int i=0;i<arraySize;i++)
+	{
+		CATIADocument_var spADoc = NULL_var; 
+		if ( ret > 0 ) 
+		{ 
+			spADoc = ioObjectArrayOut[i]; 
+			ret--;
+		} 
+		if ( spADoc !=NULL_var ) 
+		{ 
+			rc = spADoc->Activate();
+			rc = spADoc->Save();
+
+			//CATUnicodeString ioPath = "E:\\tmp\\envelope\\Rod.1_.cgr";
+
+			int index=istrSavePath.SearchSubString(".cgr",0,CATUnicodeString::CATSearchModeBackward);
+
+			CATUnicodeString strTimeStamp = "_"+CATTime::GetCurrentLocalTime().ConvertToString("%Y%m%d_%H_%M_%S");
+			istrSavePath.Insert(index,strTimeStamp);
+
+			////获取时间
+			//time_t rawtime;
+
+			//time ( &rawtime );
+			////printf("%ld\n", &rawtime);
+			////printf ( "The current local time is: %s", ctime (&rawtime) );
+
+			//char * time = ctime(&rawtime);
+			////ctime(&rawtime) : time_t/timestampe -> "Www Mmm dd hh:mm:ss yyyy" format
+			//cout<< time << endl;
+
+
+			//struct tm * ptm;
+			//ptm = gmtime(&rawtime);
+
+			//cout<<(ptm->tm_year + 1900)<<"year "<<(ptm->tm_mon + 1)<<"month "<<(ptm->tm_mday)<<"day "<<(ptm
+			//	->tm_hour)<<":"<<(ptm->tm_min)<<":"<<(ptm->tm_sec)<<endl;
+			//CATUnicodeString timeyear;
+			//CATUnicodeString timemonth;
+			//CATUnicodeString timeday;
+			//CATUnicodeString timehour;
+			//CATUnicodeString timemin;
+			//CATUnicodeString timesec;
+
+			//timeyear.BuildFromNum(ptm->tm_year + 1900);
+			//timemonth.BuildFromNum(ptm->tm_mon + 1);
+			//timeday.BuildFromNum(ptm->tm_mday);
+			//timehour.BuildFromNum(ptm->tm_hour+8);
+			//timemin.BuildFromNum(ptm->tm_min);
+			//timesec.BuildFromNum(ptm->tm_sec);
+
+
+			//CATUnicodeString timestamp;
+			////timestamp.BuildFromNum(i);
+			//timestamp=timeyear+timemonth+timeday+timehour+timemin+timesec;
+
+			//cout<<"timestamp="<<timestamp<<endl;
+			//ioPath.Insert(index,timestamp);
+
+			//cout<<"1"<<endl;
+			CATBSTR bstrFullPath;
+			istrSavePath.ConvertToBSTR(&bstrFullPath);//strFullPath
+			//cout<<"12"<<endl;
+
+			rc = spADoc->SaveAs(bstrFullPath);
+			//cout<<"rc="<<rc<<endl;
+			//cout<<"122"<<endl;
+			//if (FAILED(rc))
+			//{
+			//	cout<<"保存cgr失败！！！！"<<endl;
+			//	return rc;
+			//}
+			if (SUCCEEDED(rc))		//挂模型树
+			{
+				//CATUnicodeString strShapeName="TestEnvelope"+strTimeStamp;
+				//int iInsert=spiProdRoot->AddShapeRepresentation(CATUnicodeString("cgr"),istrSavePath,strTimeStamp);
+
+				CATIAProduct_var spiaRoot=spiProdRoot;
+
+				CATIAProducts *CATProds=NULL;
+				spiaRoot->get_Products(CATProds);
+
+				//CString strPreffix =L"C:\\Users\\Administrator.zy-PC\\Desktop\\DMU\\Silhouette.cgr"; //
+				//BSTR bstrPath=::SysAllocString(strPreffix);
+				BSTR bstrPath;
+				istrSavePath.ConvertToBSTR(&bstrPath);
+				VARIANT vaPath;
+				vaPath.vt=VT_BSTR;
+				vaPath.bstrVal=bstrPath;
+				VARIANT arrPath[]={vaPath};
+				SAFEARRAY* pArray=NULL;
+				HRESULT hr=SafeArrayAllocDescriptor(1,&pArray);//创建SAFEARRAY结构的对象
+				if (hr==S_OK)
+				{
+					pArray->cbElements=sizeof(arrPath[0]);
+					pArray->rgsabound[0].cElements=1;
+					pArray->rgsabound[0].lLbound=0;
+					pArray->pvData=arrPath;
+					pArray->fFeatures=FADF_AUTO|FADF_FIXEDSIZE;
+				}
+				SysFreeString(vaPath.bstrVal);
+				CATSafeArrayVariant pSafeArr=*pArray;
+				BSTR bstrType=::SysAllocString(L"cgr");
+				CATBSTR catBstrType=bstrType;
+				rc= CATProds->AddComponentsFromFiles(pSafeArr,catBstrType);
+				
+			}
+		} 
+	}
+
+	RefreshViewTree(spiProdRoot);
+
+	CATListValCATBaseUnknown_var* lstChildren=spiProdRoot->GetAllChildren();
+	cout<<"Product Children Count: "<<lstChildren->Size()<<endl;
 
 	return rc;
 }
@@ -3542,7 +3918,8 @@ HRESULT TestEnvelopeCmd::CreateNewPartForMechanism(CATIProduct_var ispiProdRoot,
 
 HRESULT TestEnvelopeCmd::CreateRevoluteJoint(CATIKinMechanism *ipiMechanism,CATIProduct_var ispiProdRoot,
 											 CATIProduct_var ispiProd1,CATISpecObject_var ispiSpecLine1,CATISpecObject_var ispiSpecPlane1,
-											 CATIProduct_var ispiProd2,CATISpecObject_var ispiSpecLine2,CATISpecObject_var ispiSpecPlane2)
+											 CATIProduct_var ispiProd2,CATISpecObject_var ispiSpecLine2,CATISpecObject_var ispiSpecPlane2,
+											 vector<double*> &olstPos)
 {
 	HRESULT rc=S_OK;
 	//
@@ -3577,6 +3954,21 @@ HRESULT TestEnvelopeCmd::CreateRevoluteJoint(CATIKinMechanism *ipiMechanism,CATI
 	}
 	double a=0;		//对于角度来说此处单位是度，不是弧度
 	double* ListCommandValueToSet=&a;
+
+	ipiMechanism->SetCmdValues(1,ListCommandValueToSet);
+
+	for (int i=0;i<=5;i++)
+	{
+		double dValue=i*5;
+		double* ListCommandValueToSet=&dValue;
+		ipiMechanism->SetCmdValues(1,ListCommandValueToSet);
+		double *oMotion=NULL;
+		rc=ipiMechanism->GetProductMotion(ispiProd1,&oMotion);
+		if (SUCCEEDED(rc))
+		{
+			olstPos.push_back(oMotion);
+		}
+	}
 
 	ipiMechanism->SetCmdValues(1,ListCommandValueToSet);
 
@@ -3623,4 +4015,125 @@ CATBaseUnknown* TestEnvelopeCmd::CreateConnector(CATIProduct_var ispiProdRoot,CA
 	}
 
 	return pBUConnector;
+}
+
+int TestEnvelopeCmd::GetResourcePath(CATUnicodeString istrFileName,CATUnicodeString istrFilePath,CATUnicodeString &oPath)
+{
+	const char * cValue = "CATGraphicPath";
+	char * strPath = NULL;
+	CATLibStatus sStatus = CATGetEnvValue(cValue,&strPath);
+	if ((sStatus ==CATLibError)||(strPath==NULL))
+	{
+		CATUnicodeString strWarnMessage = CAAUStringBuildFromChar("No Environment Parameter : YFAIResourcePath");
+		CATUnicodeString strWarnTitle = "Notice";
+		CATDlgNotify* pNotifyDlg = new CATDlgNotify((CATApplicationFrame::GetApplicationFrame())->GetMainWindow(), strWarnTitle.ConvertToChar(),CATDlgNfyWarning);
+		if (NULL != pNotifyDlg)
+		{
+			pNotifyDlg->DisplayBlocked(strWarnMessage ,strWarnTitle);
+			pNotifyDlg->RequestDelayedDestruction(); 
+			pNotifyDlg = NULL;
+		}
+		return -1;
+	}
+
+	//istrFilePath="resources\\GlawayResources\\ShipResources\\PipingSupport\\Configs";
+	CATUnicodeString strUsPath(CATFindPath(CATUnicodeString(istrFilePath),strPath));
+	if(strUsPath == "")
+	{
+		CATUnicodeString strWarnMessage = CAAUStringBuildFromChar("No Folder : resources");
+		CATUnicodeString strWarnTitle = "Notice";
+		CATDlgNotify* pNotifyDlg = new CATDlgNotify((CATApplicationFrame::GetApplicationFrame())->GetMainWindow(), strWarnTitle.ConvertToChar(),CATDlgNfyWarning);
+		if (NULL != pNotifyDlg)
+		{
+			pNotifyDlg->DisplayBlocked(strWarnMessage ,strWarnTitle);
+			pNotifyDlg->RequestDelayedDestruction(); 
+			pNotifyDlg = NULL;
+		}
+		return  -1;
+	}
+
+	strUsPath.Append("\\");
+	strUsPath.Append(istrFileName);
+
+	if((_access(strUsPath, 0))== -1 )
+	{
+		CATUnicodeString strWarnMessage = CAAUStringBuildFromChar("No File : resources\\GlawayResources\\ShipResources\\PipingSupport\\Configs");
+		strWarnMessage.Append("\\");
+		strWarnMessage.Append(istrFileName);
+		CATUnicodeString strWarnTitle = "Notice";
+		CATDlgNotify* pNotifyDlg = new CATDlgNotify((CATApplicationFrame::GetApplicationFrame())->GetMainWindow(), strWarnTitle.ConvertToChar(),CATDlgNfyWarning);
+		if (NULL != pNotifyDlg)
+		{
+			pNotifyDlg->DisplayBlocked(strWarnMessage ,strWarnTitle);
+			pNotifyDlg->RequestDelayedDestruction(); 
+			pNotifyDlg = NULL;
+		}
+
+		return  -1;
+	}
+
+	oPath = strUsPath;
+
+	return 1;
+}
+
+HRESULT TestEnvelopeCmd::GetInfoFromXML(CATUnicodeString istrFullPath, CATListOfCATUnicodeString &olstParmNames)
+{
+	HRESULT rc = S_OK;
+
+	//
+	olstParmNames.RemoveAll();
+
+	YFAirventXMLClass *pXmlCls = new YFAirventXMLClass();
+	//打开xml文件
+	char pcPath[10000];
+	CAAUStringConvertToChar(istrFullPath,pcPath);
+	bool bOpenXml = pXmlCls->OpenXmlFile(pcPath);
+	if (bOpenXml == false)
+	{
+		CATUnicodeString strErrMessage = "Cannot Open Xml File! ";
+		CATUnicodeString strErrTitle = "Error";
+		CATDlgNotify* pNotifyDlg = new CATDlgNotify((CATApplicationFrame::GetApplicationFrame())->GetMainWindow(), strErrTitle.ConvertToChar(),CATDlgNfyError);
+		if (NULL != pNotifyDlg)
+		{
+			pNotifyDlg->DisplayBlocked(strErrMessage ,strErrTitle);
+			pNotifyDlg->RequestDelayedDestruction(); 
+			pNotifyDlg = NULL;
+		}
+		return E_FAIL;
+	}
+	//获得xml根节点
+	TiXmlElement *pRootElem = pXmlCls->GetRootElement();
+	if (pRootElem == NULL)
+	{
+		return E_FAIL;
+	}
+	//--------------------------------------------------------------------------------
+	//获得根节点下第一层节点-------Parameters
+	TiXmlElement *pFirstChildNode = pXmlCls->GetFirstChildElement(pRootElem);
+	if (pFirstChildNode == NULL)
+	{
+		return E_FAIL;
+	}
+
+	//获得Parameter下面的子节点
+	TiXmlElement *pFirstChildChildNode = pXmlCls->GetFirstChildElement(pFirstChildNode);
+	if (pFirstChildChildNode == NULL)
+	{
+		return E_FAIL;
+	}
+
+	//循环获得Parameter下面的所有子节点
+	for (;pFirstChildChildNode != NULL; pFirstChildChildNode = pXmlCls->GetNextChildElement(pFirstChildChildNode))
+	{
+		//TiXmlElement *pParmName = pXmlCls->GetFirstChildElement(pFirstChildChildNode);
+		const char *pValue = pXmlCls->GetElementValue(pFirstChildChildNode);
+		olstParmNames.Append(CATUnicodeString(pValue));
+	}
+
+
+	//
+	delete pXmlCls;
+	pXmlCls = NULL;
+	return rc;
 }

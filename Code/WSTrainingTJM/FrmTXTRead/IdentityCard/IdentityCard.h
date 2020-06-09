@@ -55,3 +55,6 @@ AddPrereqComponent("YFAirventViewFeedbackFrm",Public);
 AddPrereqComponent("GeometricOperators",Public);
 AddPrereqComponent("Tessellation",Public);
 AddPrereqComponent("KinematicsInterfaces",Protected);
+AddPrereqComponent("SimulationInterfaces",Protected);
+AddPrereqComponent("SMTInterfaces",Protected);
+AddPrereqComponent("YFAirventXMLFrm",Protected);

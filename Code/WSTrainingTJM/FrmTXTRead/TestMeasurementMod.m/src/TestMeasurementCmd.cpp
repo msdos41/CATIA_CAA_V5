@@ -122,7 +122,7 @@ void TestMeasurementCmd::BuildGraph()
 
 	AddAnalyseNotificationCB(_pDlg,
 		_pDlg->GetDiaOKNotification(),
-		(CATCommandMethod)&TestMeasurementCmd::ActionOK2,
+		(CATCommandMethod)&TestMeasurementCmd::ActionOK3,
 		NULL);
 	//
 	_pSelAFieldAgent = new CATDialogAgent("Select A");
@@ -442,4 +442,150 @@ HRESULT TestMeasurementCmd::CheckClash(CATIProduct_var ispiPrd1,CATIProduct_var 
 	}
 
 	return S_OK;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+///////////////////////二分法 测量干涉////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+CATBoolean TestMeasurementCmd::ActionOK3(void * data)
+{
+	if (NULL!=_pHSO) _pHSO->Empty();
+	
+	CATTime iStartTime = CATTime::GetCurrentLocalTime();
+
+	vector<CATIProduct_var> lstProdA,lstProdB;
+	lstProdA.push_back(_spiProdSelA);
+	lstProdB.push_back(_spiProdSelB);
+	CATMathVector dir(0,0,1);
+	HRESULT rc=MeasureByDichotomy(lstProdA,lstProdB,dir);
+	if (FAILED(rc))
+	{
+		return FALSE;
+	}
+	
+	CATTime iEndTime = CATTime::GetCurrentLocalTime();
+
+	CATTimeSpan iTimeSpan=iEndTime-iStartTime;
+	cout<<"======> MeasureByDichotomy Run Time: "<<iTimeSpan.ConvertToString("%M:%S")<<endl;
+
+
+	return TRUE;
+}
+HRESULT TestMeasurementCmd::MeasureByDichotomy(vector<CATIProduct_var> ilstProdA,vector<CATIProduct_var> ilstProdB,CATMathVector iDir)
+{
+	HRESULT rc=S_OK;
+
+	//
+	iDir.Normalize();
+	double dValue=1000;	//移动初始值
+	double dDistTarget=0.05;
+	//先测量第一次
+	CATMathPoint ptA,ptB;
+	double dDist=-9999;
+	MeasureMinDistAmongProducts(ilstProdA,ilstProdB,ptA,ptB,dDist);
+	if (dDist>0.001)	//距离大于零，直接输出间隙
+	{
+		cout<<"====> Min Distance Among Products:  "<<dDist<<" mm"<<endl;
+		return rc;
+	} 
+	else	//距离为零，说明可能是干涉，需要计算干涉值
+	{
+		int iStatusBefore=-1;		//-1代表干涉，1代表间隙
+		CATMathTransformation transOrigin = _pGeneralCls->GetAbsTransformation(ilstProdA[0]);
+		vector<CATIProduct_var> lstTransProdA;
+		while(dDist<=0.001||dDist>dDistTarget)
+		{
+			lstTransProdA.swap(vector<CATIProduct_var>());
+			for (int i=0;i<ilstProdA.size();i++)
+			{
+				CATIProduct_var spiProd=ilstProdA[i];
+				CATMathTransformation transCurrent=_pGeneralCls->GetAbsTransformation(spiProd);
+				CATMathVector posCurrent;
+				transCurrent.GetVector(posCurrent);
+				CATMathPoint ptMove=CATMathPoint(posCurrent.GetX(),posCurrent.GetY(),posCurrent.GetZ())+dValue*iDir;
+				CATMathVector posMove(ptMove.GetX(),ptMove.GetY(),ptMove.GetZ());
+				transCurrent.SetVector(posMove);
+
+				CATIMovable_var spiMove=spiProd;
+				if (spiMove==NULL_var)
+				{
+					continue;
+				}
+				spiMove->SetAbsPosition(transCurrent);
+
+				//
+				lstTransProdA.push_back(spiProd);
+			}
+			
+			MeasureMinDistAmongProducts(lstTransProdA,ilstProdB,ptA,ptB,dDist);
+			int iStatusCurrent=0;
+			if (dDist<=0.001)
+			{
+				iStatusCurrent=-1;
+			} 
+			else
+			{
+				iStatusCurrent=1;
+			}
+
+			if (iStatusBefore*iStatusCurrent<0)	//前后2次状态不同，则下一次需要切换方向，同时value减半
+			{
+				iDir=-1*iDir;
+				dValue=0.5*dValue;
+			}
+
+			iStatusBefore=iStatusCurrent;
+		}
+
+		CATMathTransformation transMove = _pGeneralCls->GetAbsTransformation(lstTransProdA[0]);
+
+		CATMathVector dirOrigin,dirMove;
+		transOrigin.GetVector(dirOrigin);
+		transMove.GetVector(dirMove);
+		CATMathVector dirDist=dirMove-dirOrigin;
+		double dClash=sqrt(dirDist.GetX()*dirDist.GetX()+dirDist.GetY()*dirDist.GetY()+dirDist.GetZ()*dirDist.GetZ());
+
+		cout<<"====> Min Clash Among Products:  "<<dClash<<" mm"<<endl;
+
+	}
+	
+	return rc;
+}
+
+HRESULT TestMeasurementCmd::MeasureMinDistAmongProducts(vector<CATIProduct_var> ilstProdA,vector<CATIProduct_var> ilstProdB,CATMathPoint &oPtA,CATMathPoint &oPtB,double &odDistance)
+{
+	HRESULT rc=S_OK;
+	//
+	double dDistMin=DBL_MAX;
+	for (int i=0;i<ilstProdA.size();i++)
+	{
+		CATIProduct_var spiProdA=ilstProdA[i];
+		for (int j=0;j<ilstProdB.size();j++)
+		{
+			CATIProduct_var spiProdB=ilstProdB[j];
+
+			//
+			CATMathPoint ptA,ptB;
+			double dDist=-9999;
+			GetMinDistanceByMeasure(spiProdA,spiProdA,spiProdB,spiProdB,ptA,ptB,dDist);
+			if (dDist==9999)
+			{
+				continue;
+			}
+			if (dDist<=0.001)
+			{
+				odDistance=0;
+				return rc;
+			}
+			if (dDist<dDistMin)
+			{
+				dDistMin=dDist;
+				odDistance=dDist;
+				oPtA=ptA;
+				oPtB=ptB;
+			}
+		}
+	}
+	return rc;
 }

@@ -76,6 +76,9 @@ class TestMeasurementCmd: public CATStateCommand
   CATMathTransformation GetAbsTransformation( CATISpecObject_var ispSpecOne );
   HRESULT CheckClash(CATIProduct_var ispiPrd1,CATIProduct_var ispiPrd2);
   CATBoolean ActionOK2(void * data);
+  HRESULT MeasureByDichotomy(vector<CATIProduct_var> ilstProdA,vector<CATIProduct_var> ilstProdB,CATMathVector iDir);
+  HRESULT MeasureMinDistAmongProducts(vector<CATIProduct_var> ilstProdA,vector<CATIProduct_var> ilstProdB,CATMathPoint &oPtA,CATMathPoint &oPtB,double &odDistance);
+  CATBoolean ActionOK3(void * data);
 private:
 
 	  TestMeasurementDlg		*_pDlg;

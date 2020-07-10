@@ -169,16 +169,21 @@ void TestEnvelopeCmd::BuildGraph()
 		(CATCommandMethod)&TestEnvelopeCmd::ActionExit,
 		NULL);
 
-	//Translate
+	////Translate
+	//AddAnalyseNotificationCB(_pDlg,
+	//	_pDlg->GetDiaOKNotification(),
+	//	(CATCommandMethod)&TestEnvelopeCmd::ActionOK7,
+	//	NULL);
+
+	////Rotate
+	//AddAnalyseNotificationCB(_pDlg,
+	//	_pDlg->GetDiaAPPLYNotification(),
+	//	(CATCommandMethod)&TestEnvelopeCmd::ActionOK8,
+	//	NULL);
+
 	AddAnalyseNotificationCB(_pDlg,
 		_pDlg->GetDiaOKNotification(),
-		(CATCommandMethod)&TestEnvelopeCmd::ActionOK7,
-		NULL);
-
-	//Rotate
-	AddAnalyseNotificationCB(_pDlg,
-		_pDlg->GetDiaAPPLYNotification(),
-		(CATCommandMethod)&TestEnvelopeCmd::ActionOK8,
+		(CATCommandMethod)&TestEnvelopeCmd::ActionOK9,
 		NULL);
 	//
 	_pSelAFieldAgent = new CATDialogAgent("Select A");
@@ -4135,5 +4140,395 @@ HRESULT TestEnvelopeCmd::GetInfoFromXML(CATUnicodeString istrFullPath, CATListOf
 	//
 	delete pXmlCls;
 	pXmlCls = NULL;
+	return rc;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+CATBoolean TestEnvelopeCmd::ActionOK9(void * data)
+{
+	if (NULL!=_pHSO) _pHSO->Empty();
+	if (NULL!=_pISO) _pISO->Empty();
+	
+	if (_spiProdSelB!=NULL_var)
+	{
+		vector<CATIProduct_var> lstProdSel;
+		lstProdSel.push_back(_spiProdSelB);
+
+		vector<vector<CATBody_var>> vecLstBody;
+		vector<CATIProduct_var> lstProdInst;
+		HRESULT rc=GetAllBodiesFromProducts(lstProdSel,vecLstBody,lstProdInst);
+		if (FAILED(rc))
+		{
+			return FALSE;
+		}
+
+		for (int i=0;i<vecLstBody.size();i++)
+		{
+			vector<CATBody_var> lstBody=vecLstBody[i];
+			CATIProduct_var spiProdInst = lstProdInst[i];
+			CalculateOuterPointsOnXZPlane(lstBody,spiProdInst,_mapXY);
+		}
+
+		DrawTempPoints(_mapXY);
+
+	}
+	return TRUE;
+}
+HRESULT TestEnvelopeCmd::CalculateOuterPointsOnXZPlane(vector<CATBody_var> ilstBody, CATIProduct_var ispiProdInst,
+													   map<int,map<int,vector<CATMathPoint>>> &iomapXY)
+{
+	HRESULT rc = S_OK;
+	if (ispiProdInst==NULL_var||ilstBody.size()==0)
+	{
+		return E_FAIL;
+	}
+	CATMathTransformation transAbs = _pGeneralCls->GetAbsTransformation(ispiProdInst);
+	//
+	//Tessellate the body
+	double iStep   = 2;
+	double sag=	10;
+	//CATBodyTessellator * pTessellator = new CATBodyTessellator(spBody,sag);
+	CATCellTessellator * pTessellator = new CATCellTessellator(sag);
+	if( NULL == pTessellator ) 
+	{
+		cout << "==> Create CATCellTessellator error !" << endl;
+		return E_FAIL;
+	}
+	//Set the step to the CATCellTessellator.
+	pTessellator->SetStep(iStep);
+	//cout << "==> The step is: " << iStep << endl;
+
+	//Add face to the CATCellTessellator.
+	int iNumOfAllCells = 0;
+	CATLISTP(CATCell) lstAllCells;
+	for (int j=0;j<ilstBody.size();j++)
+	{
+		CATBody_var spBody=ilstBody[j];
+		if (spBody!=NULL_var)
+		{
+			CATLISTP(CATCell) cells;
+			spBody->GetAllCells( cells,2); 
+			int numberOfCells = cells.Size();
+			//cout <<"==> Number of face: " << numberOfCells << endl;
+			for (int ifa=1 ; ifa<=numberOfCells ; ifa++)
+			{
+				pTessellator->AddFace((CATFace *)(cells[ifa]));
+			}
+			if (numberOfCells>0)
+			{
+				iNumOfAllCells+=numberOfCells;
+				lstAllCells.Append(cells);
+			}
+			
+		}
+	}
+
+	//Run the CATCellTessellator
+	pTessellator->Run();
+
+
+
+	//CATISpecObject_var spLine;
+	// For every face.
+	for(int i=1;i<=iNumOfAllCells;i++) 
+	{
+		cout << "==> Face: " << i << endl;
+		// for each face, retrieve the tessellation results.
+		CATFace * piFace = (CATFace*) lstAllCells[i];
+		if( NULL == piFace )
+		{
+			return E_FAIL;
+		}
+		//Get the result.
+		CATBoolean isPlanar;
+		CATTessPointIter *    pVertices  = NULL;
+		CATTessStripeIter *   pStrips    = NULL;
+		CATTessFanIter *      pFans      = NULL;
+		CATTessPolyIter *     pPolygons  = NULL;
+		CATTessTrianIter *    pTriangles = NULL;
+		short side;
+		pTessellator->GetFace(piFace,isPlanar,&pVertices,&pStrips,&pFans,&pPolygons,&pTriangles,&side);		//获得的点都是局部坐标，按需转成全局
+
+		if (NULL==pVertices)
+		{
+			continue;
+		}
+
+		//获取所有点和法向的基础信息
+		float  (* aCoord)[3] = NULL;
+		float  (* aNormal)[3] = NULL;
+		int     * aNuPts     = NULL;
+		CATLONG32 nbp = 0;
+
+		nbp=pVertices->GetNbPoint();
+		aCoord = new float[nbp][3];
+		aNormal = new float[nbp][3];
+		pVertices->GetPointXyzAll(aCoord);	//获得所有的离散点
+		pVertices->GetPointNorAll(aNormal);	//获得每个离散点处的法向
+
+		//2维列表变成1维列表
+		int verticesArraySize=3*nbp;
+		int normalsArraySize=3*nbp;
+
+		//cout << "  ==> Total point: " << nbp << endl;
+
+		float *vertices=new float[verticesArraySize];
+		float *normals=new float[normalsArraySize];
+		for(int j=0;j<nbp;j++) {
+			for(int k=0;k<3;k++) {
+				vertices[3*j+k] = aCoord[j][k];
+				normals[3*j+k] = aNormal[j][k];
+			}
+		}
+
+		//   循环画点
+		int iNum = 0;
+		while (0 == (pVertices->IsExhausted()))
+		{
+			const double *aCoord = pVertices->GetPointXyz();
+			////模型上画出虚拟点，CATISO高亮
+			//DumITempPoint *piTempPoint = NULL;
+			//HRESULT rc = ::CATInstantiateComponent("DumTempPointComp", IID_DumITempPoint, (void**)&piTempPoint);
+			//if (SUCCEEDED(rc) && piTempPoint != NULL)
+			//{
+			//	piTempPoint->SetDatas(&CATMathPoint(*aCoord,*(aCoord+1),*(aCoord+2)));
+			//	_pISO->AddElement(piTempPoint);
+			//}
+			
+			CATMathPoint pt(aCoord);
+			pt = transAbs*pt;
+
+
+			double dX=pt.GetX();
+			//double dY=*(aCoord+1);
+			double dY=0;
+			double dZ=pt.GetZ();
+			pt.SetCoord(dX,dY,dZ);
+			int iX=(int)dX/2;
+			int iY=(int)dY;
+			int iZ=(int)dZ/2;
+
+			if (dX<0) iX--;
+			if (dY<0) iY--;
+			if (dZ<0) iZ--;
+
+			//XY
+			IsMaxOrMinPoint(pt,iomapXY[iX][iY],2);
+
+			//XZ
+			//IsMaxOrMinPoint(pt,iomapXZ[iX][iZ],1);
+
+			//YZ
+			//IsMaxOrMinPoint(pt,iomapYZ[iY][iZ],0);
+
+			pVertices->GoToNext();
+			iNum++;
+		}
+
+		//cout<<"==> Vertex number: "<<iNum<<endl;
+
+
+		if (NULL!=aCoord)
+		{
+			delete []aCoord;
+		}
+		if (NULL!=aNormal)
+		{
+			delete []aNormal;
+		}
+	}
+	delete pTessellator;   pTessellator = NULL;
+
+	return rc;
+}
+
+HRESULT TestEnvelopeCmd::GetAllBodiesFromProducts(vector<CATIProduct_var> ilstProd,vector<vector<CATBody_var>> &olstBody,vector<CATIProduct_var> &olstProdInst)
+{
+	cout<<"=========>Starting GetAllBodiesFromProducts............"<<endl;
+
+	HRESULT rc=S_OK;
+	for (int i=0;i<ilstProd.size();i++)
+	{
+		CATIProduct_var spiProd=ilstProd[i];
+		if (!_pGeneralCls->CheckShowState(spiProd) ||spiProd==NULL_var )
+		{
+			continue;
+		}
+		if (!_pGeneralCls->IsProduct(spiProd))	//如果是part，直接计算
+		{
+			CATUnicodeString strInstName="";
+			spiProd->GetPrdInstanceName(strInstName);
+			cout<<"===> Finding Instance :"<<strInstName<<endl;
+
+			vector<CATBody_var> lstBody;
+			rc=GetBodyFromSingleProduct(spiProd,lstBody);
+			if (lstBody.size()>0)
+			{
+				olstBody.push_back(lstBody);
+				olstProdInst.push_back(spiProd);
+			}
+			break;
+		} 
+		else
+		{
+			CATListValCATBaseUnknown_var *lstAllChildren = spiProd->GetAllChildren();
+			for (int i=1;i<=lstAllChildren->Size();i++)
+			{
+				CATIProduct_var spiChild=(*lstAllChildren)[i];
+				if (spiChild==NULL_var||!_pGeneralCls->CheckShowState(spiChild)||_pGeneralCls->IsProduct(spiChild))
+				{
+					continue;
+				}
+
+				CATUnicodeString strInstName="";
+				spiChild->GetPrdInstanceName(strInstName);
+				cout<<"===> Finding Instance :"<<strInstName<<endl;
+
+				vector<CATBody_var> lstBody;
+				rc=GetBodyFromSingleProduct(spiChild,lstBody);
+				if (lstBody.size()>0)
+				{
+					olstBody.push_back(lstBody);
+					olstProdInst.push_back(spiChild);
+				}
+			}
+		}
+	}
+
+	cout<<"=========>Ending GetAllBodiesFromProducts............"<<endl;
+
+	return rc;
+}
+
+HRESULT TestEnvelopeCmd::GetBodyFromSingleProduct(CATIProduct_var ispiProd,vector<CATBody_var> &olstBody)
+{
+	HRESULT rc=S_OK;
+	if (ispiProd == NULL_var)
+	{
+		return E_FAIL;
+	}
+	CATIPrtContainer_var  spRootContainer = _pGeneralCls->GetPrtContainer(ispiProd);
+	if( spRootContainer == NULL_var )
+	{
+		cout <<"# Get Container error !" << endl;
+		return E_FAIL;
+	}
+
+	CATISpecObject_var spiSpecOnPart = spRootContainer -> GetPart();
+	if (spiSpecOnPart == NULL_var)
+	{
+		cout<<"Get Part Failed!"<<endl;
+		return E_FAIL;
+	}
+
+	//
+	CATIPartRequest *piPartRequest = NULL;
+	CATListValCATBaseUnknown_var lstSolidBodies = NULL;
+	CATListValCATBaseUnknown_var lstSurfBodies = NULL;
+	rc = spiSpecOnPart->QueryInterface(IID_CATIPartRequest,(void**) &piPartRequest);
+	if (FAILED(rc) || piPartRequest == NULL)
+	{
+		return E_FAIL;
+	}
+	piPartRequest->GetSolidBodies("",lstSolidBodies);
+	piPartRequest->GetSurfBodies("",lstSurfBodies);
+	piPartRequest->Release();
+	piPartRequest = NULL;
+
+	if(lstSolidBodies.Size()>0)
+	{
+		for (int i=1;i<=lstSolidBodies.Size();i++)
+		{
+			CATISpecObject_var spCurrObj = lstSolidBodies[i];
+			if (NULL_var == spCurrObj) continue;
+
+			//先判断当前的Body是否隐藏
+			CATBoolean bShow = _pGeneralCls->CheckShowState(spCurrObj);
+			if (bShow == FALSE)
+			{
+				continue;
+			}
+			else	//当Body没有隐藏，再判断Body内的的solid是否隐藏
+			{
+				CATIDescendants *piDescendants = NULL;
+				CATListValCATISpecObject_var  ListOfChildrenObjects;
+				rc = spCurrObj->QueryInterface(IID_CATIDescendants,(void**) &piDescendants);
+				if( FAILED(rc) || piDescendants == NULL )
+				{
+					cout << "# Get CATIDescendants error !" << endl;
+					continue;
+				}
+				piDescendants->GetDirectChildren("CATIMfTriDimResult",ListOfChildrenObjects);
+				piDescendants->Release();
+				piDescendants = NULL;
+				//判断该body下是否是空的，若空，直接返回
+				if (ListOfChildrenObjects.Size() == 0)
+				{
+					continue;
+				}
+				//再检查子集是否隐藏
+				bShow = _pGeneralCls->CheckShowState(ListOfChildrenObjects[1]);
+				if (bShow == FALSE)
+				{
+					continue;
+				}
+			}
+
+			cout<<i<<" element "<<CATIAlias_var(spCurrObj)->GetAlias()<<endl;
+
+			CATBody_var spBody = _pGeneralCls->GetBodyFromFeature(spCurrObj);
+			if(spBody != NULL_var)
+			{
+				olstBody.push_back(spBody);
+			}
+		}
+	}
+
+	if (lstSurfBodies.Size()>0)
+	{
+		for (int i=1;i<=lstSurfBodies.Size();i++)
+		{
+			CATISpecObject_var spCurrGS = lstSurfBodies[i];
+			if (NULL_var == spCurrGS) continue;
+
+			//先判断当前的GS是否隐藏
+			CATBoolean bShow = _pGeneralCls->CheckShowState(spCurrGS);
+			if (bShow == FALSE)
+			{
+				continue;
+			}
+			else	//当GS没有隐藏，再判断GS内的直接二维元素子集是否隐藏
+			{
+				CATIDescendants *piDescendants = NULL;
+				CATListValCATISpecObject_var  ListOfChildrenObjects;
+				rc = spCurrGS->QueryInterface(IID_CATIDescendants,(void**) &piDescendants);
+				if( FAILED(rc) || piDescendants == NULL )
+				{
+					cout << "# Get CATIDescendants error !" << endl;
+					continue;
+				}
+				piDescendants->GetDirectChildren("CATIMfBiDimResult",ListOfChildrenObjects);
+				piDescendants->Release();
+				piDescendants = NULL;
+				//
+				for (int j=1;j<=ListOfChildrenObjects.Size();j++)
+				{
+					CATISpecObject_var spiSpecOnSurf = ListOfChildrenObjects[j];
+					if (spiSpecOnSurf==NULL_var||!_pGeneralCls->CheckShowState(spiSpecOnSurf))
+					{
+						continue;
+					}
+					CATBody_var spBody = _pGeneralCls->GetBodyFromFeature(spiSpecOnSurf);
+					if (spBody!=NULL_var)
+					{
+						olstBody.push_back(spBody);
+					}
+					cout<<i<<" GS: "<<CATIAlias_var(spCurrGS)->GetAlias()<<"  "<<j<<" Surface: "<<CATIAlias_var(spiSpecOnSurf)->GetAlias()<<endl;
+				}
+			}
+		}
+	}
 	return rc;
 }

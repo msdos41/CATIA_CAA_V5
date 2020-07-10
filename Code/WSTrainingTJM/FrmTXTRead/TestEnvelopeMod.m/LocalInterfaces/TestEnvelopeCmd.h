@@ -174,6 +174,10 @@ class TestEnvelopeCmd: public CATStateCommand
   HRESULT CreateSweptVol(vector<CATIProduct_var> ilstProd,CATIReplay *ipiReplay,CATUnicodeString istrSavePath);
   HRESULT GetInfoFromXML(CATUnicodeString istrFullPath, CATListOfCATUnicodeString &olstParmNames);
   int GetResourcePath(CATUnicodeString istrFileName,CATUnicodeString istrFilePath,CATUnicodeString &oPath);
+  HRESULT CalculateOuterPointsOnXZPlane(vector<CATBody_var> ilstBody, CATIProduct_var ispiProdInst, map<int,map<int,vector<CATMathPoint>>> &iomapXY);
+  HRESULT GetAllBodiesFromProducts(vector<CATIProduct_var> ilstProd,vector<vector<CATBody_var>> &olstBody,vector<CATIProduct_var> &olstProdInst);
+  HRESULT GetBodyFromSingleProduct(CATIProduct_var ispiProd,vector<CATBody_var> &olstBody);
+  CATBoolean ActionOK9(void * data);
 private:
 
 	  TestEnvelopeDlg		*_pDlg;

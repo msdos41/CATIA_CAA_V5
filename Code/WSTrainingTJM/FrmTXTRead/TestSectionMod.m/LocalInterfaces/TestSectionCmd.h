@@ -27,6 +27,7 @@
 #include "CATIASection.h"
 #include "CATIAProduct.h"
 #include "CATDocument.h"
+#include "CATIAProducts.h"
 
 class CATIndicationAgent;
 
@@ -63,7 +64,8 @@ class TestSectionCmd: public CATStateCommand
      */
   virtual CATBoolean  ActionOne(void * data);
   HRESULT CreateCATIASection(CATIProduct_var ispiProdRoot);
-  private:
+  HRESULT CreateObjInApplication(CATIProduct_var ispiProdRoot);
+private:
 
 	  GeneralClass			*_pGeneralCls;
 

@@ -17,6 +17,8 @@
 #include "CATMathPlane.h"
 
 #include "CATCreateExternalObject.h"
+
+
 CATCreateClass( TestSectionCmd);
 
 
@@ -40,7 +42,9 @@ TestSectionCmd::TestSectionCmd() :
 	}
 
 	//
-	CreateCATIASection(spiProdRoot);
+	//CreateCATIASection(spiProdRoot);
+
+	CreateObjInApplication(spiProdRoot);
 
 }
 
@@ -143,5 +147,30 @@ HRESULT TestSectionCmd::CreateCATIASection(CATIProduct_var ispiProdRoot)
 		return E_FAIL;
 	}
 
+	return rc;
+}
+
+HRESULT TestSectionCmd::CreateObjInApplication(CATIProduct_var ispiProdRoot)
+{
+	HRESULT rc = S_OK;
+	//
+	//开始获取CATIASections
+	CATIAProduct* piaCATIAPrd = NULL;
+	rc = ispiProdRoot ->QueryInterface( IID_CATIAProduct, (void **)&piaCATIAPrd );
+	if (FAILED(rc)||piaCATIAPrd==NULL)
+	{
+		return E_FAIL;
+	}
+	CATIAProduct* piaProduct = NULL;
+	CATUnicodeString    strname = "Documents";
+	CATBSTR BSTR;
+	strname.ConvertToBSTR(&BSTR );
+	CATBaseDispatch* pBaseDis = NULL;
+	piaCATIAPrd->GetTechnologicalObject( BSTR, pBaseDis); //获取Object对象
+	//CATIAProducts_var spiaProducts = pBaseDis;
+	pBaseDis->QueryInterface( IID_CATIAProduct, (void **)&piaProduct );
+	//创建一个CATISection并添加到CATIASections集中
+
+	//
 	return rc;
 }

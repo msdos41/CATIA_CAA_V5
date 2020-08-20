@@ -42,9 +42,9 @@ TestSectionCmd::TestSectionCmd() :
 	}
 
 	//
-	//CreateCATIASection(spiProdRoot);
+	CreateCATIASection(spiProdRoot);
 
-	CreateObjInApplication(spiProdRoot);
+	//CreateObjInApplication(spiProdRoot);
 
 }
 
@@ -104,12 +104,12 @@ HRESULT TestSectionCmd::CreateCATIASection(CATIProduct_var ispiProdRoot)
 	piaSections->Add( piaSection);
 
 	//
-	double arrPos[] = {1, 0, 0, 0, 0, 1, 0, -1, 0, 1500, 0, 0};
+	double arrPos[] = {1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0};
 
 	long lngSize = 12;
 	CATSafeArrayVariant* pSafeArray = BuildSafeArrayVariant(arrPos, lngSize);
-	piaSection->put_Height(3000);
-	piaSection->put_Width(6000);
+	piaSection->put_Height(500);		//v向的长度，两边对半(第二个方向，即竖直向)
+	piaSection->put_Width(5000);		//u向的长度，两边对半(第一个方向，即水平向)
 	piaSection->put_Type(catSectionTypePlane);
 	piaSection->SetPosition(*pSafeArray);
 

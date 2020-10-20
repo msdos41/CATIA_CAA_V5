@@ -85,6 +85,7 @@ void MyAddinMain::CreateCommands ()
 	new MyAddinHdr("TestSection","TestSectionMod","TestSectionCmd", (void*)NULL);
 	new MyAddinHdr("TestMeasurement","TestMeasurementMod","TestMeasurementCmd", (void*)NULL);
 	new MyAddinHdr("TestEnvelope","TestEnvelopeMod","TestEnvelopeCmd", (void*)NULL);
+	new MyAddinHdr("TestPicture","TestPictureMod","TestPictureCmd", (void*)NULL);
 }
 
 //-----------------------------------------------------------------------------
@@ -212,6 +213,10 @@ CATCmdContainer * MyAddinMain::CreateToolbars ()
 	NewAccess(CATCmdStarter,pTestEnvelope,TestEnvelope);
 	SetAccessCommand(pTestEnvelope,"TestEnvelope");
 	SetAccessNext(pTestMeasurement,pTestEnvelope);
+
+	NewAccess(CATCmdStarter,pTestPicture,TestPicture);
+	SetAccessCommand(pTestPicture,"TestPicture");
+	SetAccessNext(pTestEnvelope,pTestPicture);
 
 	AddToolbarView(pMyTlb,1,Left);
     return pMyTlb;

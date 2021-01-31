@@ -1,0 +1,47 @@
+// DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
+CATDlgDialog TJMWheelHouseDraftDlg
+{
+  STYLE = CATDlgWndBtnOKCancel|CATDlgGridLayout;
+}
+
+CATDlgLabel Label001
+{
+  FATHER = TJMWheelHouseDraftDlg;
+  GRID = { 1, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgSelectorList SelectorListSketch
+{
+  FATHER = TJMWheelHouseDraftDlg;
+  TH = 1;
+  TW = 15;
+  GRID = { 1, 1, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgLabel Label003
+{
+  FATHER = TJMWheelHouseDraftDlg;
+  GRID = { 2, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgSelectorList SelectorListToolingDir
+{
+  FATHER = TJMWheelHouseDraftDlg;
+  TH = 1;
+  GRID = { 2, 1, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgLabel Label004
+{
+  FATHER = TJMWheelHouseDraftDlg;
+  GRID = { 0, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgSelectorList SelectorListWheelHouseSurface
+{
+  FATHER = TJMWheelHouseDraftDlg;
+  TH = 1;
+  GRID = { 0, 1, 1, 1, CATGRID_4SIDES };
+}
+
+// END WIZARD REPLACEMENT ZONE

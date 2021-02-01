@@ -50,6 +50,16 @@ TJMWheelHouseDraftCmd::TJMWheelHouseDraftCmd() :
 	}
 
 	_pHSO=_pEditor->GetHSO();
+
+	if (!TJMWheelHouseDraftGeneralClass::GetCurrentActiveProduct(_pEditor,_spiRootProduct)||_spiRootProduct==NULL_var)
+	{
+		cout<<"GetCurrentActiveProduct Failed"<<endl;
+		RequestDelayedDestruction();
+		return;
+	}
+	
+
+	InitialDlg();
 }
 
 //-------------------------------------------------------------------------
@@ -132,22 +142,25 @@ void TJMWheelHouseDraftCmd::BuildGraph()
 		(CATCommandMethod)&TJMWheelHouseDraftCmd::ActionOKFunc,
 		NULL);
 
+	CATAcquisitionFilter * pFilterSelected = Filter((FilterMethod) &TJMWheelHouseDraftCmd::CheckSelectedElement,(void *)NULL);
+
 	//Sketch选择
 	_pSketchAgent = new CATPathElementAgent("Select Sketch");
 	_pSketchAgent->SetElementType("CATISketch");
 	_pSketchAgent->SetBehavior(CATDlgEngWithPrevaluation|CATDlgEngWithCSO|CATDlgEngWithPSOHSO|CATDlgEngOneShot);
+	_pSketchAgent->SetFilter(pFilterSelected);
 
 	//Line选择
 	_pLineAgent = new CATPathElementAgent("Select Line");
 	_pLineAgent->SetElementType("CATLine");
 	_pLineAgent->SetBehavior(CATDlgEngWithPrevaluation|CATDlgEngWithCSO|CATDlgEngWithPSOHSO|CATDlgEngOneShot);
+	_pLineAgent->SetFilter(pFilterSelected);
 
 	//Surface选择
 	_pSurfaceAgent = new CATPathElementAgent("Select Surface");
 	_pSurfaceAgent->SetElementType("CATIMeasurableSurface");
 	_pSurfaceAgent->SetBehavior(CATDlgEngWithPrevaluation|CATDlgEngWithCSO|CATDlgEngWithPSOHSO|CATDlgEngOneShot);
-	CATAcquisitionFilter * pFilterSurface = Filter((FilterMethod) &TJMWheelHouseDraftCmd::CheckSelectedSurface,(void *)NULL);
-	_pSurfaceAgent->SetFilter(pFilterSurface);
+	_pSurfaceAgent->SetFilter(pFilterSelected);
 
 	_pSurfaceFieldAgent = new CATDialogAgent("Select A Surface Field");
 	_pSurfaceFieldAgent->AcceptOnNotify(_pDlg->GetSelectorListFunc(0),
@@ -204,7 +217,7 @@ void TJMWheelHouseDraftCmd::BuildGraph()
 		Action((ActionMethod)& TJMWheelHouseDraftCmd::TransToSurfFunc));
 
 	AddTransition(pSketchState,pSurfState,
-		IsOutputSetCondition(_pASurfaceFieldAgent),
+		IsOutputSetCondition(_pSurfaceFieldAgent),
 		Action((ActionMethod)& TJMWheelHouseDraftCmd::TransToSurfFunc));
 
 
@@ -315,6 +328,36 @@ void TJMWheelHouseDraftCmd::SelectSurfaceFunc(void * data)
 	_pSurfaceAgent->InitializeAcquisition();
 }
 
+void TJMWheelHouseDraftCmd::SelectSketchFunc(void * data)
+{
+	if (_pHSO!=NULL)	_pHSO->Empty();
+	//if (_pISO!=NULL)	_pISO->Empty();
+
+	CATBaseUnknown_var spBUSelect = NULL_var;
+	CATIProduct_var spiProdSelect = NULL_var;
+	CATISpecObject_var spiSpecSelect = NULL_var;
+	//STTGeneralCls::TransferSelect(_pSurfaceAgent,spBUSelect,spiProdSelect);
+	TJMWheelHouseDraftGeneralClass::TransferSelectToBU(_pSketchAgent,spBUSelect,spiProdSelect);
+	if (spBUSelect == NULL_var || spiProdSelect == NULL_var)
+	{
+		_pSketchAgent->InitializeAcquisition();
+		return;
+	}
+
+	if (_intSelType==1)
+	{
+		_spBUSketch = spBUSelect;
+
+		_pDlg->GetSelectorListFunc(1)->ClearLine();
+		CATUnicodeString strAlias = TJMWheelHouseDraftGeneralClass::GetNameFromBaseUnknownFunc(spBUSelect);
+		_pDlg->GetSelectorListFunc(1)->SetLine(strAlias,-1,CATDlgDataAdd);
+		int iTabRow = 0;
+		_pDlg->GetSelectorListFunc(1)->SetSelect(&iTabRow,1);
+	}
+
+	_pSketchAgent->InitializeAcquisition();
+}
+
 //************************************
 // Method:    SelectLineFunc
 // FullName:  YFCNSLRearPanelFixStrcCmd::SelectLineFunc
@@ -349,4 +392,146 @@ void TJMWheelHouseDraftCmd::SelectLineFunc(void * data)
 	}
 
 	_pLineAgent->InitializeAcquisition();
+}
+
+CATBoolean TJMWheelHouseDraftCmd::CheckSelectedElement(void * data)
+{
+	if (_intSelType==0)
+	{
+		CATISpecObject_var spiSpecSelect = NULL_var;
+		CATIProduct_var spiProdSelect = NULL_var;
+		TJMWheelHouseDraftGeneralClass::TransferSelectToSpecObjOnTree(_pSurfaceAgent,spiSpecSelect,spiProdSelect);
+		if (spiSpecSelect == NULL_var || spiProdSelect == NULL_var || spiProdSelect!=_spiRootProduct)
+		{
+			return FALSE;
+		}
+		else
+		{
+			CATIMf3DAxisSystem_var spiAxisSys = spiSpecSelect;
+			CATIMfInfiniteResult_var spiInfResult = spiSpecSelect;
+			if (spiAxisSys!=NULL_var||spiInfResult!=NULL_var)
+			{
+				return FALSE;
+			}
+			CATIMfBiDimResult_var spiMfBiDimResult = spiSpecSelect;
+			if (spiMfBiDimResult==NULL_var)
+			{
+				return FALSE;
+			}
+		}
+	}
+	else
+	{
+		CATBaseUnknown_var spBUSelect = NULL_var;
+		CATIProduct_var spiProdSelect = NULL_var;
+
+		if (_intSelType==1)
+		{
+			TJMWheelHouseDraftGeneralClass::TransferSelectToBU(_pSketchAgent,spBUSelect,spiProdSelect);
+		} 
+		else if (_intSelType==2)
+		{
+			TJMWheelHouseDraftGeneralClass::TransferSelectToBU(_pLineAgent,spBUSelect,spiProdSelect);
+		}
+		if (spBUSelect == NULL_var || spiProdSelect == NULL_var || spiProdSelect!=_spiRootProduct)
+		{
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
+
+//************************************
+// Method:    TransToASurfFunc
+// FullName:  YFCNSLRearPanelFixStrcCmd::TransToASurfFunc
+// Access:    public 
+// Returns:   void
+// Qualifier: 切换到选择A面控件
+// Parameter: void *data
+//************************************
+void TJMWheelHouseDraftCmd::TransToSurfFunc(void * data)
+{
+	_intSelType=0;
+	
+	InitializeControlsFunc(_intSelType);
+
+	TJMWheelHouseDraftGeneralClass::SetHighlight(_spBUSurface,_pEditor,_pHSO);
+
+}
+
+//************************************
+// Method:    TransToASurfFunc
+// FullName:  YFCNSLRearPanelFixStrcCmd::TransToASurfFunc
+// Access:    public 
+// Returns:   void
+// Qualifier: 切换到选择拔模线控件
+// Parameter: void *data
+//************************************
+void TJMWheelHouseDraftCmd::TransToSketchFunc(void * data)
+{
+	_intSelType=1;
+
+	InitializeControlsFunc(_intSelType);
+
+	TJMWheelHouseDraftGeneralClass::SetHighlight(_spBUSketch,_pEditor,_pHSO);
+
+}
+
+//************************************
+// Method:    TransToASurfFunc
+// FullName:  YFCNSLRearPanelFixStrcCmd::TransToASurfFunc
+// Access:    public 
+// Returns:   void
+// Qualifier: 切换到选择拔模线控件
+// Parameter: void *data
+//************************************
+void TJMWheelHouseDraftCmd::TransToToolingDirFunc(void * data)
+{
+	_intSelType=2;
+
+	InitializeControlsFunc(_intSelType);
+
+	TJMWheelHouseDraftGeneralClass::SetHighlight(_spBUToolingDir,_pEditor,_pHSO);
+
+}
+
+//************************************
+// Method:    InitializeControlsFunc
+// FullName:  YFCNSLRearPanelFixStrcCmd::InitializeControlsFunc
+// Access:    public 
+// Returns:   void
+// Qualifier: 重置控件
+// Parameter: int iExcept
+//************************************
+void TJMWheelHouseDraftCmd::InitializeControlsFunc(int iExcept)
+{
+	if (_pHSO!=NULL)	_pHSO->Empty();
+	//if (_pISO!=NULL)	_pISO->Empty();
+
+	_pSurfaceFieldAgent->InitializeAcquisition();
+	_pToolingDirFieldAgent->InitializeAcquisition();
+	_pSketchFieldAgent->InitializeAcquisition();
+
+	for (int i=0;i<=2;i++)
+	{
+		if (iExcept==i)
+		{
+			continue;
+		}
+		_pDlg->GetSelectorListFunc(i)->ClearSelect();
+	}
+}
+
+void TJMWheelHouseDraftCmd::InitialDlg()
+{
+	//SelectorList
+	CATUnicodeString strDefault="No Selection";
+	for (int i=0;i<=2;i++)
+	{
+		_pDlg->GetSelectorListFunc(i)->SetLine(strDefault);
+	}
+
+	int iTabRow=0;
+	_pDlg->GetSelectorListFunc(0)->SetSelect(&iTabRow,1);
+
 }

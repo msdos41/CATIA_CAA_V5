@@ -21,3 +21,7 @@ AddPrereqComponent("Mathematics",Protected);
 AddPrereqComponent("Dialog",Protected);
 AddPrereqComponent("ApplicationFrame",Public);
 // END WIZARD EDITION ZONE
+AddPrereqComponent("TJMWheelHouseDraftGeneralFrm",Protected);
+AddPrereqComponent("ObjectSpecsModeler",Protected);
+AddPrereqComponent("ProductStructure",Protected);
+AddPrereqComponent("MecModInterfaces",Protected);

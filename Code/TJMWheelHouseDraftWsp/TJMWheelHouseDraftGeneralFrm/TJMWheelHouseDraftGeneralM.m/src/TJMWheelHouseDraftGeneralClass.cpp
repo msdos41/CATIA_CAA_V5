@@ -1116,7 +1116,7 @@ void TJMWheelHouseDraftGeneralClass::TransferSelectToBU(CATFeatureImportAgent *p
 }
 
 //选择元素，转换成BaseUnknown，并同时返回所属Product(Instance)
-void TJMWheelHouseDraftGeneralClass::TransferSelectToBU(CATPathElementAgent *pPathElemAgent,CATBaseUnknown *&opBUSelection, CATIProduct_var &ospProductSeletion) 
+void TJMWheelHouseDraftGeneralClass::TransferSelectToBU(CATPathElementAgent *pPathElemAgent,CATBaseUnknown_var &ospBUSelection, CATIProduct_var &ospProductSeletion) 
 {
 	HRESULT rc = E_FAIL;
 
@@ -1127,7 +1127,7 @@ void TJMWheelHouseDraftGeneralClass::TransferSelectToBU(CATPathElementAgent *pPa
 	CATPathElement *pPath = pPathElemAgent->GetValue();
 	CATBaseUnknown *pSelection = pPathElemAgent->GetElementValue();
 
-	opBUSelection = pSelection;
+	ospBUSelection = pSelection;
 
 	//返回所属Product
 	CATBaseUnknown *pProduct = pPath->FindElement(IID_CATIProduct);
@@ -3623,4 +3623,34 @@ HRESULT TJMWheelHouseDraftGeneralClass::GetValueFromPara(CATICkeParm_var ispPara
 
 	oListParaValue=ListParaValue;
 	return S_OK;
+}
+
+CATBoolean TJMWheelHouseDraftGeneralClass::GetCurrentActiveProduct(CATFrmEditor * ipEditor,CATIProduct_var &ospProduct)
+{
+	HRESULT rc=S_OK;
+
+	CATPathElement pPath =ipEditor->GetUIActiveObject();
+
+	CATIProduct *piProduct=NULL;
+	rc = pPath.Search(IID_CATIProduct,(void **)&piProduct);
+
+	//查找CATIProduct失败，可能当前打开文档为Part	
+	if(piProduct==NULL)
+	{
+		CATIPrtPart *piPrtPart=NULL;
+		rc = pPath.Search(IID_CATIPrtPart,(void **)&piPrtPart);
+		if(piPrtPart==NULL)
+			return NULL;
+
+		CATISpecObject_var spProductObject=piPrtPart->GetProduct();
+		if (spProductObject==NULL_var)
+			return NULL;
+
+		ospProduct=spProductObject;
+
+	}
+	else
+		ospProduct=piProduct;
+
+	return TRUE;
 }

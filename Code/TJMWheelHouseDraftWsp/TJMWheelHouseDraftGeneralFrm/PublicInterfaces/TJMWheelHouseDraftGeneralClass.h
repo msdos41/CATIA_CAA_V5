@@ -429,7 +429,7 @@ public:
 	static CATGeoFactory*GetCATGeoFactory(CATDocument * ipDoc);
 	static CATBoolean CreatePlaneBody( CATGeoFactory_var spGeoFactory,CATTopData * topdata, CATMathPlane iMathPlane,CATBody_var &ospPlaneBody );
 	static void TransferSelectToBU(CATFeatureImportAgent *pFeatAgent,CATBaseUnknown *&opBUSelection, CATIProduct_var &ospProductSeletion);
-	static void TransferSelectToBU(CATPathElementAgent *pPathElemAgent,CATBaseUnknown *&opBUSelection, CATIProduct_var &ospProductSeletion);
+	static void TransferSelectToBU(CATPathElementAgent *pPathElemAgent,CATBaseUnknown_var &ospBUSelection, CATIProduct_var &ospProductSeletion);
 	static void SetHighlight(CATBaseUnknown *ipBUSelect, CATFrmEditor *ipEditor, CATHSO *ipHSO);
 	static void SetHighlight(CATBaseUnknown *pBUSelect);
 	static void SetHighlight(CATPathElementAgent *ipPathElemAgt, CATHSO *ipHSO);
@@ -491,7 +491,7 @@ public:
 	static CATBoolean SetTableCellString(CATIADrawingTable * pTable, int iRowNum, int iColNum, double idbFontSize, int iRed, int iGreen, int iBlue, boolean iBold , double idbCharSpacing, int iPos, CATUnicodeString istrName);
 	static double SetRound(double data,int nPoint);
 	static HRESULT GetValueFromPara(CATICkeParm_var ispPara,CATListOfCATUnicodeString& oListParaValue);
-
+	static CATBoolean GetCurrentActiveProduct(CATFrmEditor * ipEditor,CATIProduct_var &ospProduct);
 };
 
 #endif

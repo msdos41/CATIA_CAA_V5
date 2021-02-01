@@ -16,7 +16,12 @@ JS0GROUP JS0FM DI0PANV2 CATMathematics CATDialogEngine  \
 CATApplicationFrame 
 # END WIZARD EDITION ZONE
 
-LINK_WITH = $(WIZARD_LINK_MODULES)
+LINK_WITH = $(WIZARD_LINK_MODULES)		\
+TJMWheelHouseDraftGeneralM		\
+CATObjectSpecsModeler			\
+CATProductStructure1			\
+CATMecModInterfaces			\
+
 
 # System dependant variables
 #

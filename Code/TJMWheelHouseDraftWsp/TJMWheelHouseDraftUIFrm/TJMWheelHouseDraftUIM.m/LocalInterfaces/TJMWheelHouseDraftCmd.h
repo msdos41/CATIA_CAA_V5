@@ -24,6 +24,9 @@
 #include "TJMWheelHouseDraftDlg.h"
 #include "TJMWheelHouseDraftGeneralClass.h"
 
+#include "CATIMfInfiniteResult.h"
+#include "CATIMfBiDimResult.h"
+
 class CATIndicationAgent;
 
 //----------------------------------------------------------------------
@@ -60,6 +63,15 @@ class TJMWheelHouseDraftCmd: public CATStateCommand
   virtual CATBoolean  ActionOne(void * data);
   CATBoolean ActionCancelFunc(void * data);
   CATBoolean ActionOKFunc(void * data);
+  void SelectSurfaceFunc(void * data);
+  void SelectSketchFunc(void * data);
+  void SelectLineFunc(void * data);
+  CATBoolean CheckSelectedElement(void * data);
+  void TransToSurfFunc(void * data);
+  void TransToSketchFunc(void * data);
+  void TransToToolingDirFunc(void * data);
+  void InitializeControlsFunc(int iExcept);
+  void InitialDlg();
 private:
 
 	  TJMWheelHouseDraftDlg				*_pDlg;
@@ -87,6 +99,8 @@ private:
 	  CATBaseUnknown_var				_spBUSketch;
 
 	  CATBaseUnknown_var				_spBUToolingDir;
+
+	  CATIProduct_var					_spiRootProduct;
 
 };
 

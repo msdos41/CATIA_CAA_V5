@@ -286,6 +286,22 @@ CATBoolean TJMWheelHouseDraftCmd::ActionCancelFunc(void * data)
 //************************************
 CATBoolean TJMWheelHouseDraftCmd::ActionOKFunc(void * data)
 {
+	CATTime iStartTime = CATTime::GetCurrentLocalTime();
+
+	TJMWheelHouseDraftCls *pCls = new TJMWheelHouseDraftCls();
+	pCls->SetDatas(&_spiRootProduct,&_spiSpecSurfaceWH,&_spBUSketch,&_spBUToolingDir);
+	pCls->ComputeResults();
+
+	if (pCls!=NULL)
+	{
+		delete pCls;
+		pCls=NULL;
+	}
+
+	CATTime iEndTime1 = CATTime::GetCurrentLocalTime();
+	CATTimeSpan iTimeSpan=iEndTime1-iStartTime;
+	cout<<"=========> Calculate Run Time: "<<iTimeSpan.ConvertToString("%M:%S")<<endl;
+	
 	RequestDelayedDestruction();
 	return TRUE;
 }
@@ -316,7 +332,7 @@ void TJMWheelHouseDraftCmd::SelectSurfaceFunc(void * data)
 
 	if (_intSelType==0)
 	{
-		_spBUSurface = spiSpecSelect;
+		_spiSpecSurfaceWH = spiSpecSelect;
 
 		_pDlg->GetSelectorListFunc(0)->ClearLine();
 		CATUnicodeString strAlias = TJMWheelHouseDraftGeneralClass::GetNameFromBaseUnknownFunc(spiSpecSelect);

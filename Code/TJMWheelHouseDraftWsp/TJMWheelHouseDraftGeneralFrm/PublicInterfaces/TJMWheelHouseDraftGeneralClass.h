@@ -135,6 +135,8 @@
 #include "CATIGSMProceduralView.h"
 #include "CATIGSMFactory.h"
 #include "CATIGSMAssemble.h"
+#include "CATIGSMPlaneOffset.h"
+#include "CATIGSMOffset.h"
 //MecModInterfaces
 #include "CATIPrtContainer.h"
 #include "CATIMfBRep.h"
@@ -269,8 +271,6 @@
 
 #include "CATMfErrUpdate.h"
 #include "CATIContainerOfDocument.h"
-#include "CATIPrtPart.h"
-#include "CATIBRepAccess.h"
 
 //ObjectModelerBase 
 #include "CATIContainer.h"
@@ -320,6 +320,8 @@
 #include "CATHybProject.h"
 #include "CATDynMassProperties3D.h"
 #include "CATTopPrism.h"
+#include "CATCreateTopBoolean.h"
+#include "CATHybSplit.h"
 
 //InfInterfaces
 #include "CATIADocument.h"
@@ -339,6 +341,8 @@
 //Tessellation
 #include "CATCellTessellator.h"
 
+//Part
+#include "CATIPrtFactory.h"
 
 //CATInteractiveInterfaces 
 #include "CATIBuildPath.h"
@@ -363,6 +367,16 @@
 #include "CATTopVertex.h"
 #include "CATCartesianPoint.h"
 #include "CATTopLineOperator.h"
+
+#include "CATIAPart.h"
+#include "CATIAFactory.h"
+#include "CATIAShapeFactory.h"
+#include "CATIAHybridShapeFactory.h"
+#include "CATIAReference.h"
+#include "CATIAHybridShapeExtract.h"
+#include "CATIABody.h"
+#include "CATIAAssemble.h"
+#include "CATIARemove.h"
 
 #include "string.h"
 #include "fstream.h"
@@ -459,6 +473,7 @@ public:
 	static void TransferSelectToSpecObjOnTree(CATPathElementAgent *pPathElemAgent,CATISpecObject_var &ospiSpecSelection, CATIProduct_var &ospProductSeletion);
 	static CATCurve_var GetCurveFromCell(CATCell_var ispCellCurve);
 	static CATBody* CreateTopProject(CATGeoFactory* ipGeoFactory, CATTopData* itopdata,CATBody* iBody1,CATBody* iBody2);
+	static CATBody_var CreateTopProject(CATGeoFactory* ipGeoFactory, CATTopData* itopdata,CATBody_var iBodyToProject,CATBody_var iBodySupport,CATMathDirection iDir);
 	static CATBoolean GetPathElement( CATBaseUnknown_var ispSpecSelect,CATPathElement* &pPathElementLine);
 	static void ShowOrHideElement(CATISpecObject_var ispiElement, CATShowAttribut iEnumShowAttribute, CATVisPropertyType iEnumVisPropertyType, CATVisGeomType iEnumVisGeomType);
 	static CATBoolean SetActivePathFunc( CATBaseUnknown_var ispSpecSelect);
@@ -492,6 +507,18 @@ public:
 	static double SetRound(double data,int nPoint);
 	static HRESULT GetValueFromPara(CATICkeParm_var ispPara,CATListOfCATUnicodeString& oListParaValue);
 	static CATBoolean GetCurrentActiveProduct(CATFrmEditor * ipEditor,CATIProduct_var &ospProduct);
+	static HRESULT CreateNewPrtTool(CATIProduct_var ispiProd,CATUnicodeString istrName,CATISpecObject_var &ospiSpecPrtTool);
+	static int GetSurfacePositiveOrNegative(CATGeoFactory *ipGeoFact,CATTopData *ipTopData,CATBody_var ispBodySurface, CATMathPoint iPt,CATMathVector iDir,double idExtendDist);
+	static HRESULT CreateTopLine(CATGeoFactory *ipGeoFact,CATTopData *ipTopData, CATMathPoint iPt1,CATMathPoint iPt2, CATBody_var &ospBodyLine);
+	static HRESULT CreateGSMOffsetPlane(CATIGSMFactory_var ispGSMFactory, CATICkeParmFactory_var ispCkeFactory, CATISpecObject_var ispSpecToOffset, CATISpecObject_var ispInputParent, double idOffset, CATGSMOrientation iOrientation, CATISpecObject_var &ospiSpecOffsetPlane);
+	static HRESULT CreateGSMOffsetSurface(CATIGSMFactory_var ispGSMFactory, CATICkeParmFactory_var ispCkeFactory, CATISpecObject_var ispSpecToOffset, CATISpecObject_var ispInputParent, double idOffset, CATBoolean ibInvert, CATISpecObject_var &ospiSpecOffsetSurface);
+	static BOOL IsObjectExistUpdateError(CATISpecObject_var spObject,int &trytimes);
+	static HRESULT CreateBodyToAssemble(CATIAPart_var ispVBPart, CATIAShapeFactory_var ispShapeFactory, CATISpecObject_var ispSpecPrtTool, CATISpecObject_var ispBodyToAssemble);
+	static HRESULT CreatePrtSolidSplit(CATIPrtFactory_var ispiPrtFact, CATISpecObject_var ispiSpecCurrentFeature, CATISpecObject_var ispiSpecSplitSurface, int iSplitSide);
+	static HRESULT CreateVBExtract(CATISpecObject_var ispSpecPart, CATISpecObject_var ispSpecToExtract, CATISpecObject_var ispInputParent, int iPropagation, CATISpecObject_var &ospExtractSpec);
+	static HRESULT CreateVBExtract(CATIAPart_var ispiaPart, CATIAHybridShapeFactory_var ispiaHybridShapeFact, CATISpecObject_var ispSpecToExtract, CATISpecObject_var ispInputParent, int iPropagation, CATISpecObject_var &ospExtractSpec);
+	static CATBoolean ConvertToSupportSpec(CATBaseUnknown_var ispFeature,CATISpecObject_var &ospSpec);
+	static HRESULT CreateVBOffset(CATIAPart_var ispiaPart, CATIAHybridShapeFactory_var ispiaHybridShapeFact, CATISpecObject_var ispSpecToOffset, CATISpecObject_var ispInputParent, double idOffset, boolean iOrientation, CATISpecObject_var &ospOffsetSpec);
 };
 
 #endif

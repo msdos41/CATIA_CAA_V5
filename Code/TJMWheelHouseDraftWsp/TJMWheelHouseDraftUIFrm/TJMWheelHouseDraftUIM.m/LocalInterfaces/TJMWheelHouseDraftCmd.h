@@ -23,6 +23,7 @@
 
 #include "TJMWheelHouseDraftDlg.h"
 #include "TJMWheelHouseDraftGeneralClass.h"
+#include "TJMWheelHouseDraftCls.h"
 
 #include "CATIMfInfiniteResult.h"
 #include "CATIMfBiDimResult.h"
@@ -95,6 +96,8 @@ private:
 	  int								_intSelType;
 
 	  CATBaseUnknown_var				_spBUSurface;
+
+	  CATISpecObject_var				_spiSpecSurfaceWH;
 
 	  CATBaseUnknown_var				_spBUSketch;
 

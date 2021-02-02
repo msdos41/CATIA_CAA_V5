@@ -44,3 +44,4 @@ AddPrereqComponent("ProductStructureInterfaces",Public);
 AddPrereqComponent("Tessellation",Public);
 AddPrereqComponent("NavigatorInterfaces",Public);
 AddPrereqComponent("CATTPSInterfaces",Public);
+AddPrereqComponent("PartInterfaces",Protected);

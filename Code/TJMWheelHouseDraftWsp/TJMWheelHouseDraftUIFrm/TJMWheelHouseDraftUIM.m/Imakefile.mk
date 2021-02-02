@@ -21,6 +21,16 @@ TJMWheelHouseDraftGeneralM		\
 CATObjectSpecsModeler			\
 CATProductStructure1			\
 CATMecModInterfaces			\
+CATTopologicalObjects		\
+CATMechanicalModeler		\
+GSMItf			\
+KnowledgeItf				\
+CATGitInterfaces			\
+CATPartInterfaces			\
+CATMeasureGeometryInterfaces	\
+CATSketcherInterfaces			\
+CATBasicTopologicalOpe			\
+CATCGMGeoMath					\
 
 
 # System dependant variables

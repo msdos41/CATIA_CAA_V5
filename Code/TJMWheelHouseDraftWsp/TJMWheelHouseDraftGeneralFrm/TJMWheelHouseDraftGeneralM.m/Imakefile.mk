@@ -47,6 +47,8 @@ LINK_WITH = $(WIZARD_LINK_MODULES)	\
                                    CATTPSItfCPP		\
                                    CATTPSProIDL				\
 								   CATTPSPubIDL				\
+								   GSMItf			\
+								   PartItf			\
 
 # System dependant variables
 #

@@ -2279,6 +2279,44 @@ CATBody* TJMWheelHouseDraftGeneralClass::CreateTopProject(CATGeoFactory* ipGeoFa
 	return pResultBody;
 }
 
+//描述：沿指定方向投影
+//输入：CATGeoFactory* ,CATTopData*,CATBody_var 投影元素,CATBody_var 投影目标(surface的body)
+//输出：CATBody_var 投影结果
+//返回：HRESULT
+CATBody_var TJMWheelHouseDraftGeneralClass::CreateTopProject(CATGeoFactory* ipGeoFactory, CATTopData* itopdata,CATBody_var iBodyToProject,CATBody_var iBodySupport,CATMathDirection iDir)
+{
+	if (ipGeoFactory==NULL||itopdata==NULL||iBodyToProject == NULL_var||iBodySupport == NULL_var)
+	{
+		return NULL_var;
+	}
+
+	//做投影
+	CATHybProject * pHybProject=NULL;
+	CATTry
+	{
+		pHybProject = CATCreateTopProject(ipGeoFactory,itopdata,iBodyToProject,iBodySupport,&iDir) ;
+		if (pHybProject==NULL)
+		{
+			return NULL_var;
+		}
+		pHybProject->Run();
+	}
+	CATCatch(CATError,perror)
+	{	
+		if (pHybProject!=NULL)
+		{
+			delete pHybProject;
+			pHybProject=NULL;
+		}
+		return NULL_var;
+	}
+	CATEndTry
+
+		CATBody_var spResultBody= pHybProject->GetResult();
+
+	return spResultBody;
+}
+
 //描述：获得相交对象
 //输入：CATGeoFactory*geo工厂,CATTopData*对象,CATBody* body1,CATBody* body2
 //输出：CATBody* 相交结果
@@ -3653,4 +3691,737 @@ CATBoolean TJMWheelHouseDraftGeneralClass::GetCurrentActiveProduct(CATFrmEditor 
 		ospProduct=piProduct;
 
 	return TRUE;
+}
+
+//在零件根目录下下创建PrtTool
+HRESULT TJMWheelHouseDraftGeneralClass::CreateNewPrtTool(CATIProduct_var ispiProd,CATUnicodeString istrName,CATISpecObject_var &ospiSpecPrtTool)
+{
+	HRESULT rc = S_OK;
+	if (ispiProd == NULL_var)
+	{
+		return E_FAIL;
+	}
+	CATIProduct_var spiProdRef = ispiProd->GetReferenceProduct();
+	if (spiProdRef == NULL_var)
+	{
+		return E_FAIL;
+	}
+	CATILinkableObject *piLinkableObjOnChild = NULL;
+	rc = spiProdRef->QueryInterface(IID_CATILinkableObject,(void**)&piLinkableObjOnChild);
+	if (FAILED(rc))
+	{
+		return E_FAIL;
+	}
+	CATDocument *pDocOnChild = NULL;
+	pDocOnChild = piLinkableObjOnChild->GetDocument();
+	if (NULL == pDocOnChild)
+	{
+		return E_FAIL;
+	}
+	CATIContainerOfDocument_var spContOfDocOnChild = pDocOnChild;
+	CATIContainer *piSpecContainerOnChild = NULL;
+	rc = spContOfDocOnChild->GetSpecContainer(piSpecContainerOnChild);
+	if (FAILED(rc))
+	{
+		return E_FAIL;
+	}
+	CATIPrtContainer *piPrtContainerOnChild = NULL;
+	rc = piSpecContainerOnChild->QueryInterface(IID_CATIPrtContainer,(void**)&piPrtContainerOnChild);
+	piSpecContainerOnChild->Release();
+	if (FAILED(rc))
+	{
+		return E_FAIL;
+	}
+	CATIPrtPart_var spPartOnChild = piPrtContainerOnChild->GetPart();
+	piPrtContainerOnChild->Release();
+	if (NULL_var == spPartOnChild)
+	{
+		return E_FAIL;
+	}
+	//
+	CATIMechanicalRootFactory_var spMechRootFactory = piSpecContainerOnChild;
+	if (spMechRootFactory == NULL_var)
+	{
+		return E_FAIL;
+	}
+	//
+	CATISpecObject_var spiSpecPrtTool = spMechRootFactory->CreatePRTTool(istrName,spPartOnChild);
+	if (spiSpecPrtTool == NULL_var)
+	{
+		return E_FAIL;
+	}
+	//
+	spPartOnChild->SetCurrentFeature(spiSpecPrtTool);
+	ospiSpecPrtTool = spiSpecPrtTool;
+	return rc;
+}
+
+int TJMWheelHouseDraftGeneralClass::GetSurfacePositiveOrNegative(CATGeoFactory *ipGeoFact,CATTopData *ipTopData,CATBody_var ispBodySurface,
+																CATMathPoint iPt,CATMathVector iDir,double idExtendDist)
+{
+	CATMathVector dirBase = iDir;
+	dirBase.Normalize();
+	//过点沿方向两端延伸做长直线
+	double dExtend = idExtendDist;
+	CATMathPoint pt1 = iPt + dirBase*dExtend;
+	CATMathPoint pt2 = iPt - dirBase*dExtend;
+
+	CATBody_var spBodyLine=NULL_var;
+	if (FAILED(CreateTopLine(ipGeoFact,ipTopData,pt1,pt2,spBodyLine))||spBodyLine==NULL_var)
+	{
+		return -1;
+	}
+
+	//求出输入面与该直线的交点
+	CATBody_var spBodyIntersect = NULL_var;
+	spBodyIntersect = CreateTopIntersect(ipGeoFact,ipTopData,spBodyLine,ispBodySurface);
+	if (spBodyIntersect==NULL_var)
+	{
+		return -1;
+	}
+	CATMathPoint ptIntersect;
+	if (FAILED(GetMathPoint(spBodyIntersect,ptIntersect)))
+	{
+		return -1;
+	}
+
+	//用面切割直线
+	CATHybSplit *pHybSplit = NULL;
+	CATBody_var spBodySplit = NULL_var;
+	CATTry
+	{
+		pHybSplit = CATCreateTopSplitWire(ipGeoFact,ipTopData,spBodyLine,ispBodySurface,POSITIVE_POSITIVE_SIDE);
+		if (pHybSplit!=NULL)
+		{
+			pHybSplit->Run();
+			spBodySplit = pHybSplit->GetResult();
+		}
+
+	}
+	CATCatch(CATMfErrUpdate , pUpdateError)
+	{
+		if (NULL!=pHybSplit)
+		{
+			delete pHybSplit;
+			pHybSplit=NULL;
+		}
+		return -1;
+	}
+	CATCatch(CATError , error)
+	{
+		if (NULL!=pHybSplit)
+		{
+			delete pHybSplit;
+			pHybSplit=NULL;
+		}
+
+		CATReturnError(error);
+		return -1;
+	}
+	CATEndTry;
+
+	if (spBodySplit==NULL_var)
+	{
+		return -1;
+	}
+
+	CATLISTV(CATMathPoint) lstPts;
+	GetMathPtFromBody(spBodySplit,lstPts);
+	if (lstPts.Size()<1)
+	{
+		return -1;
+	}
+
+	//找出非交点的那个点
+	CATMathPoint ptOuter;
+	for (int i=1;i<=lstPts.Size();i++)
+	{
+		CATMathPoint pt = lstPts[i];
+		double dDist = pt.DistanceTo(ptIntersect);
+		if (dDist>0.01)
+		{
+			ptOuter = pt;
+			break;
+		}
+	}
+	//求该点与交点的方向和输入的方向的夹角
+	CATMathVector dir = ptOuter-ptIntersect;
+	dir.Normalize();
+	CATAngle angleDir = dir.GetAngleTo(dirBase);
+	dir = -1*dir;
+	CATAngle angleDir2 = dir.GetAngleTo(dirBase);
+	if (angleDir<angleDir2)
+	{
+		return 0;
+	} 
+	else
+	{
+		return 1;
+	}
+}
+
+HRESULT TJMWheelHouseDraftGeneralClass::CreateTopLine(CATGeoFactory *ipGeoFact,CATTopData *ipTopData,
+												  CATMathPoint iPt1,CATMathPoint iPt2,
+												  CATBody_var &ospBodyLine)
+{
+	CATMathPoint pt1(iPt1);
+	CATMathPoint pt2(iPt2);
+	CATBody_var spBodyPt1 = CATCreateTopPointXYZ(ipGeoFact,ipTopData,pt1.GetX(),pt1.GetY(),pt1.GetZ());
+	CATBody_var spBodyPt2 = CATCreateTopPointXYZ(ipGeoFact,ipTopData,pt2.GetX(),pt2.GetY(),pt2.GetZ());
+	if (spBodyPt1==NULL_var||spBodyPt2==NULL_var)
+	{
+		return E_FAIL;
+	}
+
+	CATBody_var spBodyLine = CATCreateTopLineFromPoints(ipGeoFact,ipTopData,spBodyPt1,spBodyPt2);
+	if (spBodyLine==NULL_var)
+	{
+		return E_FAIL;
+	}
+
+	ospBodyLine = spBodyLine;
+	return S_OK;
+}
+
+HRESULT TJMWheelHouseDraftGeneralClass::CreateGSMOffsetPlane(CATIGSMFactory_var ispGSMFactory,
+														 CATICkeParmFactory_var ispCkeFactory,
+														 CATISpecObject_var ispSpecToOffset,
+														 CATISpecObject_var ispInputParent,
+														 double idOffset,
+														 CATGSMOrientation  iOrientation,
+														 CATISpecObject_var &ospiSpecOffsetPlane)
+{
+	HRESULT rc=E_FAIL;
+
+	if (ispGSMFactory==NULL_var||ispCkeFactory==NULL_var||ispSpecToOffset==NULL_var||ispInputParent==NULL_var)
+	{
+		return E_FAIL;
+	}
+
+	CATICkeParm_var spParmOffset    = ispCkeFactory -> CreateLength("Distance",idOffset);
+	if (spParmOffset==NULL_var)
+	{
+		return E_FAIL;
+	}
+
+	CATLISTV(CATISpecObject_var)  iListReferenceElems;
+	iListReferenceElems.Append(ispSpecToOffset);
+
+	//CATGSMOrientation  iOrientation=CATGSMSameOrientation;
+	CATIGSMPlaneOffset_var spGSMPlaneOffset=ispGSMFactory->CreatePlane(ispSpecToOffset, spParmOffset, iOrientation);
+	if (spGSMPlaneOffset==NULL_var)
+	{
+		return E_FAIL;
+	}
+
+	ospiSpecOffsetPlane=spGSMPlaneOffset;
+	if (ospiSpecOffsetPlane==NULL_var)
+	{
+		cout<<"GSMCreatePlane Failed"<<endl;
+		return E_FAIL;
+	}
+
+	int trytimes=1;
+	if (IsObjectExistUpdateError(ospiSpecOffsetPlane,trytimes)==TRUE)
+	{
+		cout<<"CreateExtractSolide Try Update Failed"<<endl;
+		//return E_FAIL;
+	}
+
+	CATIGSMProceduralView_var spProceduralView =NULL_var;
+	spProceduralView = ospiSpecOffsetPlane;
+	if (NULL_var != spProceduralView )
+		spProceduralView->InsertInProceduralView(ispInputParent);
+
+	return S_OK;
+}
+
+HRESULT TJMWheelHouseDraftGeneralClass::CreateGSMOffsetSurface(CATIGSMFactory_var ispGSMFactory,
+															 CATICkeParmFactory_var ispCkeFactory,
+															 CATISpecObject_var ispSpecToOffset,
+															 CATISpecObject_var ispInputParent,
+															 double idOffset,
+															 CATBoolean ibInvert,
+															 CATISpecObject_var &ospiSpecOffsetSurface)
+{
+	HRESULT rc=E_FAIL;
+
+	if (ispGSMFactory==NULL_var||ispCkeFactory==NULL_var||ispSpecToOffset==NULL_var||ispInputParent==NULL_var)
+	{
+		return E_FAIL;
+	}
+
+	CATICkeParm_var spParmOffset    = ispCkeFactory -> CreateLength("Distance",idOffset);
+	if (spParmOffset==NULL_var)
+	{
+		return E_FAIL;
+	}
+
+	CATIGSMOffset_var spGSMOffset=ispGSMFactory->CreateOffset(ispSpecToOffset, spParmOffset, ibInvert,FALSE);
+	if (spGSMOffset==NULL_var)
+	{
+		return E_FAIL;
+	}
+
+	ospiSpecOffsetSurface=spGSMOffset;
+	if (ospiSpecOffsetSurface==NULL_var)
+	{
+		cout<<"GSMCreatePlane Failed"<<endl;
+		return E_FAIL;
+	}
+
+	int trytimes=1;
+	if (IsObjectExistUpdateError(ospiSpecOffsetSurface,trytimes)==TRUE)
+	{
+		cout<<"CreateGSMOffsetSurface Try Update Failed"<<endl;
+		return E_FAIL;
+	}
+
+	CATIGSMProceduralView_var spProceduralView =NULL_var;
+	spProceduralView = ospiSpecOffsetSurface;
+	if (NULL_var != spProceduralView )
+		spProceduralView->InsertInProceduralView(ispInputParent);
+
+	return S_OK;
+}
+
+BOOL TJMWheelHouseDraftGeneralClass::IsObjectExistUpdateError(CATISpecObject_var spObject,int &trytimes)
+{
+	if (spObject==NULL_var)
+	{
+		return FALSE;
+	}
+
+	if (trytimes>1)//说明更新出错，跳到上面来的
+	{
+		cout<<"Get Update Error"<<endl;
+		return TRUE;
+	}
+
+	if (spObject->IsUpToDate()==FALSE)
+	{
+		trytimes++;
+
+		CATTry
+		{
+			spObject->Update();
+		}
+		CATCatch(CATMfErrUpdate , pUpdateError)
+		{
+			//cout<< " Update Error: " << pUpdateError-> GetDiagnostic()<< endl;
+			return TRUE;
+		}
+		CATCatch(CATError , pError)
+		{
+			//cout << " Error: " << (pError->GetMessageText())<< endl; 
+			return TRUE;
+		}
+		CATEndTry;
+	}
+
+	return FALSE;
+}
+
+HRESULT TJMWheelHouseDraftGeneralClass::CreateBodyToAssemble(CATIAPart_var ispVBPart,
+														 CATIAShapeFactory_var ispShapeFactory,
+														 CATISpecObject_var ispSpecPrtTool,
+														 CATISpecObject_var ispBodyToAssemble)
+{
+	if (ispVBPart==NULL_var||ispShapeFactory==NULL_var||ispSpecPrtTool==NULL_var||ispBodyToAssemble==NULL_var)
+	{
+		return E_FAIL;
+	}
+
+	CATIABody * ipBodyToAssemble=NULL;
+	ispBodyToAssemble->QueryInterface(IID_CATIABody, (void **)&ipBodyToAssemble);
+	if (ipBodyToAssemble==NULL)
+	{
+		return E_FAIL;
+	}
+
+	CATIAAssemble * pNewAssemble=NULL;
+	ispShapeFactory->AddNewAssemble(ipBodyToAssemble, pNewAssemble);
+	if (pNewAssemble==NULL)
+	{
+		cout<<"AddNewAssemble Failed"<<endl;
+		return E_FAIL;
+	}
+
+	int trytimes=1;
+	CATISpecObject_var spSpec=NULL_var;
+
+	spSpec=NULL_var;
+	pNewAssemble->QueryInterface(IID_CATISpecObject, (void **)&spSpec);
+	if (spSpec==NULL_var)
+	{
+		cout<<"AddNewAssemble Failed"<<endl;
+		return E_FAIL;
+	}
+
+	trytimes=1;
+	if (IsObjectExistUpdateError(spSpec,trytimes)==TRUE)
+	{
+		cout<<"CreateBodyToAssemble Try Update Failed"<<endl;
+		return E_FAIL;
+	}
+
+	trytimes=1;
+	if (IsObjectExistUpdateError(ispSpecPrtTool,trytimes)==TRUE)
+	{
+		cout<<"CreateBodyToAssemble Try Update Failed"<<endl;
+		return E_FAIL;
+	}
+
+	return S_OK;
+}
+
+HRESULT TJMWheelHouseDraftGeneralClass::CreatePrtSolidSplit(CATIPrtFactory_var ispiPrtFact,
+														CATISpecObject_var ispiSpecCurrentFeature,
+														CATISpecObject_var ispiSpecSplitSurface,
+														int iSplitSide)
+{
+	CATPrtSplitType iSplitType;
+	if (iSplitSide==0)
+	{
+		iSplitType = PositiveSide;
+	} 
+	else
+	{
+		iSplitType = NegativeSide;
+	}
+	CATISpecObject_var spiSpecSplit = ispiPrtFact->CreateSolidSplit(ispiSpecSplitSurface,iSplitType);
+	if (spiSpecSplit==NULL_var)
+	{
+		return E_FAIL;
+	}
+
+	int trytimes=1;
+	if (IsObjectExistUpdateError(ispiSpecCurrentFeature,trytimes)==TRUE)
+	{
+		cout<<"CreatePrtSolidSplit Try Update Failed"<<endl;
+		return E_FAIL;
+	}
+	return S_OK;
+}
+
+HRESULT TJMWheelHouseDraftGeneralClass::CreateVBExtract(CATISpecObject_var ispSpecPart,
+													CATISpecObject_var ispSpecToExtract,
+													CATISpecObject_var ispInputParent,
+													int iPropagation,
+													CATISpecObject_var &ospExtractSpec)
+{
+	HRESULT rc=E_FAIL;
+
+	//获得VBPart接口
+	CATIAPart_var spVBPart = ispSpecPart;
+	if (spVBPart==NULL_var)
+	{
+		cout<<"====> Get CATIAPart failed............"<<endl;
+		return E_FAIL;
+	}
+
+	//获得工厂
+	CATIAFactory  *pShapeFactory = NULL;
+	spVBPart->get_ShapeFactory(pShapeFactory);
+	if (pShapeFactory==NULL)
+	{
+		cout<<"====> get_ShapeFactory failed............"<<endl;
+		return E_FAIL;
+	}
+
+	CATIAShapeFactory_var spShapeFactory = pShapeFactory;
+	if (spShapeFactory==NULL_var)
+	{
+		cout<<"====> get CATIAShapeFactory_var failed............"<<endl;
+		return E_FAIL;
+	}
+
+	CATIAFactory *pHybridShapeFactory=NULL;
+	spVBPart->get_HybridShapeFactory(pHybridShapeFactory);
+	if (pHybridShapeFactory==NULL)
+	{
+		cout<<"====> get_HybridShapeFactory failed............"<<endl;
+		return E_FAIL;
+	}
+
+	CATIAHybridShapeFactory_var spHybridShapeFactory=pHybridShapeFactory;
+	if (spHybridShapeFactory==NULL_var)
+	{
+		cout<<"====> get CATIAHybridShapeFactory_var failed............"<<endl;
+		return E_FAIL;
+	}
+
+	if (ispSpecToExtract==NULL_var||ispInputParent==NULL_var)
+	{
+		return E_FAIL;
+	}
+
+	//_spPrtPart->SetCurrentFeature(ispInputParent);
+
+	CATIABase *pBase = NULL;
+	ispSpecToExtract->QueryInterface(IID_CATIABase, (void **)&pBase);
+	if (pBase==NULL)
+	{
+		return E_FAIL;
+	}
+
+	CATIAReference *pReference = NULL;
+	spVBPart->CreateReferenceFromObject(pBase,pReference);
+	if(pReference==NULL)
+	{
+		cout<<"CreateReferenceFromObject Faield"<<endl;
+		return E_FAIL;
+	}
+
+	////CreateReferenceFormBody(_spVBPart ,ispiSpecOpponent,  ispInputParent,  ispSpecToExtract, pReference);
+	////if (pReference==NULL_var)
+	////{
+	////	cout<<"GetReferenceFormBody Faield"<<endl;
+	////	return E_FAIL;
+	////}
+
+	CATIAHybridShapeExtract * pHybridShapeExtract=NULL;
+	spHybridShapeFactory->AddNewExtract(pReference,pHybridShapeExtract);
+	if(pHybridShapeExtract==NULL)
+	{
+		cout<<"AddNewExtract Failed"<<endl;
+		return E_FAIL;
+	}
+
+	rc=pHybridShapeExtract->put_PropagationType(iPropagation);
+	rc=pHybridShapeExtract->put_ComplementaryExtract(false);
+	rc=pHybridShapeExtract->put_IsFederated(false);
+	rc=pHybridShapeExtract->put_Elem(pReference);
+	rc=pHybridShapeExtract->put_Support(pReference);
+
+	//CATLISTV(CATISpecObject_var)  iListReferenceElems;
+	//iListReferenceElems.Append(ispSpecToExtract);
+
+	//CATIGSMExtractMulti_var spGSMExtractObject=ispGSMFactory->CreateExtractMulti( iListReferenceElems);
+	////CATIGSMExtractSolide_var spGSMExtractObject=ispGSMFactory->CreateExtractSolide( ispSpecToExtract,  ExtractSolide_NoPropag);
+	//if (spGSMExtractObject==NULL_var)
+	//{
+	//	cout<<"CreateExtractSolide Failed"<<endl;
+	//	return E_FAIL;
+	//}
+
+	ospExtractSpec=pHybridShapeExtract;
+	if (ospExtractSpec==NULL_var)
+	{
+		cout<<"CreateExtractSolide Failed"<<endl;
+		return E_FAIL;
+	}
+
+	int trytimes=1;
+	if (IsObjectExistUpdateError(ospExtractSpec,trytimes)==TRUE)
+	{
+		cout<<"CreateVBExtract Try Update Failed"<<endl;
+		//return E_FAIL;
+	}
+
+	CATIGSMProceduralView_var spProceduralView =NULL_var;
+	spProceduralView = ospExtractSpec;
+	if (NULL_var != spProceduralView )
+		spProceduralView->InsertInProceduralView(ispInputParent);
+
+	return S_OK;
+}
+
+HRESULT TJMWheelHouseDraftGeneralClass::CreateVBExtract(CATIAPart_var ispiaPart,
+														CATIAHybridShapeFactory_var ispiaHybridShapeFact,
+														CATISpecObject_var ispSpecToExtract,
+														CATISpecObject_var ispInputParent,
+														int iPropagation,
+														CATISpecObject_var &ospExtractSpec)
+{
+	HRESULT rc=E_FAIL;
+
+	if (ispSpecToExtract==NULL_var)
+	{
+		return E_FAIL;
+	}
+
+	//获得VBPart接口
+	CATIAPart_var spVBPart = ispiaPart;
+	if (spVBPart==NULL_var)
+	{
+		cout<<"====> Get CATIAPart failed............"<<endl;
+		return E_FAIL;
+	}
+
+	//获得工厂
+	CATIAHybridShapeFactory_var spHybridShapeFactory=ispiaHybridShapeFact;
+	if (spHybridShapeFactory==NULL_var)
+	{
+		cout<<"====> get CATIAHybridShapeFactory_var failed............"<<endl;
+		return E_FAIL;
+	}
+
+	//_spPrtPart->SetCurrentFeature(ispInputParent);
+
+	CATIABase *pBase = NULL;
+	ispSpecToExtract->QueryInterface(IID_CATIABase, (void **)&pBase);
+	if (pBase==NULL)
+	{
+		return E_FAIL;
+	}
+
+	CATIAReference *pReference = NULL;
+	spVBPart->CreateReferenceFromObject(pBase,pReference);
+	if(pReference==NULL)
+	{
+		cout<<"CreateReferenceFromObject Faield"<<endl;
+		return E_FAIL;
+	}
+
+	CATIAHybridShapeExtract * pHybridShapeExtract=NULL;
+	spHybridShapeFactory->AddNewExtract(pReference,pHybridShapeExtract);
+	if(pHybridShapeExtract==NULL)
+	{
+		cout<<"AddNewExtract Failed"<<endl;
+		return E_FAIL;
+	}
+
+	rc=pHybridShapeExtract->put_PropagationType(iPropagation);
+	rc=pHybridShapeExtract->put_ComplementaryExtract(false);
+	rc=pHybridShapeExtract->put_IsFederated(false);
+	rc=pHybridShapeExtract->put_Elem(pReference);
+	//rc=pHybridShapeExtract->put_Support(pReference);
+
+
+	ospExtractSpec=pHybridShapeExtract;
+	if (ospExtractSpec==NULL_var)
+	{
+		cout<<"CreateExtractSolide Failed"<<endl;
+		return E_FAIL;
+	}
+
+	int trytimes=1;
+	if (IsObjectExistUpdateError(ospExtractSpec,trytimes)==TRUE)
+	{
+		cout<<"CreateVBExtract Try Update Failed"<<endl;
+		//return E_FAIL;
+	}
+
+	if (ispInputParent!=NULL_var)
+	{
+		CATIGSMProceduralView_var spProceduralView =NULL_var;
+		spProceduralView = ospExtractSpec;
+		if (NULL_var != spProceduralView )
+		{
+			spProceduralView->InsertInProceduralView(ispInputParent);
+		}
+	}
+
+	return S_OK;
+}
+
+CATBoolean TJMWheelHouseDraftGeneralClass::ConvertToSupportSpec(CATBaseUnknown_var ispFeature,CATISpecObject_var &ospSpec)
+{
+	if (ispFeature==NULL_var)
+		return FALSE;
+
+	ospSpec=ispFeature;
+	if (ospSpec==NULL_var)
+	{
+		CATIBRepAccess_var spBRepAccess=ispFeature;
+		if (spBRepAccess==NULL_var)
+			return FALSE;
+
+		CATIFeaturize_var spFeaturize=spBRepAccess;
+		if (spFeaturize==NULL_var)
+			return FALSE;
+
+		//ospSpec = spFeaturize->FeaturizeR(MfDuplicateFeature| MfPermanentBody|	MfInitialFeatureSupport | 	MfRelimitedFeaturization);//MfFunctionalFeaturization
+		//ospSpec = spFeaturize->FeaturizeR(MfDuplicateFeature| MfPermanentBody|	MfLastFeatureSupport | 	MfRelimitedFeaturization);//MfFunctionalFeaturization
+		//ospSpec = spFeaturize->FeaturizeR(MfTemporaryBody|MfSelectingFeatureSupport|MfNoDuplicateFeature);
+		ospSpec = spFeaturize->FeaturizeR(MfPermanentBody|MfDefaultFeatureSupport |MfRelimitedFeaturization|MfDuplicateFeature);
+		if (ospSpec == NULL_var) 
+			return FALSE;
+	}
+
+	return TRUE;
+}
+
+HRESULT TJMWheelHouseDraftGeneralClass::CreateVBOffset(CATIAPart_var ispiaPart,
+														CATIAHybridShapeFactory_var ispiaHybridShapeFact,
+														CATISpecObject_var ispSpecToOffset,
+														CATISpecObject_var ispInputParent,
+														double idOffset,
+														boolean iOrientation,
+														CATISpecObject_var &ospOffsetSpec)
+{
+	HRESULT rc=E_FAIL;
+
+	if (ispSpecToOffset==NULL_var)
+	{
+		return E_FAIL;
+	}
+
+	//获得VBPart接口
+	CATIAPart_var spVBPart = ispiaPart;
+	if (spVBPart==NULL_var)
+	{
+		cout<<"====> Get CATIAPart failed............"<<endl;
+		return E_FAIL;
+	}
+
+	//获得工厂
+	CATIAHybridShapeFactory_var spHybridShapeFactory=ispiaHybridShapeFact;
+	if (spHybridShapeFactory==NULL_var)
+	{
+		cout<<"====> get CATIAHybridShapeFactory_var failed............"<<endl;
+		return E_FAIL;
+	}
+
+	//_spPrtPart->SetCurrentFeature(ispInputParent);
+
+	CATIABase *pBase = NULL;
+	ispSpecToOffset->QueryInterface(IID_CATIABase, (void **)&pBase);
+	if (pBase==NULL)
+	{
+		return E_FAIL;
+	}
+
+	CATIAReference *pReference = NULL;
+	spVBPart->CreateReferenceFromObject(pBase,pReference);
+	if(pReference==NULL)
+	{
+		cout<<"CreateReferenceFromObject Faield"<<endl;
+		return E_FAIL;
+	}
+
+	CATIAHybridShapeOffset *piaHybridShapeOffset=NULL;
+	spHybridShapeFactory->AddNewOffset(pReference,idOffset,iOrientation,0.001,piaHybridShapeOffset);
+	if(piaHybridShapeOffset==NULL_var)
+	{
+		cout<<"AddNewOffset Failed"<<endl;
+		return E_FAIL;
+	}
+
+	ospOffsetSpec=piaHybridShapeOffset;
+	if (ospOffsetSpec==NULL_var)
+	{
+		cout<<"CreateExtractSolide Failed"<<endl;
+		return E_FAIL;
+	}
+
+	int trytimes=1;
+	if (IsObjectExistUpdateError(ospOffsetSpec,trytimes)==TRUE)
+	{
+		cout<<"CreateVBExtract Try Update Failed"<<endl;
+		//return E_FAIL;
+	}
+
+	if (ispInputParent!=NULL_var)
+	{
+		CATIGSMProceduralView_var spProceduralView =NULL_var;
+		spProceduralView = ospOffsetSpec;
+		if (NULL_var != spProceduralView )
+		{
+			spProceduralView->InsertInProceduralView(ispInputParent);
+		}
+	}
+
+	return S_OK;
 }

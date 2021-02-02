@@ -1,43 +1,26 @@
-/*
-**
-**	版权:		华域视觉科技（上海）有限公司
-**
-**	文件名称:	HVCEnvelopeCore.cpp
-**
-**	作者:		
-**
-**	日期:		2018-7-5
-**
-**	文件描述:	
-**
-**	功能:		输出类的实现
-**
-**	备注:
-** 
-*/
 //C++-----------------
 #include "iostream.h"
 #include <string.h>
 //-----------------
-#include "HVCEnvelopeCore.h"
+#include "TestEnvelopeCore.h"
 //CAA-----------------
 
 using namespace std;
-HVCEnvelopeCore::HVCEnvelopeCore()
+TestEnvelopeCore::TestEnvelopeCore()
 :m_pParamBase(NULL)
 {	
 }
 //--------------------------------------------------------------------------
-HVCEnvelopeCore::~HVCEnvelopeCore()
+TestEnvelopeCore::~TestEnvelopeCore()
 {
 	m_pParamBase = NULL;
 }
 
-CATIProduct_var HVCEnvelopeCore::GetDMURootProduct()
+CATIProduct_var TestEnvelopeCore::GetDMURootProduct()
 {
 	cout<<"get dmu doc"<<endl;
 	CATDocument		*pCataDoc = NULL;
-	char* docPath = "HVCPATH";										//保存模版的环境变量名
+	char* docPath = "TestPATH";										//保存模版的环境变量名
 	char* docPathValue = NULL;										//保存莫班的环境变量对应的路径
 	CATLibStatus envState = CATGetEnvValue(docPath,&docPathValue);	//获得保存模版的环境变量的值
 	CATUnicodeString strModulePath = docPathValue;
@@ -48,7 +31,7 @@ CATIProduct_var HVCEnvelopeCore::GetDMURootProduct()
 	return piRootProduct;
 }
 
-void HVCEnvelopeCore::InsertAndReplaceMovePrd(CATIProduct_var iDMURootProduct,CATIProduct_var iSpMoveProduct,CATIProduct_var &oInstanceProduct)
+void TestEnvelopeCore::InsertAndReplaceMovePrd(CATIProduct_var iDMURootProduct,CATIProduct_var iSpMoveProduct,CATIProduct_var &oInstanceProduct)
 {
 	cout<<"insert moveprd"<<endl;
 	HRESULT hr = E_FAIL;
@@ -76,11 +59,11 @@ void HVCEnvelopeCore::InsertAndReplaceMovePrd(CATIProduct_var iDMURootProduct,CA
 	}
 	CATISpecObject_var spObject = iDMURootProduct;
 	spObject->Update();
-	hr = HVCRefreshView3D(spObject);
+	hr = TestRefreshView3D(spObject);
 
 }
 
-void HVCEnvelopeCore::GetAndSetOriginalPoint(CATIProduct_var iDMURootProduct,CATIProduct_var iInstanceProduct)
+void TestEnvelopeCore::GetAndSetOriginalPoint(CATIProduct_var iDMURootProduct,CATIProduct_var iInstanceProduct)
 {
 	cout<<"get set original"<<endl;
 	CATListValCATISpecObject_var objectList;
@@ -173,14 +156,14 @@ void HVCEnvelopeCore::GetAndSetOriginalPoint(CATIProduct_var iDMURootProduct,CAT
 				}
 			}
 			CATISpecObject_var sptmp = spTempProduct->GetReferenceProduct();
-			HVCRefreshView3D(sptmp);
+			TestRefreshView3D(sptmp);
 			//sptmp->Update();
 			break;
 		}
 	}
 }
 
-void HVCEnvelopeCore::GetAndSetControlLines(CATIProduct_var iDMURootProduct,CATIProduct_var iInstanceProduct)
+void TestEnvelopeCore::GetAndSetControlLines(CATIProduct_var iDMURootProduct,CATIProduct_var iInstanceProduct)
 {
 	cout<<"get set controlline"<<endl;
 	CATListValCATISpecObject_var objectList;
@@ -322,11 +305,11 @@ void HVCEnvelopeCore::GetAndSetControlLines(CATIProduct_var iDMURootProduct,CATI
 			}
 		}
 	}
-	HVCRefreshView3D(spInputGS);
-	HVCRefreshView3D(spDMUOriginalPrd);
+	TestRefreshView3D(spInputGS);
+	TestRefreshView3D(spDMUOriginalPrd);
 }
 
-CATIProduct_var HVCEnvelopeCore::GetRootProduct(CATDocument * piDocument)
+CATIProduct_var TestEnvelopeCore::GetRootProduct(CATDocument * piDocument)
 {
 	HRESULT rc = S_FALSE;
 	CATIProduct_var spRootProduct = NULL_var;
@@ -355,7 +338,7 @@ CATIProduct_var HVCEnvelopeCore::GetRootProduct(CATDocument * piDocument)
 	return spRootProduct;
 }
 
-HRESULT HVCEnvelopeCore::HVCRefreshView3D(CATISpecObject_var ispiSpecOnObject)
+HRESULT TestEnvelopeCore::TestRefreshView3D(CATISpecObject_var ispiSpecOnObject)
 {
 	HRESULT rc=E_FAIL;
 
@@ -383,7 +366,7 @@ HRESULT HVCEnvelopeCore::HVCRefreshView3D(CATISpecObject_var ispiSpecOnObject)
 	return rc;
 }
 
-CATPoint_var HVCEnvelopeCore::TransferPoint(const CATISpecObject_var& ispPoint)
+CATPoint_var TestEnvelopeCore::TransferPoint(const CATISpecObject_var& ispPoint)
 {
 	CATPoint_var spPoint = NULL_var;
 	CATBody_var PointBody = NULL_var;
@@ -410,7 +393,7 @@ CATPoint_var HVCEnvelopeCore::TransferPoint(const CATISpecObject_var& ispPoint)
 	return spPoint;
 }
 
-CATBody_var HVCEnvelopeCore::GetBodyFromFeature(const CATISpecObject_var& ispFeature)
+CATBody_var TestEnvelopeCore::GetBodyFromFeature(const CATISpecObject_var& ispFeature)
 {
 	CATBody_var spBody = NULL_var;
 	do {
@@ -437,7 +420,7 @@ CATBody_var HVCEnvelopeCore::GetBodyFromFeature(const CATISpecObject_var& ispFea
 
 }
 
-HRESULT HVCEnvelopeCore::ReplaceFeature(CATISpecObject_var ispSpecObjectOrigin,CATISpecObject_var ispSpecObjectToReplace)
+HRESULT TestEnvelopeCore::ReplaceFeature(CATISpecObject_var ispSpecObjectOrigin,CATISpecObject_var ispSpecObjectToReplace)
 {
 	HRESULT hr=E_FAIL;
 
@@ -514,7 +497,7 @@ HRESULT HVCEnvelopeCore::ReplaceFeature(CATISpecObject_var ispSpecObjectOrigin,C
 	return S_OK;
 }
 
-HRESULT HVCEnvelopeCore::CopyBodyToPart(CATISpecObject_var ispSpec,CATISpecObject_var ispTarget,CATIProduct_var ispSP,CATIProduct_var ispTP,CATBoolean iLink,CATISpecObject_var& ospSpec)
+HRESULT TestEnvelopeCore::CopyBodyToPart(CATISpecObject_var ispSpec,CATISpecObject_var ispTarget,CATIProduct_var ispSP,CATIProduct_var ispTP,CATBoolean iLink,CATISpecObject_var& ospSpec)
 {
 	HRESULT rc=S_OK;
 	ospSpec=NULL_var;
@@ -539,7 +522,7 @@ HRESULT HVCEnvelopeCore::CopyBodyToPart(CATISpecObject_var ispSpec,CATISpecObjec
 	return rc;
 }
 
-HRESULT HVCEnvelopeCore::CreateSweptVolume(CATDocument *ipDoc)
+HRESULT TestEnvelopeCore::CreateSweptVolume(CATDocument *ipDoc)
 {
 
 	//CATUnicodeString strModulePath = "E:\\tmp\\envelope\\DMU.CATProduct";
@@ -843,7 +826,7 @@ HRESULT HVCEnvelopeCore::CreateSweptVolume(CATDocument *ipDoc)
 	return TRUE;
 }
 
-HRESULT HVCEnvelopeCore::CreateSweptVolume(CATIProduct_var ispDMUprd,CATListValCATISpecObject_var iLISTProdOfSwepTPart,CATUnicodeString &ioPath)
+HRESULT TestEnvelopeCore::CreateSweptVolume(CATIProduct_var ispDMUprd,CATListValCATISpecObject_var iLISTProdOfSwepTPart,CATUnicodeString &ioPath)
 {
 	//CATIProduct_var spDMUOriginalPrd;
 	//CATListValCATBaseUnknown_var *pChildList=NULL;
@@ -1249,7 +1232,7 @@ HRESULT HVCEnvelopeCore::CreateSweptVolume(CATIProduct_var ispDMUprd,CATListValC
 	return TRUE;
 }
 
-HRESULT HVCEnvelopeCore::InsertTemplateToModel(CATIProduct_var ispProduct,CATUnicodeString iPath,CATIProduct_var &ioProductNew)
+HRESULT TestEnvelopeCore::InsertTemplateToModel(CATIProduct_var ispProduct,CATUnicodeString iPath,CATIProduct_var &ioProductNew)
 {
 	HRESULT hr=E_FAIL;
 	CATDocument *pCataDoc = NULL;
@@ -1267,7 +1250,7 @@ HRESULT HVCEnvelopeCore::InsertTemplateToModel(CATIProduct_var ispProduct,CATUni
 }
 
 //检查干涉
-HRESULT HVCEnvelopeCore::CheckClash(CATIProduct_var iRootProduct,CATDocument *pDoc,CATUnicodeString iPath)
+HRESULT TestEnvelopeCore::CheckClash(CATIProduct_var iRootProduct,CATDocument *pDoc,CATUnicodeString iPath)
 {
 	HRESULT hr=E_FAIL;
 
@@ -1333,7 +1316,7 @@ HRESULT HVCEnvelopeCore::CheckClash(CATIProduct_var iRootProduct,CATDocument *pD
 }
 
 //获取干涉信息
-HRESULT HVCEnvelopeCore::GetConflictInfo(CATIConflict* ipiConflict,structConflictInfo &oInfo)
+HRESULT TestEnvelopeCore::GetConflictInfo(CATIConflict* ipiConflict,structConflictInfo &oInfo)
 {
 	HRESULT hr=E_FAIL;//初始化
 
@@ -1367,7 +1350,7 @@ HRESULT HVCEnvelopeCore::GetConflictInfo(CATIConflict* ipiConflict,structConflic
 	return hr;
 }
 
-CATDocument* HVCEnvelopeCore::GetCurrentDocument()
+CATDocument* TestEnvelopeCore::GetCurrentDocument()
 {
 	HRESULT rc=E_FAIL;
 	CATDocument *pDocument = NULL;

@@ -288,8 +288,10 @@ CATBoolean TJMWheelHouseDraftCmd::ActionOKFunc(void * data)
 {
 	CATTime iStartTime = CATTime::GetCurrentLocalTime();
 
+	double dAngle=_pDlg->GetSpinnerFunc(DraftAngle)->GetValue();	//获取到的直接就是弧度，不需要再转换
+
 	TJMWheelHouseDraftCls *pCls = new TJMWheelHouseDraftCls();
-	pCls->SetDatas(&_spiRootProduct,&_spiSpecSurfaceWH,&_spBUSketch,&_spBUToolingDir);
+	pCls->SetDatas(&_spiRootProduct,&_spiSpecSurfaceWH,&_spBUSketch,&_spBUToolingDir,dAngle);
 	pCls->ComputeResults();
 
 	if (pCls!=NULL)
@@ -546,6 +548,13 @@ void TJMWheelHouseDraftCmd::InitialDlg()
 	{
 		_pDlg->GetSelectorListFunc(i)->SetLine(strDefault);
 	}
+
+	//spinner
+	_pDlg->GetSpinnerFunc(0)->SetUnit(CATDlgControl::Degree);
+	_pDlg->GetSpinnerFunc(0)->SetMinMaxStep(0,90*CATDegreeToRadian,CATDegreeToRadian);
+	_pDlg->GetSpinnerFunc(0)->SetValue(4.5*CATDegreeToRadian);
+	_pDlg->GetSpinnerFunc(0)->SetPrecision(1,TRUE);
+
 
 	int iTabRow=0;
 	_pDlg->GetSelectorListFunc(0)->SetSelect(&iTabRow,1);

@@ -69,11 +69,12 @@ class TJMWheelHouseDraftCls: public CATBaseUnknown
   // -----------------------------------
   TJMWheelHouseDraftCls (TJMWheelHouseDraftCls &);
   TJMWheelHouseDraftCls& operator=(TJMWheelHouseDraftCls&);
-  HRESULT SetDatas(CATIProduct_var *iRootProduct,CATISpecObject_var *iSurface,CATBaseUnknown_var *iSketch,CATBaseUnknown_var *iToolingDir);
+  HRESULT SetDatas(CATIProduct_var *iRootProduct,CATISpecObject_var *iSurface,CATBaseUnknown_var *iSketch,CATBaseUnknown_var *iToolingDir,double iDraftAngle);
   HRESULT ComputeResults();
   HRESULT GetSeperatedCurvesFromSketch(vector<CATISpecObject_var> &olstSpecCurves);
   HRESULT JudgeSurfacePositiveOrNegative(CATGeoFactory *ipGeoFact, CATTopData *ipTopData, CATBaseUnknown_var ispBUSurface, CATMathVector iToolingDir, int &oiSplitSide);
   HRESULT GetCenterOfSurface( CATBody_var ispBodySurface,CATMathPoint &omathOriginalPoint );
+  HRESULT GetNormalOfSurface(CATGeoFactory *ipGeoFact,CATTopData *ipTopData,CATBody_var ispBodySolid,CATCell_var ispCellSurface,CATMathVector &oNormalDir);
 private:
 
 	CATBaseUnknown_var				_spBUSurface;
@@ -87,6 +88,8 @@ private:
 	CATIProduct_var					_spiRootProduct;
 
 	FeaturesInfo					_structFeaturesInfo;
+
+	double							_dDraftAngle;
 
 
 };

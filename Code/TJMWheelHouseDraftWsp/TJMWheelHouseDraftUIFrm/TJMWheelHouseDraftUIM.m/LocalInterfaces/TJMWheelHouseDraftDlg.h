@@ -28,6 +28,11 @@ enum SelectorListType
 	ToolingDir,
 };
 
+enum SpinnerType
+{
+	DraftAngle,
+};
+
 //----------------------------------------------------------------------
 
 /**
@@ -51,6 +56,7 @@ class TJMWheelHouseDraftDlg: public CATDlgDialog
 
   void Build ();
   CATDlgSelectorList *GetSelectorListFunc(int type);
+  CATDlgSpinner *GetSpinnerFunc(int type);
 
   protected:
 
@@ -64,6 +70,8 @@ class TJMWheelHouseDraftDlg: public CATDlgDialog
  CATDlgSelectorList*      _SelectorListToolingDir;
  CATDlgLabel*      _Label004;
  CATDlgSelectorList*      _SelectorListWheelHouseSurface;
+ CATDlgLabel*      _Label005;
+ CATDlgSpinner*      _SpinnerDraftAngle;
 //END CAA2 WIZARD WIDGET DECLARATION SECTION
 };
 

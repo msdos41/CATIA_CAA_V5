@@ -44,4 +44,20 @@ CATDlgSelectorList SelectorListWheelHouseSurface
   GRID = { 0, 1, 1, 1, CATGRID_4SIDES };
 }
 
+CATDlgLabel Label005
+{
+  FATHER = TJMWheelHouseDraftDlg;
+  GRID = { 3, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgSpinner SpinnerDraftAngle
+{
+  FATHER = TJMWheelHouseDraftDlg;
+  STYLE = CATDlgSpnEntry|CATDlgSpnDouble;
+  MIN = 0.000000;
+  MAX = 10.000000;
+  STEP = 10.000000;
+  GRID = { 3, 1, 1, 1, CATGRID_4SIDES };
+}
+
 // END WIZARD REPLACEMENT ZONE

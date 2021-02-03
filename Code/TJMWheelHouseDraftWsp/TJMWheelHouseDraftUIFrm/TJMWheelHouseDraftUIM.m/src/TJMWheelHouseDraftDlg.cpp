@@ -42,6 +42,8 @@ TJMWheelHouseDraftDlg::TJMWheelHouseDraftDlg() :
  _SelectorListToolingDir = NULL;
  _Label004 = NULL;
  _SelectorListWheelHouseSurface = NULL;
+ _Label005 = NULL;
+ _SpinnerDraftAngle = NULL;
 //END CAA2 WIZARD CONSTRUCTOR INITIALIZATION SECTION
 }
 
@@ -60,6 +62,8 @@ TJMWheelHouseDraftDlg::~TJMWheelHouseDraftDlg()
  _SelectorListToolingDir = NULL;
  _Label004 = NULL;
  _SelectorListWheelHouseSurface = NULL;
+ _Label005 = NULL;
+ _SpinnerDraftAngle = NULL;
 //END CAA2 WIZARD DESTRUCTOR DECLARATION SECTION
 }
 
@@ -87,6 +91,11 @@ _Label004 -> SetGridConstraints(0, 0, 1, 1, CATGRID_4SIDES);
  _SelectorListWheelHouseSurface = new CATDlgSelectorList(this, "SelectorListWheelHouseSurface");
  _SelectorListWheelHouseSurface -> SetVisibleTextHeight(1);
 _SelectorListWheelHouseSurface -> SetGridConstraints(0, 1, 1, 1, CATGRID_4SIDES);
+ _Label005 = new CATDlgLabel(this, "Label005");
+_Label005 -> SetGridConstraints(3, 0, 1, 1, CATGRID_4SIDES);
+ _SpinnerDraftAngle = new CATDlgSpinner(this, "SpinnerDraftAngle", CATDlgSpnEntry|CATDlgSpnDouble);
+ _SpinnerDraftAngle -> SetMinMaxStep(0.000000, 10.000000, 1.000000);
+_SpinnerDraftAngle -> SetGridConstraints(3, 1, 1, 1, CATGRID_4SIDES);
 //END CAA2 WIZARD WIDGET CONSTRUCTION SECTION
 
 //CAA2 WIZARD CALLBACK DECLARATION SECTION
@@ -104,6 +113,17 @@ CATDlgSelectorList *TJMWheelHouseDraftDlg::GetSelectorListFunc(int type)
 		return _SelectorListSketch;
 	case ToolingDir:
 		return _SelectorListToolingDir;
+	default:
+		return NULL;
+	}
+}
+
+CATDlgSpinner *TJMWheelHouseDraftDlg::GetSpinnerFunc(int type)
+{
+	switch(type)
+	{
+	case DraftAngle:
+		return _SpinnerDraftAngle;
 	default:
 		return NULL;
 	}

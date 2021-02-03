@@ -51,7 +51,7 @@ TJMWheelHouseDraftCls& TJMWheelHouseDraftCls::operator=(TJMWheelHouseDraftCls& o
    return *this;
 }
  
-HRESULT TJMWheelHouseDraftCls::SetDatas(CATIProduct_var *iRootProduct,CATISpecObject_var *iSurface,CATBaseUnknown_var *iSketch,CATBaseUnknown_var *iToolingDir)
+HRESULT TJMWheelHouseDraftCls::SetDatas(CATIProduct_var *iRootProduct,CATISpecObject_var *iSurface,CATBaseUnknown_var *iSketch,CATBaseUnknown_var *iToolingDir,double iDraftAngle)
 {
 	_spiRootProduct = *iRootProduct;
 
@@ -60,6 +60,8 @@ HRESULT TJMWheelHouseDraftCls::SetDatas(CATIProduct_var *iRootProduct,CATISpecOb
 	_spBUSketch = *iSketch;
 
 	_spBUToolingDir = *iToolingDir;
+
+	_dDraftAngle = iDraftAngle;
 	
 	return S_OK;
 }
@@ -142,6 +144,16 @@ HRESULT TJMWheelHouseDraftCls::ComputeResults()
 		return E_FAIL;
 	}
 
+	CATIAFactory  *pShapeFactory = NULL;
+	spiaPart->get_ShapeFactory(pShapeFactory);
+	CATIAShapeFactory_var spShapeFactory = pShapeFactory;
+	if (spShapeFactory==NULL_var)
+	{
+		cout<<"====> get CATIAShapeFactory_var failed............"<<endl;
+		return E_FAIL;
+	}
+
+
 	//判断当前曲面的方向
 	CATISpecObject_var spiSpecSurfaceBase = _spiSpecSurface;
 	int iSplitSide;
@@ -185,7 +197,8 @@ HRESULT TJMWheelHouseDraftCls::ComputeResults()
 	}
 	_structFeaturesInfo.spiSpecOffsetSurface = spiSpecSurfaceOffset;
 	_structFeaturesInfo.iSplitSideOffsetSurface = iSplitSide;
-
+	
+	TJMWheelHouseDraftGeneralClass::HideSpecObject(spiSpecSurfaceOffset,FALSE);
 
 	//
 	vector<CATISpecObject_var> lstSpecCurves;
@@ -196,6 +209,7 @@ HRESULT TJMWheelHouseDraftCls::ComputeResults()
 	}
 
 	//循环创建实体
+	vector<CATISpecObject_var> lstSpecSolids;
 	for (int i=0;i<lstSpecCurves.size();i++)
 	{
 		CATISpecObject_var spiSpecCurve = lstSpecCurves[i];
@@ -251,7 +265,99 @@ HRESULT TJMWheelHouseDraftCls::ComputeResults()
 			cout<<"====> Second CreatePrtSolidSplit failed............."<<endl;
 			continue;
 		}
+
+		//判断需要拔模的面
+		CATBody_var spBodySolid = TJMWheelHouseDraftGeneralClass::GetBodyFromFeature(spiSpecPrtTool);
+		if (spBodySolid==NULL_var)
+		{
+			continue;
+		}
+		CATLISTP(CATCell) LISTCell; 
+		spBodySolid->GetAllCells( LISTCell, 2 );
+		CATLISTV(CATISpecObject_var) lstDraftObject;
+		for (int j=1;j<LISTCell.Size();j++)
+		{
+			CATCell_var spCell = LISTCell[j];
+			if (spCell==NULL_var)
+			{
+				continue;
+			}
+			CATMathVector dirNormal;
+			if (FAILED(GetNormalOfSurface(pGeoFactory,topdata,spBodySolid,spCell,dirNormal)))
+			{
+				cout<<"GetNormalOfSurface failed.........."<<endl;
+				continue;
+			}
+
+			//先把不垂直于草图平面的方向过滤掉
+			if (abs(dirNormal.GetAngleTo(dirSketch)-CATPIBY2)>0.05)
+			{
+				continue;
+			}
+
+			//和拔模方向比夹角
+			CATAngle angleDir = dirNormal.GetAngleTo(dirTooling);
+			//double dAngleDraft = _dDraftAngle*CATPI/180;
+			double dAngleDraft = _dDraftAngle;
+			double dDelta = angleDir-(CATPIBY2-dAngleDraft);
+			if (dDelta>0.05)		//此时该面需要拔模
+			{
+				CATIBRepAccess_var spBRepAccess=CATBRepDecodeCellInBody( spCell, spBodySolid);  
+				if (spBRepAccess==NULL_var)
+				{
+					cout<<"CATBRepDecodeCellInBody Failed"<<endl;
+					continue;
+				}
+
+				CATISpecObject_var spFindSpec=NULL_var;
+				TJMWheelHouseDraftGeneralClass::ConvertToSupportSpec(spBRepAccess, spFindSpec);
+				if (spFindSpec==NULL_var)
+				{
+					cout<<"ConvertToSpec Failed"<<endl;
+					continue;
+				}
+				lstDraftObject.Append(spFindSpec);
+			}
+		}
+		if (lstDraftObject.Size()>0)
+		{
+			//拔模
+			CATISpecObject_var spObjDraft= spiPrtFact->CreateDraft(&lstDraftObject,0,spiSpecSurfaceBase,0,NULL_var,-1*dirTooling,NULL_var,0,_dDraftAngle*CATRadianToDegree,0);
+
+			trytimes=1;
+			if (TJMWheelHouseDraftGeneralClass::IsObjectExistUpdateError(spiSpecPrtTool,trytimes)==TRUE)
+			{
+				cout<<"CreateDraft Try Update Failed"<<endl;
+				continue;
+			}
+		}
+
+		lstSpecSolids.push_back(spiSpecPrtTool);
 	}
+
+	
+	//所有能够正确update的柱子assemble起来
+	//先创建最终的prttool
+	CATISpecObject_var spiSpecPrtTool=NULL_var;
+	strAlias = "Hole_List";
+	if (FAILED(TJMWheelHouseDraftGeneralClass::CreateNewPrtTool(_spiRootProduct,strAlias,spiSpecPrtTool))||spiSpecPrtTool==NULL_var)
+	{
+		cout<<"====> CreateNewPrtTool ArmrestBinFixStrc_OpenArea failed............"<<endl;
+		return E_FAIL;
+	}
+
+	for (int i=0;i<lstSpecSolids.size();i++)
+	{
+		CATISpecObject_var spiSpecSolid = lstSpecSolids[i];
+		if (FAILED(TJMWheelHouseDraftGeneralClass::CreateBodyToAssemble(spiaPart,spShapeFactory,spiSpecPrtTool,spiSpecSolid)))
+		{
+			cout<<"====> CreateBodyToAssemble ArmrestBinFixStrc_OpenArea failed............"<<endl;
+			return E_FAIL;
+		}
+	}
+
+
+
 	return S_OK;
 }
 
@@ -462,5 +568,91 @@ HRESULT TJMWheelHouseDraftCls::GetCenterOfSurface( CATBody_var ispBodySurface,CA
 		return E_FAIL;
 	}
 
+	return S_OK;
+}
+
+//获取面的法向，需要指向实体内侧
+HRESULT TJMWheelHouseDraftCls::GetNormalOfSurface(CATGeoFactory *ipGeoFact,CATTopData *ipTopData,CATBody_var ispBodySolid,CATCell_var ispCellSurface,CATMathVector &oNormalDir)
+{
+	//先获取面上点
+	CATBody_var spBodySurface = TJMWheelHouseDraftGeneralClass::CreateBodyFromCell(ipGeoFact,ispCellSurface,2);
+	if (spBodySurface==NULL_var)
+	{
+		return E_FAIL;
+	}
+
+	//
+	//获取面上任一二维cell的估算中心点
+	CATMathPoint ptCenter;
+	if (FAILED(GetCenterOfSurface(spBodySurface,ptCenter)))
+	{
+		cout<<"GetCenterOfSurface failed......."<<endl;
+		return E_FAIL;
+	}
+
+	//把该点投影到曲面上
+	CATBody_var spBodyPt = CATCreateTopPointXYZ(ipGeoFact,ipTopData,ptCenter.GetX(),ptCenter.GetY(),ptCenter.GetZ());
+	if (spBodyPt==NULL_var)
+	{
+		return E_FAIL;
+	}
+	CATBody_var spBodyProj = TJMWheelHouseDraftGeneralClass::CreateTopProject(ipGeoFact,ipTopData,spBodyPt,spBodySurface);
+	if (spBodyProj==NULL_var)
+	{
+		return E_FAIL;
+	}
+
+	CATMathPoint ptProj;
+	if (FAILED(TJMWheelHouseDraftGeneralClass::GetMathPoint(spBodyProj,ptProj)))
+	{
+		return E_FAIL;
+	}
+
+	//在该点获取曲面的法向
+	//过面上的点算出垂线
+	CATBody_var spBodyPointProj = ::CATCreateTopPointXYZ(ipGeoFact,ipTopData,ptProj.GetX(),ptProj.GetY(),ptProj.GetZ());
+	if (spBodyPointProj==NULL_var)
+	{
+		return E_FAIL;
+	}
+	CATBody_var spBodyLineNormal = ::CATCreateTopLineNormalToShell(ipGeoFact,ipTopData,spBodyPointProj,spBodySurface,1000);
+	if (spBodyLineNormal==NULL_var)
+	{
+		return E_FAIL;
+	}
+
+	//算出该垂线和实体有多少交点，最终方向需要指向实体内侧
+	CATLISTV(CATMathPoint) lstPt;
+	TJMWheelHouseDraftGeneralClass::GetMathPtFromBody(spBodyLineNormal,lstPt);
+	if (lstPt.Size()!=2)
+	{
+		return E_FAIL;
+	}
+	CATMathVector dirNormal;
+	double distance1 = lstPt[1].DistanceTo(ptProj);
+	double distance2 = lstPt[2].DistanceTo(ptProj);
+	if (distance1<distance2)
+	{
+		dirNormal = lstPt[2]-lstPt[1];
+	}
+	else
+	{
+		dirNormal = lstPt[1]-lstPt[2];
+	}
+	dirNormal.Normalize();
+
+	CATBody_var spBodyIntersect = TJMWheelHouseDraftGeneralClass::CreateTopIntersect(ipGeoFact,ipTopData,ispBodySolid,spBodyLineNormal);
+	if (spBodyIntersect!=NULL_var)
+	{
+		CATLISTV(CATMathPoint) lstPt;
+		TJMWheelHouseDraftGeneralClass::GetMathPtFromBody(spBodyIntersect,lstPt);
+		if (lstPt.Size()<2)
+		{
+			dirNormal = -1*dirNormal;
+		}
+	}
+
+	oNormalDir = dirNormal;
+	
 	return S_OK;
 }

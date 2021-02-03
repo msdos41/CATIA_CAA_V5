@@ -1065,13 +1065,13 @@ CATBoolean TJMWheelHouseDraftGeneralClass::CreatePlaneBody( CATGeoFactory_var sp
 //输入：CATGeoFactory 几何工厂, CATCell cell对象，int 维数
 //输出：
 //返回：CATBody body对象
-CATBody* TJMWheelHouseDraftGeneralClass::CreateBodyFromCell(CATGeoFactory *ipGeoFactory, CATCell_var ispCell, int iDimension)
+CATBody_var TJMWheelHouseDraftGeneralClass::CreateBodyFromCell(CATGeoFactory *ipGeoFactory, CATCell_var ispCell, int iDimension)
 {
-	CATBody *pBody = ipGeoFactory->CreateBody();
-	CATDomain *pDomain = pBody->CreateDomain(iDimension);
+	CATBody_var spBody = ipGeoFactory->CreateBody();
+	CATDomain *pDomain = spBody->CreateDomain(iDimension);
 	pDomain->AddCell(ispCell);
-	pBody->AddDomain(pDomain);
-	return pBody;
+	spBody->AddDomain(pDomain);
+	return spBody;
 }
 
 //选择元素，转换成BaseUnknown，并同时返回所属Product(Instance)

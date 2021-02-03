@@ -480,7 +480,7 @@ public:
 	static HRESULT GetTransformationBody(CATBody_var ispBody,CATIProduct_var ispOrginProduct,CATIProduct_var ispTargetProduct,CATBody_var& ospResultBody);
 	static HRESULT GetCATIASectionResult(CATIProduct_var ispProd,double iarrPos[],double idWidth,double idHeight,CATListValCATISpecObject_var &olstResult,CATDocument *&opDoc);
 	static CATBody* CreateTopIntersect( CATGeoFactory* ipGeoFactory, CATTopData* itopdata,CATBody*iBody1,CATBody*iBody2 );
-	static CATBody* CreateBodyFromCell(CATGeoFactory *ipGeoFactory, CATCell_var ispCell, int iDimension);
+	static CATBody_var CreateBodyFromCell(CATGeoFactory *ipGeoFactory, CATCell_var ispCell, int iDimension);
 	static CATBoolean IsPointOnLine(CATMathPoint iPt,CATMathPoint iLinePt1,CATMathPoint iLinePt2);
 	static CATIProduct_var CreateNewPart();
 	static HRESULT CreateCircle( CATGeoFactory_var spGeoFactory,CATTopData * topdata,CATMathPlane iMathPlane,double Radius,CATBody_var &ospBody );

@@ -20,6 +20,7 @@
 #include "TJMWheelHouseDraftGeneralClass.h"
 
 #include "CATIMeasurablePlane.h"
+#include "CATIGSMProject.h"
 
 struct FeaturesInfo{
 
@@ -34,6 +35,18 @@ struct FeaturesInfo{
 	CATISpecObject_var				spiSpecOffsetSurface;
 
 	int								iSplitSideOffsetSurface;
+
+	CATISpecObject_var				spiSpecOffsetSurfaceInner;
+
+	int								iSplitSideOffsetSurfaceInner;
+
+	CATISpecObject_var				spiSpecOffsetSurfaceMid;
+
+	int								iSplitSideOffsetSurfaceMid;
+
+	CATISpecObject_var				spiSpecOffsetSurfaceOuter;
+
+	int								iSplitSideOffsetSurfaceOuter;
 
 };
 
@@ -72,9 +85,12 @@ class TJMWheelHouseDraftCls: public CATBaseUnknown
   HRESULT SetDatas(CATIProduct_var *iRootProduct,CATISpecObject_var *iSurface,CATBaseUnknown_var *iSketch,CATBaseUnknown_var *iToolingDir,double iDraftAngle);
   HRESULT ComputeResults();
   HRESULT GetSeperatedCurvesFromSketch(vector<CATISpecObject_var> &olstSpecCurves);
+  HRESULT GetSeperatedCurvesFromSketch(CATISpecObject_var ispiSpecSketch,vector<CATISpecObject_var> &olstSpecCurves);
   HRESULT JudgeSurfacePositiveOrNegative(CATGeoFactory *ipGeoFact, CATTopData *ipTopData, CATBaseUnknown_var ispBUSurface, CATMathVector iToolingDir, int &oiSplitSide);
   HRESULT GetCenterOfSurface( CATBody_var ispBodySurface,CATMathPoint &omathOriginalPoint );
   HRESULT GetNormalOfSurface(CATGeoFactory *ipGeoFact,CATTopData *ipTopData,CATBody_var ispBodySolid,CATCell_var ispCellSurface,CATMathVector &oNormalDir);
+  HRESULT ComputeResults2();
+  HRESULT GetMinDistanceByMeasure(CATISpecObject_var ispiSpec1,CATIProduct_var ispiProd1,CATISpecObject_var ispiSpec2,CATIProduct_var ispiProd2,CATMathPoint &omathPt1,CATMathPoint &omathPt2,double &oDistance);
 private:
 
 	CATBaseUnknown_var				_spBUSurface;

@@ -34,3 +34,5 @@ AddPrereqComponent("MeasureGeometryInterfaces",Protected);
 AddPrereqComponent("SketcherInterfaces",Protected);
 AddPrereqComponent("BasicTopologicalOpe",Protected);
 AddPrereqComponent("GeometricObjects",Protected);
+AddPrereqComponent("ObjectModelerBase",Protected);
+AddPrereqComponent("SpaceAnalysisInterfaces",Protected);

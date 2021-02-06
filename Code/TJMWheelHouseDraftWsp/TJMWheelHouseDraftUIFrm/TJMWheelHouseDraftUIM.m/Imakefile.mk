@@ -31,6 +31,8 @@ CATMeasureGeometryInterfaces	\
 CATSketcherInterfaces			\
 CATBasicTopologicalOpe			\
 CATCGMGeoMath					\
+CATObjectModelerBase			\
+CATSaiSpaceAnalysisItf			\
 
 
 # System dependant variables

@@ -292,7 +292,7 @@ CATBoolean TJMWheelHouseDraftCmd::ActionOKFunc(void * data)
 
 	TJMWheelHouseDraftCls *pCls = new TJMWheelHouseDraftCls();
 	pCls->SetDatas(&_spiRootProduct,&_spiSpecSurfaceWH,&_spBUSketch,&_spBUToolingDir,dAngle);
-	pCls->ComputeResults();
+	pCls->ComputeResults2();
 
 	if (pCls!=NULL)
 	{
@@ -473,7 +473,7 @@ void TJMWheelHouseDraftCmd::TransToSurfFunc(void * data)
 	
 	InitializeControlsFunc(_intSelType);
 
-	TJMWheelHouseDraftGeneralClass::SetHighlight(_spBUSurface,_pEditor,_pHSO);
+	TJMWheelHouseDraftGeneralClass::SetHighlight(_spiSpecSurfaceWH,_pEditor,_pHSO);
 
 }
 

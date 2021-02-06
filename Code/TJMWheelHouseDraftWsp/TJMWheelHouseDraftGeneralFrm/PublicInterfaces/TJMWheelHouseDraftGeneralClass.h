@@ -137,6 +137,7 @@
 #include "CATIGSMAssemble.h"
 #include "CATIGSMPlaneOffset.h"
 #include "CATIGSMOffset.h"
+#include "CATIGSMHealing.h"
 //MecModInterfaces
 #include "CATIPrtContainer.h"
 #include "CATIMfBRep.h"
@@ -519,6 +520,8 @@ public:
 	static HRESULT CreateVBExtract(CATIAPart_var ispiaPart, CATIAHybridShapeFactory_var ispiaHybridShapeFact, CATISpecObject_var ispSpecToExtract, CATISpecObject_var ispInputParent, int iPropagation, CATISpecObject_var &ospExtractSpec);
 	static CATBoolean ConvertToSupportSpec(CATBaseUnknown_var ispFeature,CATISpecObject_var &ospSpec);
 	static HRESULT CreateVBOffset(CATIAPart_var ispiaPart, CATIAHybridShapeFactory_var ispiaHybridShapeFact, CATISpecObject_var ispSpecToOffset, CATISpecObject_var ispInputParent, double idOffset, boolean iOrientation, CATISpecObject_var &ospOffsetSpec);
+	static HRESULT CreateGSMHealing(CATIGSMFactory_var ispiGSMFact, CATISpecObject_var ispiSpecGS, CATISpecObject_var ispiSpecObj, CATISpecObject_var &ospiSpecObjHealing);
+	static HRESULT MinDistanceBody(CATGeoFactory_var ispiGeoFactory, CATTopData iTopdata, CATBody_var ispSoildBody, CATBody_var ispPointBody, double &olength, CATBoolean &oissucess);
 };
 
 #endif

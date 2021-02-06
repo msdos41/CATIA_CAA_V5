@@ -4425,3 +4425,91 @@ HRESULT TJMWheelHouseDraftGeneralClass::CreateVBOffset(CATIAPart_var ispiaPart,
 
 	return S_OK;
 }
+
+HRESULT TJMWheelHouseDraftGeneralClass::CreateGSMHealing(CATIGSMFactory_var ispiGSMFact,
+														 CATISpecObject_var ispiSpecGS,
+														 CATISpecObject_var ispiSpecObj,
+														 CATISpecObject_var &ospiSpecObjHealing)
+{
+	CATLISTV(CATISpecObject_var) lstSpecObj;
+	lstSpecObj.Append(ispiSpecObj);
+	CATIGSMHealing_var spiGSMHealing = ispiGSMFact->CreateHealing(lstSpecObj);
+	CATISpecObject_var spiSpecResult=spiGSMHealing;
+	if (spiSpecResult==NULL_var)
+	{
+		cout<<"====> CreateGSMHealing failed............"<<endl;
+		return E_FAIL;
+	}
+
+	int trytimes=1;
+	if (TJMWheelHouseDraftGeneralClass::IsObjectExistUpdateError(spiSpecResult,trytimes)==TRUE)
+	{
+		cout<<"CreateGSMHealing Try Update Failed"<<endl;
+		return E_FAIL;
+	}
+	if (ispiSpecGS!=NULL_var)
+	{
+		CATIGSMProceduralView_var spProceduralView =NULL_var;
+		spProceduralView = spiSpecResult;
+		if (NULL_var != spProceduralView )
+		{
+			spProceduralView->InsertInProceduralView(ispiSpecGS);
+		}
+	}
+
+	ospiSpecObjHealing = spiSpecResult;
+
+	return S_OK;
+
+}
+
+HRESULT TJMWheelHouseDraftGeneralClass::MinDistanceBody(CATGeoFactory_var ispiGeoFactory,
+														CATTopData iTopdata,
+														CATBody_var ispSoildBody,
+														CATBody_var ispPointBody,
+														double &olength,
+														CATBoolean &oissucess)							
+{
+	CATTry 
+	{
+		CATDistanceMinBodyBody*piMinDistanceBody=NULL;
+		piMinDistanceBody= CATCreateDistanceMinTopo(ispiGeoFactory, &iTopdata, ispSoildBody,ispPointBody,ADVANCED) ;
+		if (piMinDistanceBody==NULL)
+		{
+			cout<<"CATCGMCreateDistanceBodyBodyOp Failed"<<endl;
+			return E_FAIL;
+		}
+
+		piMinDistanceBody->SetPointComputationMode(TRUE);
+		piMinDistanceBody->Run();
+
+		olength=piMinDistanceBody->GetDistance();
+
+		//CATPoint* oPoint1=NULL;
+		//CATPoint* oPoint2=NULL;
+		//piMinDistanceBody->GetPoints(oPoint1, oPoint2); 
+		//if (oPoint1!=NULL&&oPoint2!=NULL)
+		//{
+		//	oPoint1->GetMathPoint(oMathPoint1);
+		//	oPoint2->GetMathPoint(oMathPoint2);
+		//	
+		//	oPoint1->Release();oPoint1=NULL;
+		//	oPoint2->Release();oPoint2=NULL;
+		//}
+
+		if (piMinDistanceBody!=NULL)
+		{
+			delete piMinDistanceBody;
+			piMinDistanceBody = NULL;
+		}
+	}
+	CATCatch(CATError , pError)
+	{
+		oissucess=FALSE;
+		return E_FAIL;
+	}
+	CATEndTry
+
+		oissucess=TRUE;
+	return S_OK;
+}

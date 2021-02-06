@@ -513,6 +513,7 @@ HRESULT TJMWheelHouseDraftCls::ComputeResults2()
 	_structFeaturesInfo.iSplitSideOffsetSurfaceInner = iSplitSide;
 	
 	TJMWheelHouseDraftGeneralClass::HideSpecObject(spiSpecSurfaceOffset,FALSE);
+	TJMWheelHouseDraftGeneralClass::HideSpecObject(spiSpecSurfaceOffsetHealing,FALSE);
 
 
 	////创建offset内表面
@@ -565,6 +566,7 @@ HRESULT TJMWheelHouseDraftCls::ComputeResults2()
 	_structFeaturesInfo.iSplitSideOffsetSurfaceMid = iSplitSide;
 
 	TJMWheelHouseDraftGeneralClass::HideSpecObject(spiSpecSurfaceOffset,FALSE);
+	TJMWheelHouseDraftGeneralClass::HideSpecObject(spiSpecSurfaceOffsetHealing,FALSE);
 
 	//创建offset最外面
 	spiSpecSurfaceOffset=NULL_var;
@@ -599,6 +601,7 @@ HRESULT TJMWheelHouseDraftCls::ComputeResults2()
 	_structFeaturesInfo.iSplitSideOffsetSurfaceOuter = iSplitSide;
 
 	TJMWheelHouseDraftGeneralClass::HideSpecObject(spiSpecSurfaceOffset,FALSE);
+	TJMWheelHouseDraftGeneralClass::HideSpecObject(spiSpecSurfaceOffsetHealing,FALSE);
 
 	//创建GSM投影方向
 	CATIGSMDirection_var spiGSMDirSketch = spiGSMFact->CreateDirection(spiSpecPlane);
@@ -672,23 +675,6 @@ HRESULT TJMWheelHouseDraftCls::ComputeResults2()
 		cout<<"===> GetSeperatedCurvesFromSketch failed.........."<<endl;
 		return E_FAIL;
 	}
-
-
-	////创建所有的轮廓在innersurface上的投影，挂模型树
-	//vector<CATISpecObject_var> lstSpecCurvesProj;
-	//for (int i=0;i<lstSpecCurves.size();i++)
-	//{
-	//	CATISpecObject_var spiSpecCurve = lstSpecCurves[i];
-	//	if (spiSpecCurve==NULL_var)
-	//	{
-	//		lstSpecCurvesProj.push_back(NULL_var);
-	//		continue;
-	//	}
-
-
-	//	
-	//	lstSpecCurvesProj.push_back(spiSpecCurveProj);
-	//}
 
 	//循环创建实体
 	CATISpecObject_var spiSpecSurfaceInner = _structFeaturesInfo.spiSpecOffsetSurfaceInner;

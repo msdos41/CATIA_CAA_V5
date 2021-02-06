@@ -288,6 +288,12 @@ CATBoolean TJMWheelHouseDraftCmd::ActionOKFunc(void * data)
 {
 	CATTime iStartTime = CATTime::GetCurrentLocalTime();
 
+	if (!CheckInput())
+	{
+		TJMWheelHouseDraftGeneralClass::MessageOutputError("Please complete the selections first.","Error");
+		return FALSE;
+	}
+
 	double dAngle=_pDlg->GetSpinnerFunc(DraftAngle)->GetValue();	//获取到的直接就是弧度，不需要再转换
 
 	TJMWheelHouseDraftCls *pCls = new TJMWheelHouseDraftCls();
@@ -303,7 +309,8 @@ CATBoolean TJMWheelHouseDraftCmd::ActionOKFunc(void * data)
 	CATTime iEndTime1 = CATTime::GetCurrentLocalTime();
 	CATTimeSpan iTimeSpan=iEndTime1-iStartTime;
 	cout<<"=========> Calculate Run Time: "<<iTimeSpan.ConvertToString("%M:%S")<<endl;
-	
+
+	TJMWheelHouseDraftGeneralClass::MessageOutputInfo("Finished!","Info");
 	RequestDelayedDestruction();
 	return TRUE;
 }
@@ -340,7 +347,15 @@ void TJMWheelHouseDraftCmd::SelectSurfaceFunc(void * data)
 		CATUnicodeString strAlias = TJMWheelHouseDraftGeneralClass::GetNameFromBaseUnknownFunc(spiSpecSelect);
 		_pDlg->GetSelectorListFunc(0)->SetLine(strAlias,-1,CATDlgDataAdd);
 		int iTabRow = 0;
-		_pDlg->GetSelectorListFunc(0)->SetSelect(&iTabRow,1);
+		if (_spBUSketch==NULL_var)
+		{
+			_pDlg->GetSelectorListFunc(1)->SetSelect(&iTabRow,1);
+		} 
+		else
+		{
+			_pDlg->GetSelectorListFunc(0)->SetSelect(&iTabRow,1);
+		}
+		
 	}
 
 	_pSurfaceAgent->InitializeAcquisition();
@@ -370,7 +385,14 @@ void TJMWheelHouseDraftCmd::SelectSketchFunc(void * data)
 		CATUnicodeString strAlias = TJMWheelHouseDraftGeneralClass::GetNameFromBaseUnknownFunc(spBUSelect);
 		_pDlg->GetSelectorListFunc(1)->SetLine(strAlias,-1,CATDlgDataAdd);
 		int iTabRow = 0;
-		_pDlg->GetSelectorListFunc(1)->SetSelect(&iTabRow,1);
+		if (_spBUToolingDir==NULL_var)
+		{
+			_pDlg->GetSelectorListFunc(2)->SetSelect(&iTabRow,1);
+		}
+		else
+		{
+			_pDlg->GetSelectorListFunc(1)->SetSelect(&iTabRow,1);
+		}
 	}
 
 	_pSketchAgent->InitializeAcquisition();
@@ -559,4 +581,13 @@ void TJMWheelHouseDraftCmd::InitialDlg()
 	int iTabRow=0;
 	_pDlg->GetSelectorListFunc(0)->SetSelect(&iTabRow,1);
 
+}
+
+CATBoolean TJMWheelHouseDraftCmd::CheckInput()
+{
+	if (_spiSpecSurfaceWH==NULL_var||_spBUSketch==NULL_var||_spBUToolingDir==NULL_var)
+	{
+		return FALSE;
+	}
+	return TRUE;
 }

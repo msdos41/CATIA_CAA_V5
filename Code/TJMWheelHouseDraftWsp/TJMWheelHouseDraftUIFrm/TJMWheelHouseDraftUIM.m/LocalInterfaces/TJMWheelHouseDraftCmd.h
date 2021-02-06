@@ -73,6 +73,7 @@ class TJMWheelHouseDraftCmd: public CATStateCommand
   void TransToToolingDirFunc(void * data);
   void InitializeControlsFunc(int iExcept);
   void InitialDlg();
+  CATBoolean CheckInput();
 private:
 
 	  TJMWheelHouseDraftDlg				*_pDlg;

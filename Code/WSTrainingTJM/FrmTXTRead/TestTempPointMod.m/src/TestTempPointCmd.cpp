@@ -54,7 +54,7 @@ TestTempPointCmd::TestTempPointCmd() :
 		_pISO = _pEditor->GetISO();
 	}
 
-	_pViewerFeedbackManager = new YFAirventViewerFeedbackManager();
+	_pViewerFeedbackManager = new TrainingViewerFeedbackManager();
 	_pViewerFeedbackManager->SetViewerFeedbackOn();
 
 	//TestHighLight();

@@ -18,7 +18,7 @@
 #include "GeneralClassMod.h"
 #include "CATBaseUnknown.h"
 #include "YFExcelClass.h"
-#include "YFAirventXMLClass.h"
+#include "TrainingXMLClass.h"
 
 #include "CAACommonModule.h"
 

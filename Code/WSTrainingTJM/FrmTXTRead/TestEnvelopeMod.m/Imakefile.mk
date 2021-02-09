@@ -33,8 +33,8 @@ KnowledgeItf  \
 CATTopologicalOperators  \
 CATBasicTopologicalOpe  \
 GUIDVPMInterfaces	\
-YFAirventViewFeedbackM	\
-YFDatumTempM	\
+TrainingViewFeedbackM	\
+TrainingTempM	\
 CATMechanicalModeler	\
 CATVisualization	\
 CATGeometricOperators \
@@ -44,7 +44,7 @@ CATKiiKinematicsItf		\
 CATAssemblyInterfaces	\
 CATSimulationInterfaces		\
 SMTInterfacesItf	\
-YFAirventXMLM		\
+TrainingXMLM		\
 CATInfInterfaces	\
 ProductStructureItf		\
 

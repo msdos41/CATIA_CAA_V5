@@ -4089,7 +4089,7 @@ HRESULT TestEnvelopeCmd::GetInfoFromXML(CATUnicodeString istrFullPath, CATListOf
 	//
 	olstParmNames.RemoveAll();
 
-	YFAirventXMLClass *pXmlCls = new YFAirventXMLClass();
+	TrainingXMLClass *pXmlCls = new TrainingXMLClass();
 	//打开xml文件
 	char pcPath[10000];
 	CAAUStringConvertToChar(istrFullPath,pcPath);

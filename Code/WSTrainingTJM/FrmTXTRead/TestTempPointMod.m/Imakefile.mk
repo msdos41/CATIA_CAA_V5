@@ -33,8 +33,8 @@ KnowledgeItf  \
 CATTopologicalOperators  \
 CATBasicTopologicalOpe  \
 GUIDVPMInterfaces	\
-YFAirventViewFeedbackM	\
-YFDatumTempM	\
+TrainingViewFeedbackM	\
+TrainingTempM	\
 CATMechanicalModeler	\
 CATVisualization	\
 

@@ -37,7 +37,7 @@ CATInfInterfaces	\
 CATDraftingInterfaces	\
 CATSketcherInterfaces	\
 CATSaiSpaceAnalysisItf	\
-YFAirventXMLM		\
+TrainingXMLM		\
 CATGeometricOperators \
 GUIDVPMInterfaces	\
 CATMechanicalModeler	\

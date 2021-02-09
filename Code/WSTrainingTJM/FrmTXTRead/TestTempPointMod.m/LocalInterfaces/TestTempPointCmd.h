@@ -23,7 +23,7 @@
 
 #include "TestTempPointDlg.h"
 #include "GeneralClass.h"
-#include "YFAirventViewerFeedbackManager.h"
+#include "TrainingViewerFeedbackManager.h"
 #include "DumITempPoint.h"
 #include "DumITempArrow.h"
 #include "DumITempPlane.h"
@@ -88,7 +88,7 @@ private:
 
 	  CATDialogAgent		*_pSurfaceFieldAgent;
 
-	  YFAirventViewerFeedbackManager	*_pViewerFeedbackManager;	//ÆÁÄ»²¶×½
+	  TrainingViewerFeedbackManager	*_pViewerFeedbackManager;	//ÆÁÄ»²¶×½
 
 	  CATLISTV(CATBaseUnknown_var)		_lstBUSurface;
 

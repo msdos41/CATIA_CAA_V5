@@ -37,7 +37,7 @@ AddPrereqComponent("InfInterfaces",Public);
 AddPrereqComponent("DraftingInterfaces",Public);
 AddPrereqComponent("SketcherInterfaces",Protected);
 AddPrereqComponent("SpaceAnalysisInterfaces",Public);
-AddPrereqComponent("YFAirventXMLFrm",Public);
+AddPrereqComponent("TrainingXMLFrm",Public);
 AddPrereqComponent("GeometricOperators",Public);
 AddPrereqComponent("VPMInterfaces",Public);
 AddPrereqComponent("MechanicalModeler",Public);

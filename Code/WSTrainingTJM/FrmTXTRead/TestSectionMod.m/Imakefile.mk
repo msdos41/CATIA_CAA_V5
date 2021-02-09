@@ -35,7 +35,7 @@ GUIDVPMInterfaces	\
 ProductStructureItf	\
 GSMItf	\
 CATTessellation		\
-YFDatumTempM	\
+TrainingTempM	\
 CATVisualization	\
 SpaceAnalysisItf	\
 

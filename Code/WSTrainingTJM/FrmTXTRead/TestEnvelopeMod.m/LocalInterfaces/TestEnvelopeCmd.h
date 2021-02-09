@@ -23,7 +23,7 @@
 
 #include "TestEnvelopeDlg.h"
 #include "GeneralClass.h"
-#include "YFAirventXMLClass.h"
+#include "TrainingXMLClass.h"
 
 #include "CATDynTransformation.h"
 #include "CATDynBoolean.h"

@@ -36,7 +36,7 @@ GUIDVPMInterfaces	\
 ProductStructureItf	\
 GSMItf	\
 CATTessellation		\
-YFDatumTempM	\
+TrainingTempM	\
 CATVisualization	\
 
 # System dependant variables

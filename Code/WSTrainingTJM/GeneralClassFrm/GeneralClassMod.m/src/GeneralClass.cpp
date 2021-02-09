@@ -6397,7 +6397,7 @@ HRESULT GeneralClass::GetFeatureNamesFromXML(CATUnicodeString istrFileName, CATL
 {
 	HRESULT rc = S_OK;
 	
-	YFAirventXMLClass *pXmlCls = new YFAirventXMLClass();
+	TrainingXMLClass *pXmlCls = new TrainingXMLClass();
 	//打开xml文件
 	CATUnicodeString strPath = "";
 	int iFindPath = YFGetResourcePath(istrFileName,strPath);
@@ -6471,7 +6471,7 @@ HRESULT GeneralClass::GetParmNamesAndTolFromXML(CATUnicodeString istrFileName, C
 {
 	HRESULT rc = S_OK;
 
-	YFAirventXMLClass *pXmlCls = new YFAirventXMLClass();
+	TrainingXMLClass *pXmlCls = new TrainingXMLClass();
 	//打开xml文件
 	CATUnicodeString strPath = "";
 	int iFindPath = YFGetResourcePath(istrFileName,strPath);
@@ -6565,7 +6565,7 @@ HRESULT GeneralClass::GetScaleFromXML(CATUnicodeString istrFileName, vector<CATL
 {
 	HRESULT rc = S_OK;
 
-	YFAirventXMLClass *pXmlCls = new YFAirventXMLClass();
+	TrainingXMLClass *pXmlCls = new TrainingXMLClass();
 	//打开xml文件
 	CATUnicodeString strPath = "";
 	int iFindPath = YFGetResourcePath(istrFileName,strPath);

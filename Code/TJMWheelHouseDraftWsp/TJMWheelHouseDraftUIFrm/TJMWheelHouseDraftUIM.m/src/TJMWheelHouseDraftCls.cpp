@@ -568,9 +568,44 @@ HRESULT TJMWheelHouseDraftCls::ComputeResults2()
 	TJMWheelHouseDraftGeneralClass::HideSpecObject(spiSpecSurfaceOffset,FALSE);
 	TJMWheelHouseDraftGeneralClass::HideSpecObject(spiSpecSurfaceOffsetHealing,FALSE);
 
-	//创建offset最外面
+	//创建offset中心面往外偏置0.2mm的面
 	spiSpecSurfaceOffset=NULL_var;
-	dOffset = 6;
+	dOffset = 1.2;
+	bOrientation = TRUE;
+	if (1==_structFeaturesInfo.iSplitSideBaseSurface)
+	{
+		bOrientation=FALSE;
+	}
+	if (FAILED(TJMWheelHouseDraftGeneralClass::CreateVBOffset(spiaPart,spHybridShapeFactory,spiSpecSurfaceBase,spiSpecGS,dOffset,bOrientation,spiSpecSurfaceOffset))||spiSpecSurfaceOffset==NULL_var)
+	{
+		cout<<"===> CreateVBOffset failed.........."<<endl;
+		TJMWheelHouseDraftGeneralClass::MessageOutputError("Create Mid offset surface failed. Please check the selected surface.","Error");
+		return E_FAIL;
+	}
+
+	//healing一下
+	spiSpecSurfaceOffsetHealing=NULL_var;
+	if (FAILED(TJMWheelHouseDraftGeneralClass::CreateGSMHealing(spiGSMFact,spiSpecGS,spiSpecSurfaceOffset,spiSpecSurfaceOffsetHealing)))
+	{
+		cout<<"===> CreateVBOffset failed.........."<<endl;
+		TJMWheelHouseDraftGeneralClass::MessageOutputError("Create Mid 0.2mm offset surface Healing failed. Please check the selected surface.","Error");
+		return E_FAIL;
+	}
+
+	if (FAILED(JudgeSurfacePositiveOrNegative(pGeoFactory,topdata,spiSpecSurfaceOffsetHealing,-1*dirTooling,iSplitSide)))
+	{
+		cout<<"===> JudgeSurfacePositiveOrNegative failed.........."<<endl;
+		return E_FAIL;
+	}
+	_structFeaturesInfo.spiSpecOffsetSurfaceMidOuterOffset = spiSpecSurfaceOffsetHealing;
+	_structFeaturesInfo.iSplitSideOffsetSurfaceMidOuterOffset = iSplitSide;
+
+	TJMWheelHouseDraftGeneralClass::HideSpecObject(spiSpecSurfaceOffset,FALSE);
+	TJMWheelHouseDraftGeneralClass::HideSpecObject(spiSpecSurfaceOffsetHealing,FALSE);
+
+	//创建offset最外面，多1mm余量
+	spiSpecSurfaceOffset=NULL_var;
+	dOffset = 7;
 	bOrientation = TRUE;
 	if (1==_structFeaturesInfo.iSplitSideBaseSurface)
 	{
@@ -602,6 +637,8 @@ HRESULT TJMWheelHouseDraftCls::ComputeResults2()
 
 	TJMWheelHouseDraftGeneralClass::HideSpecObject(spiSpecSurfaceOffset,FALSE);
 	TJMWheelHouseDraftGeneralClass::HideSpecObject(spiSpecSurfaceOffsetHealing,FALSE);
+
+	cout<<"===================> Starting Inner Hole List............"<<endl;
 
 	//创建GSM投影方向
 	CATIGSMDirection_var spiGSMDirSketch = spiGSMFact->CreateDirection(spiSpecPlane);
@@ -680,9 +717,11 @@ HRESULT TJMWheelHouseDraftCls::ComputeResults2()
 	CATISpecObject_var spiSpecSurfaceInner = _structFeaturesInfo.spiSpecOffsetSurfaceInner;
 	CATISpecObject_var spiSpecSurfaceMid = _structFeaturesInfo.spiSpecOffsetSurfaceMid;
 	CATISpecObject_var spiSpecSurfaceOuter = _structFeaturesInfo.spiSpecOffsetSurfaceOuter;
+	CATISpecObject_var spiSpecSurfaceMinOuterOffset = _structFeaturesInfo.spiSpecOffsetSurfaceMidOuterOffset;
 	int iSplitSideSurfaceInner = _structFeaturesInfo.iSplitSideOffsetSurfaceInner;
 	int iSplitSideSurfaceMid = _structFeaturesInfo.iSplitSideOffsetSurfaceMid;
 	int iSplitSideSurfaceOuter = _structFeaturesInfo.iSplitSideOffsetSurfaceOuter;
+	int iSplitSideSurfaceMidOuterOffset = _structFeaturesInfo.iSplitSideOffsetSurfaceMidOuterOffset;
 
 	CATBody_var spBodySurfaceInner = TJMWheelHouseDraftGeneralClass::GetBodyFromFeature(spiSpecSurfaceInner);
 	if (spBodySurfaceInner==NULL_var)
@@ -700,7 +739,7 @@ HRESULT TJMWheelHouseDraftCls::ComputeResults2()
 		//创建prttool
 		CATUnicodeString strIndex;
 		strIndex.BuildFromNum(i+1);
-		CATUnicodeString strAlias = "Hole_"+strIndex;
+		CATUnicodeString strAlias = "HoleInner_"+strIndex;
 		CATISpecObject_var spiSpecPrtTool=NULL_var;
 		if (FAILED(TJMWheelHouseDraftGeneralClass::CreateNewPrtTool(_spiRootProduct,strAlias,spiSpecPrtTool))||spiSpecPrtTool==NULL_var)
 		{
@@ -737,9 +776,9 @@ HRESULT TJMWheelHouseDraftCls::ComputeResults2()
 			continue;
 		}
 
-		//用mid面切割
-		spiSpecCuttingSurface = _structFeaturesInfo.spiSpecOffsetSurfaceMid;
-		iSplitSide = _structFeaturesInfo.iSplitSideOffsetSurfaceMid;
+		//用mid面的0.2mm偏移面切割
+		spiSpecCuttingSurface = _structFeaturesInfo.spiSpecOffsetSurfaceMidOuterOffset;
+		iSplitSide = _structFeaturesInfo.iSplitSideOffsetSurfaceMidOuterOffset;
 		//iSplitSide = (iSplitSide+1)%2;
 		if (FAILED(TJMWheelHouseDraftGeneralClass::CreatePrtSolidSplit(spiPrtFact,spiSpecPrtTool,spiSpecCuttingSurface,iSplitSide)))
 		{
@@ -858,30 +897,373 @@ HRESULT TJMWheelHouseDraftCls::ComputeResults2()
 			}
 		}
 
+		//再把中性面加厚0.5mm，面需要重新找
+		spBodySolid = TJMWheelHouseDraftGeneralClass::GetBodyFromFeature(spiSpecPrtTool);
+		if (spBodySolid==NULL_var)
+		{
+			continue;
+		}
+		LISTCell.RemoveAll(); 
+		spBodySolid->GetAllCells( LISTCell, 2 );
+		CATISpecObject_var spiSpecSurfaceThickness=NULL_var;
+		CATBoolean bFind = FALSE;
+		for (int j=1;j<LISTCell.Size();j++)
+		{
+			CATCell_var spCell = LISTCell[j];
+			if (spCell==NULL_var)
+			{
+				continue;
+			}
+			CATMathVector dirNormal;
+			if (FAILED(GetNormalOfSurface(pGeoFactory,topdata,spBodySolid,spCell,dirNormal)))
+			{
+				cout<<"GetNormalOfSurface failed.........."<<endl;
+				continue;
+			}
+
+			//把不垂直于拔模方向的过滤掉，同时在其中找中性面
+			if (abs(dirNormal.GetAngleTo(dirTooling)-CATPIBY2)>0.05)
+			{
+				if (!bFind)
+				{
+					//和 inner surface量距离，近似0的就是中性面
+					CATBody_var spBodyCell = TJMWheelHouseDraftGeneralClass::CreateBodyFromCell(pGeoFactory,spCell,2);
+					if (spBodyCell!=NULL_var)
+					{
+						double dDist;
+						CATBoolean bSuccess;
+						if (SUCCEEDED(TJMWheelHouseDraftGeneralClass::MinDistanceBody(pGeoFactory,*topdata,spBodyCell,spBodySurfaceInner,dDist,bSuccess)))
+						{
+							if (dDist<0.01)
+							{
+								
+								bFind = TRUE;
+								CATIBRepAccess_var spBRepAccess=CATBRepDecodeCellInBody( spCell, spBodySolid);  
+								if (spBRepAccess==NULL_var)
+								{
+									cout<<"CATBRepDecodeCellInBody Failed"<<endl;
+									continue;
+								}
+
+								CATISpecObject_var spFindSpec=NULL_var;
+								TJMWheelHouseDraftGeneralClass::ConvertToSupportSpec(spBRepAccess, spFindSpec);
+								if (spFindSpec==NULL_var)
+								{
+									cout<<"ConvertToSpec Failed"<<endl;
+									continue;
+								}
+								spiSpecSurfaceThickness = spFindSpec;
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
+		CATLISTV(CATISpecObject_var) lstSpecObj;
+		lstSpecObj.Append(spiSpecSurfaceThickness);
+		if (FAILED(TJMWheelHouseDraftGeneralClass::CreatePrtThickness(spiPrtFact,spiSpecPrtTool,lstSpecObj,0.5)))
+		{
+			cout<<"===> CreatePrtThickness failed.........."<<endl;
+			continue;
+		}
+
 		lstSpecSolids.push_back(spiSpecPrtTool);
 	}
 
 	
 	//所有能够正确update的柱子assemble起来
-	//先创建最终的prttool
-	CATISpecObject_var spiSpecPrtTool=NULL_var;
-	strAlias = "Hole_List";
-	if (FAILED(TJMWheelHouseDraftGeneralClass::CreateNewPrtTool(_spiRootProduct,strAlias,spiSpecPrtTool))||spiSpecPrtTool==NULL_var)
+	//先创建inner的prttool
+	CATISpecObject_var spiSpecPrtToolInner=NULL_var;
+	strAlias = "Hole_List_Inner";
+	if (FAILED(TJMWheelHouseDraftGeneralClass::CreateNewPrtTool(_spiRootProduct,strAlias,spiSpecPrtToolInner))||spiSpecPrtToolInner==NULL_var)
 	{
-		cout<<"====> CreateNewPrtTool ArmrestBinFixStrc_OpenArea failed............"<<endl;
+		cout<<"====> CreateNewPrtTool Hole_List_Inner failed............"<<endl;
 		return E_FAIL;
 	}
 
 	for (int i=0;i<lstSpecSolids.size();i++)
 	{
 		CATISpecObject_var spiSpecSolid = lstSpecSolids[i];
-		if (FAILED(TJMWheelHouseDraftGeneralClass::CreateBodyToAssemble(spiaPart,spShapeFactory,spiSpecPrtTool,spiSpecSolid)))
+		if (FAILED(TJMWheelHouseDraftGeneralClass::CreateBodyToAssemble(spiaPart,spShapeFactory,spiSpecPrtToolInner,spiSpecSolid)))
 		{
-			cout<<"====> CreateBodyToAssemble ArmrestBinFixStrc_OpenArea failed............"<<endl;
+			cout<<"====> CreateBodyToAssemble Hole_List_Inner failed............"<<endl;
 			return E_FAIL;
 		}
 	}
 
+	cout<<"===================> Starting Outer Hole List............"<<endl;
+
+	////////////////////////////////////////////////////////////
+	//outer部分
+
+	//先把inner部分和中分面相交，得到的交线投影到拔模面上，拉出pad，然后轴圈加厚0.2mm，再以中分面为中性面拔模
+	CATISpecObject_var spiSpecIntersect=NULL_var;
+	if (FAILED(TJMWheelHouseDraftGeneralClass::CreateGSMIntersect(spiGSMFact,spiSpecPrtToolInner,_structFeaturesInfo.spiSpecOffsetSurfaceMid,spiSpecGS,spiSpecIntersect))||spiSpecIntersect==NULL_var)
+	{
+		cout<<"====> CreateGSMIntersect failed............"<<endl;
+		return E_FAIL;
+	}
+
+	//再把相交线投影到拔模方向所在平面上
+	CATIGSMProject_var spiGSMIntersectProj = spiGSMFact->CreateProject(spiSpecIntersect,spiSpecPlaneTooling,NULL_var,TRUE,CATGSMAllSolutions);
+	CATISpecObject_var spiSpecIntersectProj=spiGSMIntersectProj;
+	if (spiSpecIntersectProj==NULL_var)
+	{
+		cout<<"====> Create Intersect Project failed............"<<endl;
+		return E_FAIL;
+	}
+
+	trytimes=1;
+	if (TJMWheelHouseDraftGeneralClass::IsObjectExistUpdateError(spiSpecIntersectProj,trytimes)==TRUE)
+	{
+		cout<<"Create intersect Proj Try Update Failed"<<endl;
+		return E_FAIL;
+	}
+	spProceduralView =NULL_var;
+	spProceduralView = spiSpecIntersectProj;
+	if (NULL_var != spProceduralView )
+	{
+		spProceduralView->InsertInProceduralView(spiSpecGS);
+	}
+
+	CATBody_var spBodySurfaceMid = TJMWheelHouseDraftGeneralClass::GetBodyFromFeature(spiSpecSurfaceMid);
+	if (spBodySurfaceMid==NULL_var)
+	{
+		return E_FAIL;
+	}
+
+	//获取投影的每个独立元素
+	lstSpecCurvesProj.swap(vector<CATISpecObject_var>());
+	if (FAILED(GetSeperatedCurvesFromSketch(spiSpecIntersectProj,lstSpecCurvesProj)))
+	{
+		cout<<"===> GetSeperatedCurvesFromSketch intersect failed.........."<<endl;
+		return E_FAIL;
+	}
+
+	lstSpecSolids.swap(vector<CATISpecObject_var>());
+	for (int i=0;i<lstSpecCurvesProj.size();i++)
+	{
+		CATISpecObject_var spiSpecCurveProj = lstSpecCurvesProj[i];
+		if (spiSpecCurveProj==NULL_var)
+		{
+			continue;
+		}
+		//创建prttool
+		CATUnicodeString strIndex;
+		strIndex.BuildFromNum(i+1);
+		CATUnicodeString strAlias = "HoleOuter_"+strIndex;
+		CATISpecObject_var spiSpecPrtTool=NULL_var;
+		if (FAILED(TJMWheelHouseDraftGeneralClass::CreateNewPrtTool(_spiRootProduct,strAlias,spiSpecPrtTool))||spiSpecPrtTool==NULL_var)
+		{
+			cout<<"====> CreateNewPrtTool failed............"<<endl;
+			return E_FAIL;
+		}
+		//创建pad，沿拔模方向拉伸
+		CATISpecObject_var spiSpecPad = spiPrtFact->CreatePad(spiSpecCurveProj,2000,2000,dirTooling);
+		if (spiSpecPad==NULL_var)
+		{
+			continue;
+		}
+
+		int trytimes=1;
+		if (TJMWheelHouseDraftGeneralClass::IsObjectExistUpdateError(spiSpecPrtTool,trytimes)==TRUE)
+		{
+			cout<<"CreatePad Try Update Failed"<<endl;
+			//return E_FAIL;
+		}
+
+		CATIGSMProceduralView_var spProceduralView =NULL_var;
+		spProceduralView = spiSpecPad;
+		if (NULL_var != spProceduralView )
+		{
+			spProceduralView->InsertInProceduralView(spiSpecPrtTool);
+		}
+
+		//把所有面先加厚0.2mm
+		CATLISTV(CATISpecObject_var) lstSpecObj;
+		CATBody_var spBodySolid = TJMWheelHouseDraftGeneralClass::GetBodyFromFeature(spiSpecPrtTool);
+		if (spBodySolid==NULL_var)
+		{
+			continue;
+		}
+		CATLISTP(CATCell) LISTCell; 
+		spBodySolid->GetAllCells( LISTCell, 2 );
+		for (int j=1;j<LISTCell.Size();j++)
+		{
+			CATCell_var spCell = LISTCell[j];
+			if (spCell==NULL_var)
+			{
+				continue;
+			}
+			CATBody_var spBodyCell = TJMWheelHouseDraftGeneralClass::CreateBodyFromCell(pGeoFactory,spCell,2);
+			if (spBodyCell==NULL_var)
+			{
+				continue;
+			}
+
+			CATIBRepAccess_var spBRepAccess=CATBRepDecodeCellInBody( spCell, spBodySolid);  
+			if (spBRepAccess==NULL_var)
+			{
+				cout<<"CATBRepDecodeCellInBody Failed"<<endl;
+				continue;
+			}
+
+			CATISpecObject_var spFindSpec=NULL_var;
+			TJMWheelHouseDraftGeneralClass::ConvertToSupportSpec(spBRepAccess, spFindSpec);
+			if (spFindSpec==NULL_var)
+			{
+				cout<<"ConvertToSpec Failed"<<endl;
+				continue;
+			}
+			lstSpecObj.Append(spFindSpec);
+		}
+		if (FAILED(TJMWheelHouseDraftGeneralClass::CreatePrtThickness(spiPrtFact,spiSpecPrtTool,lstSpecObj,0.2)))
+		{
+			cout<<"===> CreatePrtThickness failed.........."<<endl;
+			continue;
+		}
+
+		//用outer 切割
+		CATISpecObject_var spiSpecCuttingSurface = _structFeaturesInfo.spiSpecOffsetSurfaceOuter;
+		int iSplitSide = _structFeaturesInfo.iSplitSideOffsetSurfaceOuter;
+		if (FAILED(TJMWheelHouseDraftGeneralClass::CreatePrtSolidSplit(spiPrtFact,spiSpecPrtTool,spiSpecCuttingSurface,iSplitSide)))
+		{
+			cout<<"====> CreatePrtSolidSplit by outer surface failed............."<<endl;
+			continue;
+		}
+
+		//用mid面切割
+		spiSpecCuttingSurface = _structFeaturesInfo.spiSpecOffsetSurfaceMid;
+		iSplitSide = _structFeaturesInfo.iSplitSideOffsetSurfaceMid;
+		iSplitSide = (iSplitSide+1)%2;
+		if (FAILED(TJMWheelHouseDraftGeneralClass::CreatePrtSolidSplit(spiPrtFact,spiSpecPrtTool,spiSpecCuttingSurface,iSplitSide)))
+		{
+			cout<<"====> CreatePrtSolidSplit by mid surface failed............."<<endl;
+			continue;
+		}
+
+		//判断需要拔模的面
+		spBodySolid = TJMWheelHouseDraftGeneralClass::GetBodyFromFeature(spiSpecPrtTool);
+		if (spBodySolid==NULL_var)
+		{
+			continue;
+		}
+		LISTCell.RemoveAll(); 
+		spBodySolid->GetAllCells( LISTCell, 2 );
+		CATLISTV(CATISpecObject_var) lstDraftObject;
+		CATISpecObject_var spiSpecSurfaceNeutral=NULL_var;
+		CATBoolean bFindNeutralSurface = FALSE;
+		for (int j=1;j<LISTCell.Size();j++)
+		{
+			CATCell_var spCell = LISTCell[j];
+			if (spCell==NULL_var)
+			{
+				continue;
+			}
+			CATMathVector dirNormal;
+			if (FAILED(GetNormalOfSurface(pGeoFactory,topdata,spBodySolid,spCell,dirNormal)))
+			{
+				cout<<"GetNormalOfSurface failed.........."<<endl;
+				continue;
+			}
+
+			//把不垂直于拔模方向的过滤掉，同时在其中找中性面
+			if (abs(dirNormal.GetAngleTo(dirTooling)-CATPIBY2)>0.05)
+			{
+				if (!bFindNeutralSurface)
+				{
+					//和 mid surface量距离，近似0的就是中性面
+					CATBody_var spBodyCell = TJMWheelHouseDraftGeneralClass::CreateBodyFromCell(pGeoFactory,spCell,2);
+					if (spBodyCell!=NULL_var)
+					{
+						double dDist;
+						CATBoolean bSuccess;
+						if (SUCCEEDED(TJMWheelHouseDraftGeneralClass::MinDistanceBody(pGeoFactory,*topdata,spBodyCell,spBodySurfaceMid,dDist,bSuccess)))
+						{
+							if (dDist<0.01)
+							{
+								
+								bFindNeutralSurface = TRUE;
+								CATIBRepAccess_var spBRepAccess=CATBRepDecodeCellInBody( spCell, spBodySolid);  
+								if (spBRepAccess==NULL_var)
+								{
+									cout<<"CATBRepDecodeCellInBody Failed"<<endl;
+									continue;
+								}
+
+								CATISpecObject_var spFindSpec=NULL_var;
+								TJMWheelHouseDraftGeneralClass::ConvertToSupportSpec(spBRepAccess, spFindSpec);
+								if (spFindSpec==NULL_var)
+								{
+									cout<<"ConvertToSpec Failed"<<endl;
+									continue;
+								}
+								spiSpecSurfaceNeutral = spFindSpec;
+							}
+						}
+					}
+				}
+				continue;
+			}
+
+			CATIBRepAccess_var spBRepAccess=CATBRepDecodeCellInBody( spCell, spBodySolid);  
+			if (spBRepAccess==NULL_var)
+			{
+				cout<<"CATBRepDecodeCellInBody Failed"<<endl;
+				continue;
+			}
+
+			CATISpecObject_var spFindSpec=NULL_var;
+			TJMWheelHouseDraftGeneralClass::ConvertToSupportSpec(spBRepAccess, spFindSpec);
+			if (spFindSpec==NULL_var)
+			{
+				cout<<"ConvertToSpec Failed"<<endl;
+				continue;
+			}
+			//CATISpecObject_var spiSpecFather = spFindSpec->GetFather();
+			//CATIAlias_var spiAlias(spiSpecFather);
+			//if (spiAlias!=NULL_var)
+			//{
+			//	cout<<"==> Father alias: "<<spiAlias->GetAlias()<<endl;
+			//}
+
+			lstDraftObject.Append(spFindSpec);
+		}
+		if (lstDraftObject.Size()>0&&spiSpecSurfaceNeutral!=NULL_var)
+		{
+			//拔模
+			//CATISpecObject_var spObjDraft= spiPrtFact->CreateDraft(&lstDraftObject,0,spiSpecSurfaceNeutral,0,NULL_var,dirTooling,NULL_var,0,_dDraftAngle*CATRadianToDegree,0);
+			CATISpecObject_var spObjDraft= spiPrtFact->CreateDraft(&lstDraftObject,0,spiSpecSurfaceNeutral,1,NULL_var,-1*dirTooling,ptOrigin,0,_dDraftAngle*CATRadianToDegree);
+			trytimes=1;
+			if (TJMWheelHouseDraftGeneralClass::IsObjectExistUpdateError(spiSpecPrtTool,trytimes)==TRUE)
+			{
+				cout<<"CreateDraft Try Update Failed"<<endl;
+				continue;
+			}
+		}
+		lstSpecSolids.push_back(spiSpecPrtTool);
+	}
+
+	//所有能够正确update的柱子assemble起来
+	//先创建inner的prttool
+	CATISpecObject_var spiSpecPrtToolOuter=NULL_var;
+	strAlias = "Hole_List_Outer";
+	if (FAILED(TJMWheelHouseDraftGeneralClass::CreateNewPrtTool(_spiRootProduct,strAlias,spiSpecPrtToolOuter))||spiSpecPrtToolOuter==NULL_var)
+	{
+		cout<<"====> CreateNewPrtTool Hole_List_Outer failed............"<<endl;
+		return E_FAIL;
+	}
+
+	for (int i=0;i<lstSpecSolids.size();i++)
+	{
+		CATISpecObject_var spiSpecSolid = lstSpecSolids[i];
+		if (FAILED(TJMWheelHouseDraftGeneralClass::CreateBodyToAssemble(spiaPart,spShapeFactory,spiSpecPrtToolOuter,spiSpecSolid)))
+		{
+			cout<<"====> CreateBodyToAssemble Hole_List_Outer failed............"<<endl;
+			return E_FAIL;
+		}
+	}
 
 
 	return S_OK;

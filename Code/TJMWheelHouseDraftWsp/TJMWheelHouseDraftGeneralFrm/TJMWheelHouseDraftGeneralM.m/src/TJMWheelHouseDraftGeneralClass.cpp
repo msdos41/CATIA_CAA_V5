@@ -4513,3 +4513,111 @@ HRESULT TJMWheelHouseDraftGeneralClass::MinDistanceBody(CATGeoFactory_var ispiGe
 		oissucess=TRUE;
 	return S_OK;
 }
+
+HRESULT TJMWheelHouseDraftGeneralClass::CreatePrtThickSurface(CATIPrtFactory_var ispiPrtFact,
+														  CATISpecObject_var ispInputParent,
+														  CATISpecObject_var ispiSpecSurface,
+														  double idThickness,
+														  int iSplitSide)
+
+{
+	CATPrtOffsetSens iIsensOffset;
+	if (iSplitSide==0)
+	{
+		iIsensOffset=NormalSide;
+	}
+	else
+	{
+		iIsensOffset=InverseNormalSide;
+	}
+
+	CATISpecObject_var spiSpecThickSurface = ispiPrtFact->CreateSolidOffset(ispiSpecSurface,iIsensOffset,idThickness,0);
+	if (spiSpecThickSurface==NULL_var)
+	{
+		return E_FAIL;
+	}
+
+	int trytimes=1;
+	if (IsObjectExistUpdateError(spiSpecThickSurface,trytimes)==TRUE)
+	{
+		cout<<"CreatePrtThickSurface Try Update Failed"<<endl;
+		return E_FAIL;
+	}
+
+	CATIGSMProceduralView_var spProceduralView =NULL_var;
+	spProceduralView = spiSpecThickSurface;
+	if (NULL_var != spProceduralView )
+		spProceduralView->InsertInProceduralView(ispInputParent);
+
+	return S_OK;
+}
+
+HRESULT TJMWheelHouseDraftGeneralClass::CreatePrtThickness(CATIPrtFactory_var ispiPrtFact,
+															  CATISpecObject_var ispInputParent,
+															  CATLISTV(CATISpecObject_var) ilstSpecObj,
+															  double idThickness)
+
+{
+
+	CATISpecObject_var spiSpecThickness = ispiPrtFact->CreateThickness(&ilstSpecObj,idThickness);
+	if (spiSpecThickness==NULL_var)
+	{
+		return E_FAIL;
+	}
+
+	int trytimes=1;
+	if (IsObjectExistUpdateError(spiSpecThickness,trytimes)==TRUE)
+	{
+		cout<<"CreateThickness Try Update Failed"<<endl;
+		return E_FAIL;
+	}
+
+	CATIGSMProceduralView_var spProceduralView =NULL_var;
+	spProceduralView = spiSpecThickness;
+	if (NULL_var != spProceduralView )
+		spProceduralView->InsertInProceduralView(ispInputParent);
+
+	return S_OK;
+}
+
+
+HRESULT TJMWheelHouseDraftGeneralClass::CreateGSMIntersect(CATIGSMFactory_var ispGSMFactory,
+															   CATISpecObject_var ispSpec1,
+															   CATISpecObject_var ispSpec2,
+															   CATISpecObject_var ispInputParent,
+															   CATISpecObject_var &ospiSpecIntersect)
+{
+	HRESULT rc=E_FAIL;
+
+	if (ispGSMFactory==NULL_var||ispSpec1==NULL_var||ispSpec2==NULL_var||ispInputParent==NULL_var)
+	{
+		return E_FAIL;
+	}
+
+	CATIGSMIntersect_var spGSMIntersect=ispGSMFactory->CreateIntersect(ispSpec1, ispSpec2);
+	if (spGSMIntersect==NULL_var)
+	{
+		return E_FAIL;
+	}
+
+	ospiSpecIntersect=spGSMIntersect;
+	if (ospiSpecIntersect==NULL_var)
+	{
+		cout<<"GSMIntersect Failed"<<endl;
+		return E_FAIL;
+	}
+
+	int trytimes=1;
+	if (IsObjectExistUpdateError(ospiSpecIntersect,trytimes)==TRUE)
+	{
+		cout<<"GSMIntersect Try Update Failed"<<endl;
+		return E_FAIL;
+	}
+
+	CATIGSMProceduralView_var spProceduralView =NULL_var;
+	spProceduralView = ospiSpecIntersect;
+	if (NULL_var != spProceduralView )
+		spProceduralView->InsertInProceduralView(ispInputParent);
+
+	return S_OK;
+}

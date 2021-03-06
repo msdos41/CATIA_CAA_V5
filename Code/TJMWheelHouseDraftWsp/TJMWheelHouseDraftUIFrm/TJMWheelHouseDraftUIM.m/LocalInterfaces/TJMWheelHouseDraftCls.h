@@ -44,6 +44,10 @@ struct FeaturesInfo{
 
 	int								iSplitSideOffsetSurfaceMid;
 
+	CATISpecObject_var				spiSpecOffsetSurfaceMidOuterOffset;			//中分面往外offset的面
+
+	int								iSplitSideOffsetSurfaceMidOuterOffset;
+
 	CATISpecObject_var				spiSpecOffsetSurfaceOuter;
 
 	int								iSplitSideOffsetSurfaceOuter;

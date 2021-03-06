@@ -138,6 +138,7 @@
 #include "CATIGSMPlaneOffset.h"
 #include "CATIGSMOffset.h"
 #include "CATIGSMHealing.h"
+#include "CATIGSMIntersect.h"
 //MecModInterfaces
 #include "CATIPrtContainer.h"
 #include "CATIMfBRep.h"
@@ -522,6 +523,9 @@ public:
 	static HRESULT CreateVBOffset(CATIAPart_var ispiaPart, CATIAHybridShapeFactory_var ispiaHybridShapeFact, CATISpecObject_var ispSpecToOffset, CATISpecObject_var ispInputParent, double idOffset, boolean iOrientation, CATISpecObject_var &ospOffsetSpec);
 	static HRESULT CreateGSMHealing(CATIGSMFactory_var ispiGSMFact, CATISpecObject_var ispiSpecGS, CATISpecObject_var ispiSpecObj, CATISpecObject_var &ospiSpecObjHealing);
 	static HRESULT MinDistanceBody(CATGeoFactory_var ispiGeoFactory, CATTopData iTopdata, CATBody_var ispSoildBody, CATBody_var ispPointBody, double &olength, CATBoolean &oissucess);
+	static HRESULT CreatePrtThickSurface(CATIPrtFactory_var ispiPrtFact, CATISpecObject_var ispInputParent, CATISpecObject_var ispiSpecSurface, double idThickness, int iSplitSide);
+	static HRESULT CreateGSMIntersect(CATIGSMFactory_var ispGSMFactory, CATISpecObject_var ispSpec1, CATISpecObject_var ispSpec2, CATISpecObject_var ispInputParent, CATISpecObject_var &ospiSpecIntersect);
+	static HRESULT CreatePrtThickness(CATIPrtFactory_var ispiPrtFact, CATISpecObject_var ispInputParent, CATLISTV(CATISpecObject_var) ilstSpecObj, double idThickness);
 };
 
 #endif

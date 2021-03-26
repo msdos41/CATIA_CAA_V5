@@ -1,0 +1,8 @@
+// COPYRIGHT DASSAULT SYSTEMES 2003
+
+//
+// Nls Message for the Hello Application window
+//
+ 
+Title           = "TJM BeginApplication Test";
+Label004.Title	= "Surface: ";

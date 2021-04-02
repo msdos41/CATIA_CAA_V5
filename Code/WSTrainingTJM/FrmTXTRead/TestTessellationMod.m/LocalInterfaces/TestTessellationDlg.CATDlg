@@ -7,7 +7,7 @@ CATDlgDialog TestTessellationDlg
 CATDlgLabel Label001
 {
   FATHER = TestTessellationDlg;
-  GRID = { 0, 0, 1, 1, CATGRID_4SIDES };
+  GRID = { 2, 0, 1, 1, CATGRID_4SIDES };
 }
 
 CATDlgSelectorList SelectorListSurface
@@ -15,7 +15,39 @@ CATDlgSelectorList SelectorListSurface
   FATHER = TestTessellationDlg;
   TH = 1;
   TW = 20;
+  GRID = { 2, 1, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgLabel Label002
+{
+  FATHER = TestTessellationDlg;
+  GRID = { 0, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgLabel Label003
+{
+  FATHER = TestTessellationDlg;
+  GRID = { 1, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgSpinner SpinnerStep
+{
+  FATHER = TestTessellationDlg;
+  STYLE = CATDlgSpnEntry|CATDlgSpnDouble;
+  MIN = 0.000000;
+  MAX = 10.000000;
+  STEP = 10.000000;
   GRID = { 0, 1, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgSpinner SpinnerSag
+{
+  FATHER = TestTessellationDlg;
+  STYLE = CATDlgSpnEntry|CATDlgSpnDouble;
+  MIN = 0.000000;
+  MAX = 10.000000;
+  STEP = 10.000000;
+  GRID = { 1, 1, 1, 1, CATGRID_4SIDES };
 }
 
 // END WIZARD REPLACEMENT ZONE

@@ -53,6 +53,8 @@ TestTessellationCmd::TestTessellationCmd() :
 
 	_p3DBagRep = new CAT3DBagRep();
 
+	InitialDlg();
+
 }
 
 //-------------------------------------------------------------------------
@@ -171,6 +173,7 @@ CATBoolean TestTessellationCmd::ActionOne( void *data )
 
 CATBoolean TestTessellationCmd::ExitCmd(void * data)
 {
+	CATFrmEditor::GetCurrentEditor()->UnsetRepeatedCommand();
 	this->RequestDelayedDestruction();
 	return TRUE;
 }
@@ -185,7 +188,22 @@ CATBoolean TestTessellationCmd::ActionOK(void * data)
 	{
 		_pISO->Empty();
 	}
-	this->CreateTessellation(_spBUSurface);
+	//this->CreateTessellation(_spBUSurface);
+
+	if (_spBUSurface==NULL_var)
+	{
+		return FALSE;
+	}
+	_dStep = _pDlg->GetSpinnerFunc(TesselStep)->GetValue();
+	_dStep = _dStep*1000;
+
+	_dSag = _pDlg->GetSpinnerFunc(TesselSag)->GetValue();
+	_dSag = _dSag*1000;
+	
+	this->CreateTessellation2(_spBUSurface,_dStep,_dSag);
+
+	//RequestDelayedDestruction();
+
 	return TRUE;
 }
 
@@ -244,6 +262,19 @@ void TestTessellationCmd::ActionSurfaceSelect(void * data)
 	_pSurfaceAgent->InitializeAcquisition();
 }
 
+void TestTessellationCmd::InitialDlg()
+{
+	double dValue = 10/1000;
+	for (int i=TesselStep;i<=TesselSag;i++)
+	{
+		_pDlg->GetSpinnerFunc(i)->SetUnit(CATDlgControl::Millimeter);
+		_pDlg->GetSpinnerFunc(i)->SetMinMaxStep(0.0001,0.1,0.0005);
+		_pDlg->GetSpinnerFunc(i)->SetValue(dValue);
+		_pDlg->GetSpinnerFunc(i)->SetPrecision(1,TRUE);
+	}
+
+}
+
 HRESULT TestTessellationCmd::CreateTessellation(CATBaseUnknown_var ispBUElement)
 {
 	HRESULT rc = S_OK;
@@ -259,10 +290,11 @@ HRESULT TestTessellationCmd::CreateTessellation(CATBaseUnknown_var ispBUElement)
 	}
 	CAT3DBagRep* pBagRep = new CAT3DBagRep();
 	//Tessleate the body
-	double iStep   = 1;
+	double iStep   = 5;
 	double sag=	10;
 	//CATBodyTessellator * pTessellator = new CATBodyTessellator(spBody,sag);
-	CATCellTessellator * pTessellator = new CATCellTessellator(sag);
+	//CATCellTessellator * pTessellator = new CATCellTessellator(sag);
+	CATSurfaceTessellator * pTessellator = new CATSurfaceTessellator(sag);
 	if( NULL == pTessellator ) 
 	{
 		cout << "==> Create CATCellTessellator error !" << endl;
@@ -279,7 +311,19 @@ HRESULT TestTessellationCmd::CreateTessellation(CATBaseUnknown_var ispBUElement)
 	cout <<"==> Number of face: " << numberOfCells << endl;
 	for (int ifa=1 ; ifa<=numberOfCells ; ifa++)
 	{
-		pTessellator->AddFace((CATFace *)(cells[ifa]));
+		CATCell_var spCell = cells[ifa];
+		CATFace_var spFace = spCell;
+		CATSurface_var spSurface = spFace->GetSurface();
+		if(spSurface == NULL_var) 
+		{
+			cout<<"CATSurface_var is NULL_var."<<endl;
+			continue;
+		}
+		CATSurLimits limits;
+		spSurface->GetLimits(limits);
+
+		pTessellator->AddSurface(spSurface,limits);
+		//pTessellator->AddFace((CATFace *)(cells[ifa]));
 	}
 	//Run the CATCellTessellator
 	pTessellator->Run();
@@ -291,11 +335,20 @@ HRESULT TestTessellationCmd::CreateTessellation(CATBaseUnknown_var ispBUElement)
 	for(int i=1;i<=numberOfCells;i++) {
 		cout << "==> Face: " << i << endl;
 		// for each face, retrieve the tessellation results.
-		CATFace * piFace = (CATFace*) cells[i];
-		if( NULL == piFace )
+		//CATFace * piFace = (CATFace*) cells[i];
+		//if( NULL == piFace )
+		//{
+		//	return E_FAIL;
+		//}
+
+		CATCell_var spCell = cells[ifa];
+		CATFace_var spFace = spCell;
+		CATSurface_var spSurface = spFace->GetSurface();
+		if (spSurface==NULL_var)
 		{
-			return E_FAIL;
+			continue;
 		}
+
 		//Get the result.
 		CATBoolean isPlanar;
 		CATTessPointIter *    pVertices  = NULL;
@@ -303,8 +356,9 @@ HRESULT TestTessellationCmd::CreateTessellation(CATBaseUnknown_var ispBUElement)
 		CATTessFanIter *      pFans      = NULL;
 		CATTessPolyIter *     pPolygons  = NULL;
 		CATTessTrianIter *    pTriangles = NULL;
-		short side;
-		pTessellator->GetFace(piFace,isPlanar,&pVertices,&pStrips,&pFans,&pPolygons,&pTriangles,&side);		//获得的点都是局部坐标，按需转成全局
+		//short side;
+		//pTessellator->GetFace(piFace,isPlanar,&pVertices,&pStrips,&pFans,&pPolygons,&pTriangles,&side);		//获得的点都是局部坐标，按需转成全局
+		pTessellator->GetSurface(spSurface,isPlanar,&pVertices,&pStrips,&pFans,&pPolygons,&pTriangles);
 
 		if (NULL==pVertices)
 		{
@@ -685,6 +739,123 @@ HRESULT TestTessellationCmd::CreateTessellation(CATBaseUnknown_var ispBUElement)
 	
 	_pViewer->AddRep(_p3DBagRep);  
 	_pViewer->Draw();
+
+	return rc;
+}
+
+HRESULT TestTessellationCmd::CreateTessellation2(CATBaseUnknown_var ispBUElement,double idStep,double idSag)
+{
+	HRESULT rc = S_OK;
+	//
+	if (ispBUElement==NULL_var)
+	{
+		return E_FAIL;
+	}
+	CATBody_var spBody = _pGeneralCls->GetBodyFromFeature(ispBUElement);
+	if (spBody==NULL_var)
+	{
+		return E_FAIL;
+	}
+	//Tessleate the body
+	double iStep   = idStep;
+	double sag=	idSag;
+	double dAngle = CATPIBY4 / 4;
+	//CATBodyTessellator * pTessellator = new CATBodyTessellator(spBody,sag,dAngle);
+	CATCellTessellator * pTessellator = new CATCellTessellator(sag,dAngle);
+	if( NULL == pTessellator ) 
+	{
+		cout << "==> Create CATCellTessellator error !" << endl;
+		return E_FAIL;
+	}
+	//Set the step to the CATCellTessellator.
+	pTessellator->SetStep(iStep);
+	cout << "==> The step is: " << iStep << endl;
+
+	//Add face to the CATCellTessellator.
+	CATLISTP(CATCell) cells;
+	spBody->GetAllCells( cells,2); 
+	int numberOfCells = cells.Size();
+	cout <<"==> Number of face: " << numberOfCells << endl;
+	for (int ifa=1 ; ifa<=numberOfCells ; ifa++)
+	{
+		pTessellator->AddFace((CATFace *)(cells[ifa]));
+	}
+	//Run the CATCellTessellator
+	pTessellator->Run();
+
+	// For every face.
+	for(int i=1;i<=numberOfCells;i++) {
+		cout << "==> Face: " << i << endl;
+		// for each face, retrieve the tessellation results.
+		CATFace * piFace = (CATFace*) cells[i];
+		if( NULL == piFace )
+		{
+			return E_FAIL;
+		}
+		//Get the result.
+		CATBoolean isPlanar;
+		CATTessPointIter *    pVertices  = NULL;
+		CATTessStripeIter *   pStrips    = NULL;
+		CATTessFanIter *      pFans      = NULL;
+		CATTessPolyIter *     pPolygons  = NULL;
+		CATTessTrianIter *    pTriangles = NULL;
+		short side;
+		pTessellator->GetFace(piFace,isPlanar,&pVertices,&pStrips,&pFans,&pPolygons,&pTriangles,&side);		//获得的点都是局部坐标，按需转成全局
+
+		if (NULL==pVertices)
+		{
+			continue;
+		}
+
+		//获取所有点和法向的基础信息
+		float  (* aCoord)[3] = NULL;
+		float  (* aNormal)[3] = NULL;
+		int     * aNuPts     = NULL;
+		CATLONG32 nbp = 0;
+
+		nbp=pVertices->GetNbPoint();
+		aCoord = new float[nbp][3];
+		aNormal = new float[nbp][3];
+		pVertices->GetPointXyzAll(aCoord);	//获得所有的离散点
+		pVertices->GetPointNorAll(aNormal);	//获得每个离散点处的法向
+
+		//2维列表变成1维列表
+		int verticesArraySize=3*nbp;
+		int normalsArraySize=3*nbp;
+
+		cout << "  ==> Total point: " << nbp << endl;
+
+		float *vertices=new float[verticesArraySize];
+		float *normals=new float[normalsArraySize];
+		for(int j=0;j<nbp;j++) {
+			for(int k=0;k<3;k++) {
+				vertices[3*j+k] = aCoord[j][k];
+				normals[3*j+k] = aNormal[j][k];
+			}
+		}
+
+		///*   循环画点
+		int iNum = 0;
+		while (0 == (pVertices->IsExhausted()))
+		{
+			const double *aCoord = pVertices->GetPointXyz();
+			//模型上画出虚拟点，CATISO高亮
+			DumITempPoint *piTempPoint = NULL;
+			HRESULT rc = ::CATInstantiateComponent("DumTempPointComp", IID_DumITempPoint, (void**)&piTempPoint);
+			if (SUCCEEDED(rc) && piTempPoint != NULL)
+			{
+				piTempPoint->SetDatas(&CATMathPoint(*aCoord,*(aCoord+1),*(aCoord+2)));
+				_pISO->AddElement(piTempPoint);
+			}
+			pVertices->GoToNext();
+			iNum++;
+		}
+
+		cout<<"==> Vertex number: "<<iNum<<endl;
+		
+	}
+
+	delete pTessellator;   pTessellator = NULL;
 
 	return rc;
 }

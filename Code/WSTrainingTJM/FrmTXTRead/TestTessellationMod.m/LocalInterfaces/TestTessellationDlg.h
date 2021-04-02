@@ -21,6 +21,13 @@
 #include "CATDlgDialog.h"
 #include "CATDlgInclude.h"
 
+enum SpinnerType
+{
+	TesselStep,
+	TesselSag,
+
+};
+
 //----------------------------------------------------------------------
 
 /**
@@ -45,7 +52,8 @@ class TestTessellationDlg: public CATDlgDialog
   void Build ();
   CATDlgSelectorList* GetSelectorListSurface();
   CATDlgPushItem* GetRightClickClear();
-  protected:
+  CATDlgSpinner *GetSpinnerFunc(int type);
+protected:
 
   private:
 
@@ -53,6 +61,10 @@ class TestTessellationDlg: public CATDlgDialog
 //CAA2 WIZARD WIDGET DECLARATION SECTION
  CATDlgLabel*      _Label001;
  CATDlgSelectorList*      _SelectorListSurface;
+ CATDlgLabel*      _Label002;
+ CATDlgLabel*      _Label003;
+ CATDlgSpinner*      _SpinnerStep;
+ CATDlgSpinner*      _SpinnerSag;
 //END CAA2 WIZARD WIDGET DECLARATION SECTION
 
  //ÓÒ¼üÏà¹Ø¿Ø¼þ

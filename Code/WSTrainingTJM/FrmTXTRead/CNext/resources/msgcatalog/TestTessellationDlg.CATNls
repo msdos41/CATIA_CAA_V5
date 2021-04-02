@@ -1,3 +1,5 @@
 // DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
 Label001.Title = "Surface:  ";
+Label002.Title = "Step: ";
+Label003.Title = "Sag:  ";
 // END WIZARD REPLACEMENT ZONE

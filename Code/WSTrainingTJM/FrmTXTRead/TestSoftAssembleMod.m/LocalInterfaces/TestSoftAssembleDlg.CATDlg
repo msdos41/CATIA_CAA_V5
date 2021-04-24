@@ -1,0 +1,21 @@
+// DO NOT EDIT :: THE CAA2 WIZARD WILL REPLACE ALL THE CODE HERE
+CATDlgDialog TestSoftAssembleDlg
+{
+  STYLE = CATDlgWndBtnOKCancel|CATDlgGridLayout;
+}
+
+CATDlgLabel Label001
+{
+  FATHER = TestSoftAssembleDlg;
+  GRID = { 0, 0, 1, 1, CATGRID_4SIDES };
+}
+
+CATDlgSelectorList SelectorListProduct
+{
+  FATHER = TestSoftAssembleDlg;
+  TH = 1;
+  TW = 15;
+  GRID = { 0, 1, 1, 1, CATGRID_4SIDES };
+}
+
+// END WIZARD REPLACEMENT ZONE

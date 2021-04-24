@@ -1276,6 +1276,46 @@ void GeneralClass::TransferSelectToBU(CATOtherDocumentAgent *pOtherDocAgent,CATB
 	ospProductSeletion = pProduct;
 }
 
+//选择元素，转换成BaseUnknown，并同时返回所属Product(Instance)
+void GeneralClass::TransferSelectToBU(CATPathElementAgent *pPathElemAgent,CATBaseUnknown *&opBUSelection, CATIProduct_var &ospProductSeletion) 
+{
+	HRESULT rc = E_FAIL;
+
+	if (pPathElemAgent == NULL)
+	{
+		return;
+	}
+	CATPathElement *pPath = pPathElemAgent->GetValue();
+	CATBaseUnknown *pSelection = pPathElemAgent->GetElementValue();
+
+	opBUSelection = pSelection;
+
+	//返回所属Product
+	CATBaseUnknown *pProduct = pPath->FindElement(IID_CATIProduct);
+	if (pProduct == NULL)
+	{
+		pProduct = pPath->FindElement(IID_CATIPrtPart);
+		if (pProduct == NULL)
+		{
+			return;
+		}
+		CATIPrtPart_var spPart = pProduct;
+		if (spPart == NULL_var)
+		{
+			return;
+		}
+		CATISpecObject_var spPartObject = spPart->GetProduct();
+		if (spPartObject == NULL_var)
+		{
+			return;
+		}
+		ospProductSeletion = spPartObject;
+		return;
+	}
+	ospProductSeletion = pProduct;
+	return;
+}
+
 //设置高亮
 void GeneralClass::SetHighlight(CATFeatureImportAgent *ipFeatImpAgt, CATHSO *ipHSO)
 {

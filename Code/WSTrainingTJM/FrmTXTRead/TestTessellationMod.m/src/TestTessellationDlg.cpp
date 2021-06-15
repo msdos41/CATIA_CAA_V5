@@ -38,6 +38,10 @@ TestTessellationDlg::TestTessellationDlg() :
 //CAA2 WIZARD CONSTRUCTOR INITIALIZATION SECTION
  _Label001 = NULL;
  _SelectorListSurface = NULL;
+ _Label002 = NULL;
+ _Label003 = NULL;
+ _SpinnerStep = NULL;
+ _SpinnerSag = NULL;
 //END CAA2 WIZARD CONSTRUCTOR INITIALIZATION SECTION
 
  _pRightCLKMenu = NULL;
@@ -55,6 +59,10 @@ TestTessellationDlg::~TestTessellationDlg()
 //CAA2 WIZARD DESTRUCTOR DECLARATION SECTION
  _Label001 = NULL;
  _SelectorListSurface = NULL;
+ _Label002 = NULL;
+ _Label003 = NULL;
+ _SpinnerStep = NULL;
+ _SpinnerSag = NULL;
 //END CAA2 WIZARD DESTRUCTOR DECLARATION SECTION
 
  _pRightCLKMenu = NULL;
@@ -70,11 +78,21 @@ void TestTessellationDlg::Build()
 
 //CAA2 WIZARD WIDGET CONSTRUCTION SECTION
  _Label001 = new CATDlgLabel(this, "Label001");
-_Label001 -> SetGridConstraints(0, 0, 1, 1, CATGRID_4SIDES);
+_Label001 -> SetGridConstraints(2, 0, 1, 1, CATGRID_4SIDES);
  _SelectorListSurface = new CATDlgSelectorList(this, "SelectorListSurface");
  _SelectorListSurface -> SetVisibleTextHeight(1);
  _SelectorListSurface -> SetVisibleTextWidth(20);
-_SelectorListSurface -> SetGridConstraints(0, 1, 1, 1, CATGRID_4SIDES);
+_SelectorListSurface -> SetGridConstraints(2, 1, 1, 1, CATGRID_4SIDES);
+ _Label002 = new CATDlgLabel(this, "Label002");
+_Label002 -> SetGridConstraints(0, 0, 1, 1, CATGRID_4SIDES);
+ _Label003 = new CATDlgLabel(this, "Label003");
+_Label003 -> SetGridConstraints(1, 0, 1, 1, CATGRID_4SIDES);
+ _SpinnerStep = new CATDlgSpinner(this, "SpinnerStep", CATDlgSpnEntry|CATDlgSpnDouble);
+ _SpinnerStep -> SetMinMaxStep(0.000000, 10.000000, 1.000000);
+_SpinnerStep -> SetGridConstraints(0, 1, 1, 1, CATGRID_4SIDES);
+ _SpinnerSag = new CATDlgSpinner(this, "SpinnerSag", CATDlgSpnEntry|CATDlgSpnDouble);
+ _SpinnerSag -> SetMinMaxStep(0.000000, 10.000000, 1.000000);
+_SpinnerSag -> SetGridConstraints(1, 1, 1, 1, CATGRID_4SIDES);
 //END CAA2 WIZARD WIDGET CONSTRUCTION SECTION
 
 //CAA2 WIZARD CALLBACK DECLARATION SECTION
@@ -95,4 +113,17 @@ CATDlgSelectorList* TestTessellationDlg::GetSelectorListSurface()
 CATDlgPushItem* TestTessellationDlg::GetRightClickClear()
 {
 	return _pRightCLKClear;
+}
+
+CATDlgSpinner *TestTessellationDlg::GetSpinnerFunc(int type)
+{
+	switch(type)
+	{
+	case TesselStep:
+		return _SpinnerStep;
+	case TesselSag:
+		return _SpinnerSag;
+	default:
+		return NULL;
+	}
 }

@@ -23,6 +23,8 @@
 
 #include "TestTessellationDlg.h"
 #include "GeneralClass.h"
+#include "CATBodyTessellator.h"
+#include "CATSurfaceTessellator.h"
 
 #include "DumITempPoint.h"
 #include "DumITempArrow.h"
@@ -84,6 +86,8 @@ class TestTessellationCmd: public CATStateCommand
   HRESULT GetRepFromBU(CATBaseUnknown_var ispBU,CATRep **opRep);
   HRESULT GetRepFromBU(CATBaseUnknown *ipBU, CATFrmEditor *ipEditor,CATRep ** oRep,CATRepPath &oRepPath);
   CATBoolean ActionRightClickClear(void * data);
+  HRESULT CreateTessellation2(CATBaseUnknown_var ispBUElement,double idStep,double idSag);
+  void InitialDlg();
 private:
 
 	  TestTessellationDlg			*_pDlg;
@@ -105,6 +109,10 @@ private:
 	  CATViewer						*_pViewer;
 
 	  CAT3DBagRep					*_p3DBagRep;
+
+	  double						_dStep;
+
+	  double						_dSag;
 
 };
 

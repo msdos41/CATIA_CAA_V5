@@ -378,7 +378,7 @@ class ExportedByGeneralClassMod GeneralClass: public CATBaseUnknown
 
   //选择元素，转换成BaseUnknown，并同时返回所属Product(Instance)--------兼容跨文档选择
   void TransferSelectToBU(CATOtherDocumentAgent *pOtherDocAgent,CATBaseUnknown *&opBUSelection, CATIProduct_var &ospProductSeletion);
-
+  void TransferSelectToBU(CATPathElementAgent *pPathElemAgent,CATBaseUnknown *&opBUSelection, CATIProduct_var &ospProductSeletion);
   ////设置高亮
   void SetHighlight(CATFeatureImportAgent *ipFeatImpAgt, CATHSO *ipHSO);
   void SetHighlight(CATBaseUnknown *ipBUSelect, CATFrmEditor *ipEditor, CATHSO *ipHSO);

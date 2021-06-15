@@ -81,7 +81,36 @@ namespace CATIA_Automation
             Part part = partDoc.Part;
             HybridShapeFactory factory = (HybridShapeFactory)part.HybridShapeFactory;
             //Reference objRef = part.CreateReferenceFromObject(_objRef);
-            factory.ChangeFeatureName(_objRef,textBoxSelect.Text);
+            for (int i = 1; i <= 100000;i++ )
+            {
+                string sSuffix = i.ToString();
+                string sName = textBoxSelect.Text + sSuffix;
+                factory.ChangeFeatureName(_objRef, sName);
+            }
+            
+        }
+
+        private void buttonCreatePoint_Click(object sender, EventArgs e)
+        {
+            Document doc = CATIA.ActiveDocument;
+            PartDocument partDoc = (PartDocument)doc;
+            Part part = partDoc.Part;
+            HybridShapeFactory factory = (HybridShapeFactory)part.HybridShapeFactory;
+
+            HybridBodies hybridBodiesCur = part.HybridBodies;
+            HybridBody hybridBodyCur = hybridBodiesCur.Item("Geometrical Set.1");
+            for (int i = 1; i <= 100000; i++)
+            {
+                HybridShapePointCoord pointCur =  factory.AddNewPointCoord(100, 200, 300);
+
+                hybridBodyCur.AppendHybridShape(pointCur);
+
+                Reference refPoint = part.CreateReferenceFromObject(pointCur);
+                string sSuffix = i.ToString();
+                string sName = textBoxSelect.Text + sSuffix;
+                factory.ChangeFeatureName(refPoint, sName);
+                part.Update();
+            }
         }
     }
 }

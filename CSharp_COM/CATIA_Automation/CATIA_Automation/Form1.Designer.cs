@@ -32,6 +32,7 @@
             this.buttonSelect = new System.Windows.Forms.Button();
             this.buttonInitCatia = new System.Windows.Forms.Button();
             this.buttonRename = new System.Windows.Forms.Button();
+            this.buttonCreatePoint = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // textBoxSelect
@@ -72,11 +73,22 @@
             this.buttonRename.UseVisualStyleBackColor = true;
             this.buttonRename.Click += new System.EventHandler(this.buttonRename_Click);
             // 
+            // buttonCreatePoint
+            // 
+            this.buttonCreatePoint.Location = new System.Drawing.Point(197, 160);
+            this.buttonCreatePoint.Name = "buttonCreatePoint";
+            this.buttonCreatePoint.Size = new System.Drawing.Size(75, 23);
+            this.buttonCreatePoint.TabIndex = 4;
+            this.buttonCreatePoint.Text = "Create Points";
+            this.buttonCreatePoint.UseVisualStyleBackColor = true;
+            this.buttonCreatePoint.Click += new System.EventHandler(this.buttonCreatePoint_Click);
+            // 
             // FormSelect
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(284, 262);
+            this.Controls.Add(this.buttonCreatePoint);
             this.Controls.Add(this.buttonRename);
             this.Controls.Add(this.buttonInitCatia);
             this.Controls.Add(this.buttonSelect);
@@ -94,6 +106,7 @@
         private System.Windows.Forms.Button buttonSelect;
         private System.Windows.Forms.Button buttonInitCatia;
         private System.Windows.Forms.Button buttonRename;
+        private System.Windows.Forms.Button buttonCreatePoint;
     }
 }
 

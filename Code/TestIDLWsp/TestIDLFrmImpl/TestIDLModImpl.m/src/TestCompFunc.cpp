@@ -45,11 +45,11 @@ HRESULT __stdcall TestCompFunc::TestFunction (const CATBSTR &  istr ,  CATBSTR &
 	std::cout << " TestCompFun::TestFunction" << std::endl;	
 	return S_OK;
 }
-//HRESULT __stdcall TestCompFunc::get_OutputName (CATBSTR &  ostr)
-//{
-//	std::cout << " TestCompFun::get_OutputName" << std::endl;	
-//	return S_OK;
-//}
+HRESULT __stdcall TestCompFunc::get_OutputName (CATBSTR &  ostr)
+{
+	std::cout << " TestCompFun::get_OutputName" << std::endl;	
+	return S_OK;
+}
 
 
 

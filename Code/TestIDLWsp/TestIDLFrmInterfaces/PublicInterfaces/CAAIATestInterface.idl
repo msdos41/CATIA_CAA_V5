@@ -28,9 +28,9 @@
 */
 interface CAAIATestInterface : CATIAFactory
 {
-	HRESULT TestFunction(in CATBSTR istr,  inout CATBSTR ostr);
-
-	//HRESULT get_OutputName(inout CATBSTR ostr);
+	HRESULT TestFunction(in CATBSTR istr,  inout /*IDLRETVAL*/ CATBSTR ostr);
+#pragma PROPERTY OutputName
+	HRESULT get_OutputName(inout /*IDLRETVAL*/ CATBSTR ostr);
 };
 
 // Interface name : CAAIATestInterface

@@ -57,7 +57,6 @@ HRESULT TestCompExt::CreateInstance (void ** oPPV)
 			rc = E_FAIL;
 		}
 	}
-
 	return S_OK;
 	throw std::exception("Method Create Instance not implemented.");
 }

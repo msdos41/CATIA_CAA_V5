@@ -58,3 +58,4 @@ AddPrereqComponent("KinematicsInterfaces",Protected);
 AddPrereqComponent("SimulationInterfaces",Protected);
 AddPrereqComponent("SMTInterfaces",Protected);
 AddPrereqComponent("TrainingXMLFrm",Protected);
+AddPrereqComponent("CAACloudQsrItf",Protected);

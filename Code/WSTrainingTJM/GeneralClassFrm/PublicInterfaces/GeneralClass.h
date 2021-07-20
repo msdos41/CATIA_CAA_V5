@@ -689,7 +689,8 @@ class ExportedByGeneralClassMod GeneralClass: public CATBaseUnknown
   void MessageOutputError (CATUnicodeString iString,CATUnicodeString iTopString);
   void MessageOutputInfo (CATUnicodeString iString,CATUnicodeString iTopString);
   CATBoolean CreateMsgBoxOptOKCancel(CATUnicodeString usMsg);
-  
+  CATBoolean GetCurrentActiveProduct(CATFrmEditor * ipEditor,CATIProduct_var &ospProduct);
+
 };
 
 //-----------------------------------------------------------------------

@@ -53,6 +53,13 @@ TestTessellationCmd::TestTessellationCmd() :
 
 	_p3DBagRep = new CAT3DBagRep();
 
+	if (!_pGeneralCls->GetCurrentActiveProduct(_pEditor,_spiProdRoot)||_spiProdRoot==NULL_var)
+	{
+		_pGeneralCls->MessageOutputError("Get Root Product Failed!","Error");
+		RequestDelayedDestruction();
+		return;
+	}
+
 	InitialDlg();
 
 }
@@ -135,7 +142,8 @@ void TestTessellationCmd::BuildGraph()
 
 	//Surface选择
 	_pSurfaceAgent = new CATFeatureImportAgent("Select Surface");
-	_pSurfaceAgent->SetElementType("CATSurface");
+	_pSurfaceAgent->SetElementType("CATIMeasurableSurface");
+	//_pSurfaceAgent->SetElementType("CATSurface");
 	//_pSurfaceAgent->SetElementType("CATCurve");
 	_pSurfaceAgent->SetBehavior(CATDlgEngWithPrevaluation|CATDlgEngWithCSO|CATDlgEngWithPSOHSO|CATDlgEngOneShot);
 
@@ -200,7 +208,9 @@ CATBoolean TestTessellationCmd::ActionOK(void * data)
 	_dSag = _pDlg->GetSpinnerFunc(TesselSag)->GetValue();
 	_dSag = _dSag*1000;
 	
-	this->CreateTessellation2(_spBUSurface,_dStep,_dSag);
+	//this->CreateTessellation2(_spBUSurface,_dStep,_dSag);
+
+	this->CreateOffsetByReconstruction();
 
 	//RequestDelayedDestruction();
 
@@ -1045,4 +1055,232 @@ HRESULT TestTessellationCmd::GetRepFromBU(CATBaseUnknown_var ispBU,CATRep **opRe
 	*opRep = pRep;
 	//
 	return E_FAIL;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////test point cloud and surface reconstruction///////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+HRESULT TestTessellationCmd::CreateOffsetByReconstruction()
+{
+	CATIQsrCAAFactory_var spiQsrFactory = GetQsrCAAGeoFactory(_spiProdRoot);
+	if (spiQsrFactory==NULL_var)
+	{
+		return E_FAIL;
+	}
+
+	//CATIQsrCAAFactory *pQsrCAAFactory = new CATIQsrCAAFactory();
+	CATIPrtContainer_var spiCont=NULL_var;
+	CATGeoFactory *pGeoFactory = _pGeneralCls->GetProductGeoFactoryAndPrtCont(_spiProdRoot,spiCont);
+	if (pGeoFactory==NULL)
+	{
+		return E_FAIL;
+	}
+	
+
+	//
+	vector<double> lstCoord;
+	if (FAILED(TessellateAndOffset(_spBUSurface,1,10,5,lstCoord)))
+	{
+		return E_FAIL;
+	}
+	int iSize = lstCoord.size();
+	int iPointsNum = iSize/3;
+	float *fPoints = new float[iSize];
+	for (int i=0;i<iSize;i++)
+	{
+		fPoints[i] = lstCoord[i];
+	}
+	CATIQsrCAAPowerFit_var spiPowerFit = spiQsrFactory->CreatePowerFit(pGeoFactory);
+	int iStatus;
+	spiPowerFit->SetCloudOfPoints(fPoints,iPointsNum,iStatus);
+	if (iStatus==0)
+	{
+		int iMakeStatus;
+		CATBody *pBody=NULL;
+		CATFace *pFace=NULL;
+		spiPowerFit->MakeFace(pBody,pFace,iMakeStatus);
+		cout<<"MakeFace Status: "<<iMakeStatus<<endl;
+
+		if (pBody!=NULL)
+		{
+			CATISpecObject_var spiSpecGS=NULL_var;
+			if (SUCCEEDED(_pGeneralCls->CreateNewGeoSet(_spiProdRoot,"Test",spiSpecGS))&&spiSpecGS!=NULL_var)
+			{
+				CATISpecObject_var spiSpec=NULL_var;
+				_pGeneralCls->InsertObjOnTree(_spiProdRoot,spiSpecGS,"Surface",pBody,spiSpec);
+			}
+		}
+	}
+
+
+	return S_OK;
+}
+
+//从Document获取CATGeoFactory
+CATIQsrCAAFactory *TestTessellationCmd::GetQsrCAAGeoFactory(CATIProduct_var ispiProd)
+{
+	HRESULT rc;
+	CATIProduct_var spiRefProduct=ispiProd->GetReferenceProduct();
+	CATILinkableObject_var spiRefLink=spiRefProduct;
+	//CATILinkableObject_var spiRefLink=ispProduct;		注：Instance Product不能直接赋给LinkableObj，后面取到的Document即使不为空，也会影响后续转到Container（会失败)
+	CATDocument *ipDoc=NULL;
+	if( spiRefLink!=NULL_var ) 
+	{
+		ipDoc = spiRefLink->GetDocument();
+	}
+	CATIQsrCAAFactory * pQsrCAAFactory = NULL;	
+	if ( NULL != ipDoc )
+	{
+		CATIContainerOfDocument * pIContainerOfDocument = NULL ;
+		rc = ipDoc->QueryInterface(IID_CATIContainerOfDocument, (void**)& pIContainerOfDocument );
+		if ( SUCCEEDED(rc) )
+		{
+			CATIContainer * pIContainerOnGeomContainer = NULL ;
+			rc = pIContainerOfDocument->GetSpecContainer(pIContainerOnGeomContainer);
+			if ( SUCCEEDED(rc) )
+			{
+				rc = pIContainerOnGeomContainer->QueryInterface( IID_CATIQsrCAAFactory, (void**)&pQsrCAAFactory );
+				if(pQsrCAAFactory==NULL || FAILED(rc))
+				{
+					cout<<"QueryInterface pQsrCAAFactory FAILED"<<endl;
+					return NULL;
+				}
+			}
+		}
+	}
+	else
+	{
+		cout<<"pDoc is NULL"<<endl;
+		return NULL;
+	}
+
+	return pQsrCAAFactory;
+}
+
+HRESULT TestTessellationCmd::TessellateAndOffset(CATBaseUnknown_var ispBUElement,double idStep,double idSag,double idOffset,vector<double> &olstValues)
+{
+	HRESULT rc = S_OK;
+	//
+	if (ispBUElement==NULL_var)
+	{
+		return E_FAIL;
+	}
+	CATBody_var spBody = _pGeneralCls->GetBodyFromFeature(ispBUElement);
+	if (spBody==NULL_var)
+	{
+		return E_FAIL;
+	}
+	//Tessleate the body
+	double iStep   = idStep;
+	double sag=	idSag;
+	double dAngle = CATPIBY4 / 4;
+	//CATBodyTessellator * pTessellator = new CATBodyTessellator(spBody,sag,dAngle);
+	CATCellTessellator * pTessellator = new CATCellTessellator(sag,dAngle);
+	if( NULL == pTessellator ) 
+	{
+		cout << "==> Create CATCellTessellator error !" << endl;
+		return E_FAIL;
+	}
+	//Set the step to the CATCellTessellator.
+	pTessellator->SetStep(iStep);
+	cout << "==> The step is: " << iStep << endl;
+
+	//Add face to the CATCellTessellator.
+	CATLISTP(CATCell) cells;
+	spBody->GetAllCells( cells,2); 
+	int numberOfCells = cells.Size();
+	cout <<"==> Number of face: " << numberOfCells << endl;
+	for (int ifa=1 ; ifa<=numberOfCells ; ifa++)
+	{
+		pTessellator->AddFace((CATFace *)(cells[ifa]));
+	}
+	//Run the CATCellTessellator
+	pTessellator->Run();
+
+	// For every face.
+	for(int i=1;i<=numberOfCells;i++) {
+		cout << "==> Face: " << i << endl;
+		// for each face, retrieve the tessellation results.
+		CATFace * piFace = (CATFace*) cells[i];
+		if( NULL == piFace )
+		{
+			return E_FAIL;
+		}
+		//Get the result.
+		CATBoolean isPlanar;
+		CATTessPointIter *    pVertices  = NULL;
+		CATTessStripeIter *   pStrips    = NULL;
+		CATTessFanIter *      pFans      = NULL;
+		CATTessPolyIter *     pPolygons  = NULL;
+		CATTessTrianIter *    pTriangles = NULL;
+		short side;
+		pTessellator->GetFace(piFace,isPlanar,&pVertices,&pStrips,&pFans,&pPolygons,&pTriangles,&side);		//获得的点都是局部坐标，按需转成全局
+
+		if (NULL==pVertices)
+		{
+			continue;
+		}
+/*
+		//获取所有点和法向的基础信息
+		float  (* aCoord)[3] = NULL;
+		float  (* aNormal)[3] = NULL;
+		int     * aNuPts     = NULL;
+		CATLONG32 nbp = 0;
+
+		nbp=pVertices->GetNbPoint();
+		aCoord = new float[nbp][3];
+		aNormal = new float[nbp][3];
+		pVertices->GetPointXyzAll(aCoord);	//获得所有的离散点
+		pVertices->GetPointNorAll(aNormal);	//获得每个离散点处的法向
+
+		//2维列表变成1维列表
+		int verticesArraySize=3*nbp;
+		int normalsArraySize=3*nbp;
+
+		cout << "  ==> Total point: " << nbp << endl;
+
+		float *vertices=new float[verticesArraySize];
+		float *normals=new float[normalsArraySize];
+		for(int j=0;j<nbp;j++) {
+			for(int k=0;k<3;k++) {
+				vertices[3*j+k] = aCoord[j][k];
+				normals[3*j+k] = aNormal[j][k];
+			}
+		}
+*/
+		///*   循环画点
+		int iNum = 0;
+		while (0 == (pVertices->IsExhausted()))
+		{
+			const double *aCoord = pVertices->GetPointXyz();
+			CATMathPoint pt(*aCoord,*(aCoord+1),*(aCoord+2));
+			const CATMathVector* dirNormal = new CATMathVector();
+			pVertices->GetPointNor(dirNormal);
+			CATMathVector dir = *dirNormal;
+			dir.Normalize();
+			CATMathPoint ptOffset = pt + idOffset*(dir);
+
+			olstValues.push_back(ptOffset.GetX());
+			olstValues.push_back(ptOffset.GetY());
+			olstValues.push_back(ptOffset.GetZ());
+
+			//模型上画出虚拟点，CATISO高亮
+			DumITempPoint *piTempPoint = NULL;
+			HRESULT rc = ::CATInstantiateComponent("DumTempPointComp", IID_DumITempPoint, (void**)&piTempPoint);
+			if (SUCCEEDED(rc) && piTempPoint != NULL)
+			{
+				piTempPoint->SetDatas(&ptOffset);
+				_pISO->AddElement(piTempPoint);
+			}
+			pVertices->GoToNext();
+			iNum++;
+		}
+
+		cout<<"==> Vertex number: "<<iNum<<endl;
+		
+	}
+
+	delete pTessellator;   pTessellator = NULL;
+	
+	return S_OK;
 }

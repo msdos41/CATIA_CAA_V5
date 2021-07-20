@@ -38,6 +38,7 @@ GSMItf	\
 CATTessellation		\
 TrainingTempM	\
 CATVisualization	\
+CATCloudQsrCAAItf	\
 
 # System dependant variables
 #

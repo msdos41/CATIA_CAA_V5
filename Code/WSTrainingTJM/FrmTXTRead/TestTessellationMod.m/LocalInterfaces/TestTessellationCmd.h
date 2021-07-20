@@ -41,6 +41,9 @@
 
 #include "CATVisManager.h"
 
+#include "CATIQsrCAAFactory.h"
+#include "CATIQsrCAAPowerFit.h"
+
 class CATIndicationAgent;
 
 //----------------------------------------------------------------------
@@ -88,6 +91,9 @@ class TestTessellationCmd: public CATStateCommand
   CATBoolean ActionRightClickClear(void * data);
   HRESULT CreateTessellation2(CATBaseUnknown_var ispBUElement,double idStep,double idSag);
   void InitialDlg();
+  CATIQsrCAAFactory *GetQsrCAAGeoFactory(CATIProduct_var ispiProd);
+  HRESULT CreateOffsetByReconstruction();
+  HRESULT TessellateAndOffset(CATBaseUnknown_var ispBUElement,double idStep,double idSag,double idOffset,vector<double> &olstValues);
 private:
 
 	  TestTessellationDlg			*_pDlg;
@@ -113,6 +119,8 @@ private:
 	  double						_dStep;
 
 	  double						_dSag;
+
+	  CATIProduct_var				_spiProdRoot;
 
 };
 

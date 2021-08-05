@@ -1,0 +1,72 @@
+Language="VBSCRIPT"
+
+Public icount As Integer
+Public arrString() As String
+Public savePath As String
+
+Sub CATMain()
+
+	savePath = "c:\2333.txt"
+	icount=0
+	'MsgBox CATIA.Documents.item(2).FullName
+	Dim DocName
+	DocName=CATIA.ActiveDocument.FullName
+	'MsgBox DocName
+	
+	icount=icount+1
+	ReDim Preserve arrString(icount)
+	arrString(icount-1)=DocName
+	
+	If instr(DocName, "CATPart") > 0 Then
+		'msgbox "yes"
+		Call WriteTxt()
+	Elseif instr(DocName, "CATProduct") > 0 Then
+		'msgbox "no"
+		Dim RootPrd
+		Set RootPrd=CATIA.ActiveDocument.Product
+		'msgbox RootPrd.Products.Count  '根节点下所有直接子集
+		Call GetNextNode(RootPrd)
+		Call WriteTxt()
+	Else
+	
+	End If
+
+End Sub
+
+
+'写txt
+Sub WriteTxt()
+	Dim fs,f
+	Set fs=createobject("scripting.filesystemobject")
+	Set f=fs.opentextfile(savePath,2, true)
+	For i=0 To icount-1	
+		f.write arrString(i)
+		f.WriteBlankLines(1)	'回车换行
+	Next
+	f.close
+End Sub
+
+
+'获取所有子集
+Sub GetNextNode(oCurrentProduct As Product)
+    Dim oCurrentTreeNode As Product
+    Dim i As Integer
+	Dim oCurrentDoc as Document
+       
+    ' Loop through every tree node for the current product
+    For i = 1 To oCurrentProduct.Products.Count
+        Set oCurrentTreeNode = oCurrentProduct.Products.Item(i)
+		Set oCurrentDoc = oCurrentTreeNode.ReferenceProduct.Parent
+		'MsgBox oCurrentDoc.FullName
+		icount=icount+1
+		ReDim Preserve arrString(icount)
+		arrString(icount-1)=oCurrentDoc.FullName
+		
+        ' if sub-nodes exist below the current tree node, call the sub recursively
+        If oCurrentTreeNode.Products.Count > 0 Then
+            GetNextNode oCurrentTreeNode
+        End If
+     
+   Next
+
+End Sub

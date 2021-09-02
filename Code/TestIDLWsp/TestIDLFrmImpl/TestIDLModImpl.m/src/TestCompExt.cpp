@@ -15,7 +15,7 @@
 #include "iostream.h"
 #include "TestComp.h"
 
-CATImplementClass(TestCompExt,CodeExtension,CATBaseUnknown,TestComp);
+CATImplementClass(TestCompExt,DataExtension,CATBaseUnknown,TestComp);
 
 #include "TIE_CATICreateInstance.h"
 TIE_CATICreateInstance(TestCompExt);

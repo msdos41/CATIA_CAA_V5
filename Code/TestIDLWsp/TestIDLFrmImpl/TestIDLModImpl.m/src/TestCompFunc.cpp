@@ -14,7 +14,7 @@
 #include "TestCompFunc.h"
 #include <iostream>
 
-CATImplementClass(TestCompFunc,CodeExtension,CATBaseUnknown,CATApplicationFrame);
+CATImplementClass(TestCompFunc,DataExtension,CATBaseObject,MechanicalPart);
 
 #include "TIE_CAAIATestInterface.h"
 TIE_CAAIATestInterface(TestCompFunc);

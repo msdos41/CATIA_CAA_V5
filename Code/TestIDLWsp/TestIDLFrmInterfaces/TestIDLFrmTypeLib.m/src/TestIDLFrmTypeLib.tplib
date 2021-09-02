@@ -21,6 +21,7 @@
 #pragma REPBEGIN TestIDLFrm
 
 #pragma REPREQ InfTypeLib
+//#pragma REPREQ MecModTypeLib
 
 // Prerequisite type libs
 // ----------------------

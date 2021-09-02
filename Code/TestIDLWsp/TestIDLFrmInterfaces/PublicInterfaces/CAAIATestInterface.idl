@@ -14,6 +14,7 @@
 #define CAAIATestInterface_IDL
 /*IDLREP*/
 #include "CATIAFactory.idl"
+#include "CATIAHybridShapeFactory.idl"
 /**
 * Interface representing xxx.
 *
@@ -38,7 +39,8 @@ interface CAAIATestInterface : CATIAFactory
 #pragma DUAL CAAIATestInterface
 
 // VB object name : CAAIATestInterfaceVB (Id used in Visual Basic)
-#pragma ID CAAIATestInterfaceVB "DCE:5d2c131b-f608-415a-a2c95eb1ac3b1e23"
+//#pragma ID CAAIATestInterfaceVB "DCE:5d2c131b-f608-415a-a2c95eb1ac3b1e23"
+#pragma ID CAAIATestInterfaceVB "DCE:5d2c131b-646c-4c96-a8d52a4b493f51df"
 #pragma ALIAS CAAIATestInterface CAAIATestInterfaceVB
 
 #endif

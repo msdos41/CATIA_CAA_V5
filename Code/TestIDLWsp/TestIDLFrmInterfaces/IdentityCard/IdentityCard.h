@@ -18,3 +18,4 @@
 AddPrereqComponent ("System", Public);
 // END WIZARD EDITION ZONE
 AddPrereqComponent ("MecModInterfaces", Public);
+AddPrereqComponent ("GSMInterfaces", Public);

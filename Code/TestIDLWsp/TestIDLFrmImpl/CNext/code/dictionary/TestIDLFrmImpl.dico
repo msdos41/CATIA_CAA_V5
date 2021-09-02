@@ -2,7 +2,5 @@ TestComp CATIVBExtension libTestIDLModImpl
  
 TestComp CATICreateInstance libTestIDLModImpl
  
-CATApplicationFrame CAAIATestInterface.idl libTestIDLModImpl
-
-MechanicalPart CAAIATestInterface.idl libTestIDLModImpl
+MechanicalPart CAAIATestInterface libTestIDLModImpl
  

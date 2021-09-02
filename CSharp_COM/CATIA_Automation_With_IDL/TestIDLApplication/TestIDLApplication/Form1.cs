@@ -43,7 +43,8 @@ namespace TestIDLApplication
             Part part = partDoc.Part;
             string sAlias = "CAAIATestInterfaceVB";
             //InstanceFactory fact = (InstanceFactory)part.GetCustomerFactory(ref sAlias);
-            CAAIATestInterfaceVB testIntf = (CAAIATestInterfaceVB)part.GetCustomerFactory(ref sAlias);
+            TestIDLFrm.CAAIATestInterfaceVB testIntf = (TestIDLFrm.CAAIATestInterfaceVB)(part.GetCustomerFactory(ref sAlias));
+            //HybridShapeFactory hsFactory = (HybridShapeFactory)part.GetCustomerFactory(ref sAlias);
             //try
             //{
             //    testIntf.CreateObject();
@@ -54,7 +55,7 @@ namespace TestIDLApplication
             //}
             string isName="";
             string osName = "";
-            testIntf.TestFunction(ref isName, ref osName);
+            osName = testIntf.TestFunction(ref isName);
         }
     }
 }

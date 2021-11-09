@@ -50,6 +50,7 @@ TestDlg::TestDlg() :
  _PushButtonCompass = NULL;
  _PushButtonReadTxt = NULL;
  _PushButton3DView = NULL;
+ _PushButtonSetColor = NULL;
 //END CAA2 WIZARD CONSTRUCTOR INITIALIZATION SECTION
 }
 
@@ -76,6 +77,7 @@ TestDlg::~TestDlg()
  _PushButtonCompass = NULL;
  _PushButtonReadTxt = NULL;
  _PushButton3DView = NULL;
+ _PushButtonSetColor = NULL;
 //END CAA2 WIZARD DESTRUCTOR DECLARATION SECTION
 }
 
@@ -120,6 +122,8 @@ _PushButtonCompass -> SetGridConstraints(6, 4, 1, 1, CATGRID_4SIDES);
 _PushButtonReadTxt -> SetGridConstraints(7, 4, 1, 1, CATGRID_4SIDES);
  _PushButton3DView = new CATDlgPushButton(this, "PushButton3DView");
 _PushButton3DView -> SetGridConstraints(8, 4, 1, 1, CATGRID_4SIDES);
+ _PushButtonSetColor = new CATDlgPushButton(this, "PushButtonSetColor");
+_PushButtonSetColor -> SetGridConstraints(9, 4, 1, 1, CATGRID_4SIDES);
 //END CAA2 WIZARD WIDGET CONSTRUCTION SECTION
 
 //CAA2 WIZARD CALLBACK DECLARATION SECTION
@@ -173,4 +177,9 @@ CATDlgPushButton* TestDlg::GetPushButtonReadTxt()
 CATDlgPushButton* TestDlg::GetPushButton3DView()
 {
 	return _PushButton3DView;
+}
+
+CATDlgPushButton* TestDlg::GetPushButtonSetColor()
+{
+	return _PushButtonSetColor;
 }

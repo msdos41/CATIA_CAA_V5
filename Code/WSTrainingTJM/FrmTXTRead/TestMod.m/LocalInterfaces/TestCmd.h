@@ -80,6 +80,9 @@
 
 #include "CATGetEnvValue.h"
 
+#include "CATVisViewerFeedbackEvent.h"
+#include "CATIRedrawEvent.h"
+
 #include <fstream>
 #include <string>
 using namespace std;
@@ -176,6 +179,11 @@ class TestCmd: public CATStateCommand
   void GetSubList(CATIProduct_var ispiRootProduct,int iLevel);
   void GetSubList(CATIProduct_var ispiRootProduct,int iLevel,CATListOfCATUnicodeString &olstStrPartName);
   int GetLevel(CATIProduct_var spChildProduct);
+
+  //
+  CATBoolean ActionSetColor(void * data);
+  void SetViewerFeedbackOn();
+  void ViewerFeedbackCB(CATCallbackEvent event, void * client, CATNotification * iNotification, CATSubscriberData data, CATCallback callback);
 private:
 
   CATIndicationAgent	* _Indication;
@@ -216,6 +224,9 @@ private:
   CATDialogState		*	_pDlgStateLine;
 
   SWIEEEleCreateViewWindowDlg	* _p3DViewWindowDlg;
+
+
+  CATCallback				_ViewerFeedbackCB;
   
 };
 

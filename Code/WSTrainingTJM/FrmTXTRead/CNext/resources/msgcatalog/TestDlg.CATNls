@@ -8,4 +8,5 @@ PushButtonStartOtherCmd.Title = "Start other command";
 PushButtonCompass.Title = "Compass Test";
 PushButtonReadTxt.Title = "Read Txt";
 PushButton3DView.Title = "3D View";
+PushButtonSetColor.Title = "Set Color";
 // END WIZARD REPLACEMENT ZONE

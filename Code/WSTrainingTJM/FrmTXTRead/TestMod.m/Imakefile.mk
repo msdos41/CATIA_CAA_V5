@@ -31,6 +31,8 @@ CATInteractiveInterfaces  \
 CATGitInterfaces  \
 KnowledgeItf  \
 CATIAApplicationFrame  \
+CATVisualization	\
+InfItf	\
 
 # System dependant variables
 #

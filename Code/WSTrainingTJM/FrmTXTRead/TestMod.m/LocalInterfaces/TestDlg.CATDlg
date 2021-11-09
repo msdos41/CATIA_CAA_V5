@@ -96,4 +96,10 @@ CATDlgPushButton PushButton3DView
   GRID = { 8, 4, 1, 1, CATGRID_4SIDES };
 }
 
+CATDlgPushButton PushButtonSetColor
+{
+  FATHER = TestDlg;
+  GRID = { 9, 4, 1, 1, CATGRID_4SIDES };
+}
+
 // END WIZARD REPLACEMENT ZONE

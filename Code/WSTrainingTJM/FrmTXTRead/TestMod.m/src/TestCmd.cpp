@@ -28,6 +28,7 @@ TestCmd::TestCmd() :
   CATStateCommand ("TestCmd", CATDlgEngOneShot, CATCommandModeExclusive) 
 //  Valid states are CATDlgEngOneShot and CATDlgEngRepeat
   ,_Indication(NULL)
+  ,_ViewerFeedbackCB(0)
 {
 	//CATIProduct* piRootProd = NULL;
 	//_GeneralClass->GetRootProductUpdate(piRootProd);
@@ -67,8 +68,8 @@ TestCmd::TestCmd() :
 	//HRESULT rc = _GeneralClass->GetRootProduct(piRootProduct);
 	//cout<<piRootProduct->GetPartNumber()<<endl;
 	CATIProduct_var spiRootProduct =  NULL_var;
-	_GeneralClass->GetRootProductUpdate(spiRootProduct);
-	if (spiRootProduct != NULL)
+	_GeneralClass->GetRootProductUpdate(_spiRootProduct);
+	if (_spiRootProduct != NULL)
 	{
 		//GetSubList(spiRootProduct,0);
 	}
@@ -198,6 +199,11 @@ void TestCmd::BuildGraph()
 		(CATCommandMethod)&TestCmd::Action3DView,
 		NULL);
 
+	AddAnalyseNotificationCB(_pDlg->GetPushButtonSetColor(),
+		_pDlg->GetPushButtonSetColor()->GetPushBActivateNotification(),
+		(CATCommandMethod)&TestCmd::ActionSetColor,
+		NULL);
+
 	
 	
 	_pFeaImpAgtLine = new CATFeatureImportAgent("Select a Line",NULL,NULL,MfNoDuplicateFeature);
@@ -215,8 +221,9 @@ void TestCmd::BuildGraph()
 	//_pFeaImpAgtLine->AddOrderedElementType("CATIMf3DAxisSystem");
 
 	_pFeaImpAgtFace->SetOrderedElementType("CATIMf3DAxisSystem");
-	_pFeaImpAgtFace->AddOrderedElementType("CATSurface");
-	_pFeaImpAgtFace->AddOrderedElementType("CATLine");
+	_pFeaImpAgtFace->AddOrderedElementType("CATIMeasurableSurface");
+	//_pFeaImpAgtFace->AddOrderedElementType("CATSurface");
+	//_pFeaImpAgtFace->AddOrderedElementType("CATLine");
 	//_pFeaImpAgtFace->AddOrderedElementType("CATIMf3DAxisSystem");
 
 	_pFeaImpAgt3DView->SetOrderedElementType("CATIMechanicalTool");
@@ -1618,3 +1625,106 @@ int TestCmd::GetLevel(CATIProduct_var spChildProduct)
 	return iLevel;
 }
 
+
+
+//////////////////////////////////////////////////////////////////////////
+CATBoolean TestCmd::ActionSetColor(void * data)
+{
+	CATISpecObject_var spiSpecSurface = _spSpecFace;
+	if (spiSpecSurface==NULL_var)
+	{
+		return FALSE;
+	}
+
+	//_GeneralClass->SetColorOnObject(spiSpecSurface,255,0,0,CATVPMesh);
+	//SetViewerFeedbackOn();
+
+	CATILinkableObject_var spiLinkObj = _spiRootProduct;
+	if (spiLinkObj==NULL_var)
+	{
+		return FALSE;
+	}
+	CATDocument *pDoc = spiLinkObj->GetDocument();
+	if (pDoc==NULL)
+	{
+		return FALSE;
+	}
+	CATIADocument_var spiaDoc = pDoc;
+	if (spiaDoc==NULL_var)
+	{
+		return FALSE;
+	}
+	CATIASelection *piaSelect=NULL;
+	if (FAILED(spiaDoc->get_Selection(piaSelect)))
+	{
+		return FALSE;
+	}
+	CATIABase *piaBaseSurface=NULL;
+	if (FAILED(spiSpecSurface->QueryInterface(IID_CATIABase,(void**)&piaBaseSurface)))
+	{
+		return FALSE;
+	}
+	piaSelect->Add(piaBaseSurface);
+
+	CATIAVisPropertySet *piaVisProperySet=NULL;
+	if (FAILED(piaSelect->get_VisProperties(piaVisProperySet)))
+	{
+		return FALSE;
+	}
+	piaVisProperySet->SetRealColor(255,0,0,0);
+
+	_GeneralClass->RefreshView3D(spiSpecSurface);
+
+	CATIRedrawEvent_var spRedraw = _spiRootProduct;
+	spRedraw -> Redraw(); 
+
+	for (int i=0;i<100000;i++)
+	{
+		cout<<i<<endl;
+	}
+	
+	return TRUE;
+}
+
+void TestCmd::SetViewerFeedbackOn()
+{
+	CATFrmLayout *pCurrentLayout = CATFrmLayout::GetCurrentLayout();
+	if (pCurrentLayout != NULL)
+	{
+		CATFrmWindow *pCurrentWindow = pCurrentLayout ->GetCurrentWindow();
+		if (pCurrentWindow != NULL)
+		{
+			CATViewer *pViewer = pCurrentWindow ->GetViewer();
+			pViewer->SetFeedbackMode(TRUE);
+			_ViewerFeedbackCB=::AddCallback(this,
+				pViewer,
+				CATViewer::VIEWER_FEEDBACK_UPDATE(),
+				(CATSubscriberMethod)&TestCmd::ViewerFeedbackCB, NULL);
+		}
+	}
+}
+
+void TestCmd::ViewerFeedbackCB(CATCallbackEvent   event,
+												  void             * client,
+												  CATNotification  * iNotification,
+												  CATSubscriberData  data,
+												  CATCallback        callback)
+{
+	CATFrmLayout *pCurrentLayout = CATFrmLayout::GetCurrentLayout();
+	if (pCurrentLayout != NULL)
+	{
+		CATFrmWindow *pCurrentWindow = pCurrentLayout ->GetCurrentWindow();
+		if (pCurrentWindow != NULL)
+		{
+			CATViewer *pViewer = pCurrentWindow ->GetViewer();
+			if (pViewer!=NULL)
+			{
+				pViewer->SetFeedbackMode(FALSE);
+				::RemoveCallback(this,pViewer,_ViewerFeedbackCB);
+				CATVisViewerFeedbackEvent *pFbEvent = (CATVisViewerFeedbackEvent*)iNotification;
+
+				_GeneralClass->SetColorOnObject(_spSpecFace,255,0,0,CATVPMesh);
+			}
+		}
+	}
+}

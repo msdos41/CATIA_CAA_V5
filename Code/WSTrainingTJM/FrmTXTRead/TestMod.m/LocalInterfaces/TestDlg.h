@@ -53,6 +53,7 @@ class TestDlg: public CATDlgDialog
   CATDlgPushButton* GetPushButtonCompassTest();
   CATDlgPushButton* GetPushButtonReadTxt();
   CATDlgPushButton* GetPushButton3DView();
+  CATDlgPushButton* GetPushButtonSetColor();
 protected:
 
   private:
@@ -73,6 +74,7 @@ protected:
  CATDlgPushButton*      _PushButtonCompass;
  CATDlgPushButton*      _PushButtonReadTxt;
  CATDlgPushButton*      _PushButton3DView;
+ CATDlgPushButton*      _PushButtonSetColor;
 //END CAA2 WIZARD WIDGET DECLARATION SECTION
 };
 

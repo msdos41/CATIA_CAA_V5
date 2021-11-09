@@ -15,6 +15,10 @@
 #ifndef ClsOfExcelOperation_H
 #define ClsOfExcelOperation_H
 
+#ifdef _WINDOWS_
+#undef _WINDOWS_
+#endif
+
 //Local
 #include "ModPubExcel.h"
 #include <afx.h>

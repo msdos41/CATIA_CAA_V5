@@ -15,6 +15,11 @@
 #ifndef CAACommonModule_H
 #define CAACommonModule_H
 
+#ifdef _WINDOWS_
+#undef _WINDOWS_
+#endif
+
+
 //#include "YFDrwToolsCommonM.h"
 #include "GeneralClassMod.h"
 #include "CATBaseUnknown.h"

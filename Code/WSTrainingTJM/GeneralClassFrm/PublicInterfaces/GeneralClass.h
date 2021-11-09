@@ -691,6 +691,9 @@ class ExportedByGeneralClassMod GeneralClass: public CATBaseUnknown
   CATBoolean CreateMsgBoxOptOKCancel(CATUnicodeString usMsg);
   CATBoolean GetCurrentActiveProduct(CATFrmEditor * ipEditor,CATIProduct_var &ospProduct);
 
+  HRESULT SetColorOnObject(CATISpecObject_var ispiSpecOnObject,unsigned int iRed,unsigned int iGreen,unsigned int iBlue,CATVisGeomType iGeoType);
+  HRESULT SetColorOnBRepObject(CATIBRepAccess_var ispiSubElement,unsigned int iRed,unsigned int iGreen,unsigned int iBlue,CATVisGeomType iGeoType);
+  HRESULT RefreshView3D(CATISpecObject_var ispiSpecOnObject);
 };
 
 //-----------------------------------------------------------------------

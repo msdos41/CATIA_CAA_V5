@@ -8018,6 +8018,89 @@ HRESULT GeneralClass::GetColorOnObject(CATISpecObject_var ispiSpecOnObject,unsig
 	return rc;
 }
 
+HRESULT GeneralClass::SetColorOnObject(CATISpecObject_var ispiSpecOnObject,unsigned int iRed,unsigned int iGreen,unsigned int iBlue,CATVisGeomType iGeoType)
+{
+	HRESULT rc=E_FAIL;
+
+	if( !ispiSpecOnObject ) return rc;
+
+	CATVisPropertiesValues AttributeValue;
+	AttributeValue.SetColor(iRed,iGreen,iBlue);
+
+	CATIVisProperties *piGraphProp=NULL;
+	rc = ispiSpecOnObject->QueryInterface(IID_CATIVisProperties,(void **)&piGraphProp);
+	if( FAILED(rc) || !piGraphProp ) return rc;
+
+	rc = piGraphProp->SetPropertiesAtt(AttributeValue,CATVPColor,iGeoType);
+	piGraphProp->Release();  piGraphProp = NULL;
+
+	//Refresh view 3D
+	rc = RefreshView3D(ispiSpecOnObject);
+
+	return rc;
+}
+
+HRESULT GeneralClass::SetColorOnBRepObject(CATIBRepAccess_var ispiSubElement,unsigned int iRed,unsigned int iGreen,unsigned int iBlue,CATVisGeomType iGeoType)
+{
+	HRESULT rc=E_FAIL;
+
+	if( !ispiSubElement ) return rc;
+
+	CATVisPropertiesValues AttributeValue;
+	AttributeValue.SetColor(iRed,iGreen,iBlue);
+
+	CATIPersistentSubElement *piPersistentSubElement=NULL;
+	rc = ispiSubElement->QueryInterface(IID_CATIPersistentSubElement,(void **)&piPersistentSubElement);
+	if( FAILED(rc) || !piPersistentSubElement ) return rc;
+
+	CATIVisProperties *piGraphProp=NULL;
+	rc = piPersistentSubElement->GetVisPropertiesAccess(piGraphProp);
+	piPersistentSubElement->Release(); piPersistentSubElement = NULL;
+	if( FAILED(rc) || !piGraphProp ) return rc;
+
+	rc = piGraphProp->SetPropertiesAtt(AttributeValue,CATVPColor,iGeoType);
+	piGraphProp->Release();  piGraphProp = NULL;
+
+	//Refresh view 3D
+	CATISpecObject_var spiSpecOnLastFeature=NULL_var;
+	spiSpecOnLastFeature = ispiSubElement->GetLastFeature();
+	if( !!spiSpecOnLastFeature )
+		rc = RefreshView3D(spiSpecOnLastFeature);
+
+	return rc;
+}
+
+//刷新显示相关
+HRESULT GeneralClass::RefreshView3D(CATISpecObject_var ispiSpecOnObject)
+{
+	HRESULT rc=E_FAIL;
+
+	if( !ispiSpecOnObject ) return rc;
+
+	CATModify pModifyOnFather1(ispiSpecOnObject);
+	CATIModelEvents_var spiModelEvents1(ispiSpecOnObject);
+	if( !!spiModelEvents1 ) 
+	{
+		spiModelEvents1->Dispatch(pModifyOnFather1);
+		rc = S_OK;
+	}
+
+	CATISpecObject *piFather=NULL;
+	piFather = ispiSpecOnObject->GetFather();
+
+	CATModify pModifyOnFather2(piFather);
+	CATIModelEvents_var spiModelEvents2(piFather);
+	if( !!spiModelEvents2 ) 
+	{
+		spiModelEvents2->Dispatch(pModifyOnFather2);
+		rc = S_OK;
+	}
+
+	if( !!piFather ) { piFather->Release();  piFather = NULL; }
+
+	return rc;
+}
+
 //描述：根据输入的曲面获取所有的边界，相切的cell算作一根边界
 //输入：CATBaseUnknown_var 曲面对象，CATIProduct，CATBaseUnknown_var 曲线对象
 //输出：vector<vector<CATCell_var>> olstCellEdge

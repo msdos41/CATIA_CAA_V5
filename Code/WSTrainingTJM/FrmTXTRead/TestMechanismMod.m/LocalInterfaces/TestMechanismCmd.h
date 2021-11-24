@@ -21,12 +21,17 @@
 #include "CATStateCommand.h"
 #include "CATBoolean.h"
 #include "GeneralClass.h"
+#include "TestMechanismDlg.h"
 
 #include "CATIAMechanisms.h"
 #include "CATIAMechanism.h"
 #include "CATVisManager.h"
+#include "CATIAApplication.h"
+#include "CATIKinMechanism.h"
 
 class CATIndicationAgent;
+
+DWORD WINAPI CatchCATIAWindow(LPVOID);
 
 //----------------------------------------------------------------------
 
@@ -62,11 +67,23 @@ class TestMechanismCmd: public CATStateCommand
   virtual CATBoolean  ActionOne(void * data);
   HRESULT GetMechanisms(CATIProduct_var ispiProdRoot);
   HRESULT CreateImportedMechanism();
+  CATBoolean ExitCmd(void * data);
+  CATBoolean ActionOK(void * data);
+  void ActionPressEnter();
+  CATStatusChangeRC Activate( CATCommand * iFromClient, CATNotification * iEvtDat);
+  CATStatusChangeRC Desactivate( CATCommand * iFromClient, CATNotification * iEvtDat);
+  CATStatusChangeRC Cancel( CATCommand * iFromClient, CATNotification * iEvtDat);
+  HRESULT SwitchWorkbench(CATUnicodeString istrWorkbench);
+  //DWORD WINAPI CatchCATIAWindow(LPVOID);
 private:
 
 	  CATIProduct_var					_spiProdRoot;
 
 	  GeneralClass						*_pGeneralCls;
+
+	  TestMechanismDlg					*_pDlg;
+
+	  int								_iClick;
 
 };
 

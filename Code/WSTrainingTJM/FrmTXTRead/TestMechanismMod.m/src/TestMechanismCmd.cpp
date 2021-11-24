@@ -19,15 +19,23 @@
 #include "CATCreateExternalObject.h"
 CATCreateClass( TestMechanismCmd);
 
+#include "TestMechanismSubCmd.h"
+
 
 //-------------------------------------------------------------------------
 // Constructor
 //-------------------------------------------------------------------------
 TestMechanismCmd::TestMechanismCmd() :
-  CATStateCommand ("TestMechanismCmd", CATDlgEngOneShot, CATCommandModeExclusive) 
+  CATStateCommand ("TestMechanismCmd", CATDlgEngOneShot, CATCommandModeShared) 
 //  Valid states are CATDlgEngOneShot and CATDlgEngRepeat
 ,_pGeneralCls(NULL)
+,_pDlg(NULL)
+,_iClick(0)
 {
+	_pDlg = new TestMechanismDlg();
+	_pDlg->Build();
+	_pDlg->SetVisibility(CATDlgShow);
+
 	_pGeneralCls = new GeneralClass();
 
 	_pGeneralCls->GetRootProductUpdate(_spiProdRoot);
@@ -37,37 +45,27 @@ TestMechanismCmd::TestMechanismCmd() :
 		return;
 	}
 
-	if (FAILED(CreateImportedMechanism()))
+	if (FAILED(SwitchWorkbench("DMUKinematics")))
 	{
-		RequestDelayedDestruction();
+		cout<<"SwitchWorkbench failed........"<<endl;
 		return;
 	}
 
-	CATVisManager * pVisManager=CATVisManager::GetVisManager();
-	if(pVisManager!=NULL)
-	{
-		pVisManager->Commit();
-	}
+	//if (FAILED(CreateImportedMechanism()))
+	//{
+	//	RequestDelayedDestruction();
+	//	return;
+	//}
 
-	Sleep(1000);
-	//keybd_event(VK_RETURN,0,0,0);
-	//keybd_event(VK_RETURN,0,KEYEVENTF_KEYUP,0);
+	//HANDLE Thread =(HANDLE)CreateThread(NULL,0,CatchCATIAWindow,NULL,0,0);
+	//CloseHandle(Thread); 
 
-	INPUT inputs[2];
-	inputs[0].type = INPUT_KEYBOARD;
-	inputs[0].ki.wVk = VK_RETURN;  //按下enter
-	inputs[1].type = INPUT_KEYBOARD;
-	inputs[1].ki.wVk = VK_RETURN;  
-	inputs[1].ki.dwFlags = KEYEVENTF_KEYUP;	//释放enter
-	UINT uSend = SendInput(sizeof inputs / sizeof(INPUT), inputs, sizeof(INPUT));
-	if (uSend!=ARRAYSIZE(inputs))
-	{
-		cout<<"SendInput failed................"<<endl;
-	}
+	//TestMechanismSubCmd *pSubCmd = new TestMechanismSubCmd();
+	//pSubCmd->RequestDelayedDestruction();
 
-	Sleep(1000);
 
-	GetMechanisms(_spiProdRoot);
+	//GetMechanisms(_spiProdRoot);
+
 }
 
 //-------------------------------------------------------------------------
@@ -75,7 +73,21 @@ TestMechanismCmd::TestMechanismCmd() :
 //-------------------------------------------------------------------------
 TestMechanismCmd::~TestMechanismCmd()
 {
+	if (_pGeneralCls != NULL)
+	{
+		delete _pGeneralCls;
+		_pGeneralCls = NULL;
+	}
+	
+	if (_pDlg != NULL)
+	{
+		_pDlg->RequestDelayedDestruction();
+		_pDlg = NULL;
+	}
 
+	//ActionPressEnter();
+	//HANDLE Thread =(HANDLE)CreateThread(NULL,0,CatchCATIAWindow,NULL,0,0);
+	//CloseHandle(Thread); 
 }
 
 
@@ -84,7 +96,25 @@ TestMechanismCmd::~TestMechanismCmd()
 //-------------------------------------------------------------------------
 void TestMechanismCmd::BuildGraph()
 {
+	AddAnalyseNotificationCB(_pDlg,
+		_pDlg->GetDiaCLOSENotification(),
+		(CATCommandMethod)&TestMechanismCmd::ExitCmd,
+		NULL);
 
+	AddAnalyseNotificationCB(_pDlg,
+		_pDlg->GetWindCloseNotification(),
+		(CATCommandMethod)&TestMechanismCmd::ExitCmd,
+		NULL);
+
+	AddAnalyseNotificationCB(_pDlg,
+		_pDlg->GetDiaCANCELNotification(),
+		(CATCommandMethod)&TestMechanismCmd::ExitCmd,
+		NULL);
+
+	AddAnalyseNotificationCB(_pDlg,
+		_pDlg->GetDiaOKNotification(),
+		(CATCommandMethod)&TestMechanismCmd::ActionOK,
+		NULL);
 }
 
 
@@ -97,6 +127,115 @@ CATBoolean TestMechanismCmd::ActionOne( void *data )
   // ------------------------------------------------------
 
   return TRUE;
+}
+
+CATBoolean TestMechanismCmd::ExitCmd(void * data)
+{
+	this->RequestDelayedDestruction();
+	return TRUE;
+}
+
+CATBoolean TestMechanismCmd::ActionOK(void * data)
+{
+	_iClick=1;
+
+	//if (FAILED(CreateImportedMechanism()))
+	//{
+	//	cout<<"CreateImportedMechanism failed.........."<<endl;
+	//	return FALSE;
+	//}
+
+	//TestMechanismSubCmd *pSubCmd = new TestMechanismSubCmd();
+	//pSubCmd->RequestDelayedDestruction();
+
+	if (FAILED(CreateImportedMechanism()))
+	{
+		//RequestDelayedDestruction();
+		return TRUE;
+	}
+
+	HANDLE Thread =(HANDLE)CreateThread(NULL,0,CatchCATIAWindow,NULL,0,0);
+	CloseHandle(Thread);
+	
+	//RequestDelayedDestruction();
+	return TRUE;
+}
+
+void TestMechanismCmd::ActionPressEnter()
+{
+	INPUT inputs[2];
+	inputs[0].type = INPUT_KEYBOARD;
+	inputs[0].ki.wVk = VK_RETURN;  //按下enter
+	inputs[1].type = INPUT_KEYBOARD;
+	inputs[1].ki.wVk = VK_RETURN;  
+	inputs[1].ki.dwFlags = KEYEVENTF_KEYUP;	//释放enter
+	UINT uSend = SendInput(sizeof inputs / sizeof(INPUT), inputs, sizeof(INPUT));
+	if (uSend!=ARRAYSIZE(inputs))
+	{
+		cout<<"SendInput failed................"<<endl;
+	}
+}
+
+CATStatusChangeRC TestMechanismCmd::Activate( CATCommand * iFromClient, CATNotification * iEvtDat)
+{
+	if (_iClick>0)
+	{
+		//HANDLE Thread =(HANDLE)CreateThread(NULL,0,CatchCATIAWindow,NULL,0,0);
+		//CloseHandle(Thread);
+		GetMechanisms(_spiProdRoot);
+	}
+
+	return (CATStatusChangeRCCompleted);
+}
+
+//  Overload this method: when your command loses focus
+//
+// Deactivates a command.
+//   iFromClient :The command that requests to activate the current one.
+//   iEvtDat :The notification sent.
+// ----------------------------------------------------
+CATStatusChangeRC TestMechanismCmd::Desactivate( CATCommand * iFromClient, CATNotification * iEvtDat)
+{
+	return (CATStatusChangeRCCompleted);
+}
+
+//  Overload this method: when your command is canceled
+//
+// Cancel a command.
+//   iFromClient :The command that requests to activate the current one.
+//   iEvtDat :The notification sent.
+// ----------------------------------------------------
+CATStatusChangeRC TestMechanismCmd::Cancel( CATCommand * iFromClient, CATNotification * iEvtDat)
+{
+	//RequestDelayedDestruction();
+	return (CATStatusChangeRCCompleted);
+}
+
+DWORD WINAPI CatchCATIAWindow(LPVOID)
+{
+	//设置时间，如果超过时间跳出while循环
+	DWORD FunctionStart = GetTickCount();
+	while (1) 
+	{
+		DWORD NowTime=GetTickCount() - FunctionStart;
+		if(NowTime > 8000)
+			break;
+
+		HWND hwnd = FindWindow(NULL, L"Sub-mechanisms Import Result");
+		if(0 == hwnd)
+		{
+			hwnd = FindWindow(NULL, L"子机械装置导入结果");
+		}
+		if(0 != hwnd)
+		{
+			::SendMessage(hwnd, WM_CLOSE, 0, 0);
+
+			//LimitingPositionCmd * pCmd=new LimitingPositionCmd();
+
+			break;
+		}
+	}
+	return 0;
 }
 
 HRESULT TestMechanismCmd::GetMechanisms(CATIProduct_var ispiProdRoot)
@@ -147,6 +286,15 @@ HRESULT TestMechanismCmd::GetMechanisms(CATIProduct_var ispiProdRoot)
 					cout<<"===>Current Mechanism:  "<<spiAlias->GetAlias()<<endl;
 				}
 			}
+
+			CATIKinMechanism *pKinMech=NULL;
+			if (SUCCEEDED(piaMech->QueryInterface(IID_CATIKinMechanism,(void**)&pKinMech))&&pKinMech!=NULL)
+			{
+				double a=100;
+				double* ListCommandValueToSet=&a;
+
+				pKinMech->SetCmdValues(1,ListCommandValueToSet);
+			}
 		}
 	}
 
@@ -158,6 +306,14 @@ HRESULT TestMechanismCmd::CreateImportedMechanism()
 {
 	CATCommand *pDSCmd=NULL; 
 	CATUnicodeString cmdstring = "CATMecImportSubMechsHdr"; //"SectionView"; //"CATGSDPointDatumHdr";//"ZoomIn"; //"AsmSpaceMeasureBetween";
+	
+	CATCommandHeader * piCHeader=NULL;
+	if (FAILED(CATAfrGetCommandHeader("CATMecImportSubMechsHdr",piCHeader))||piCHeader==NULL)
+	{
+		_pGeneralCls->MessageOutputWarning("Get " + cmdstring + " Header failed","Error");
+		return E_FAIL;
+	}
+
 	this->RequestStatusChange(CATCommandMsgDesactivated);
 	try
 	{
@@ -188,4 +344,43 @@ HRESULT TestMechanismCmd::CreateImportedMechanism()
 	
 	
 	return S_OK;
+}
+
+HRESULT TestMechanismCmd::SwitchWorkbench(CATUnicodeString istrWorkbench)
+{
+	CATApplicationFrame * pAF = CATApplicationFrame::GetFrame();
+	if(NULL != pAF)
+	{
+		CATIAApplication *ptApp = NULL;
+		if (SUCCEEDED(pAF->QueryInterface(IID_CATIAApplication, (void**) &ptApp)))
+		{
+			CATBSTR oworkbenchId;
+			ptApp->GetWorkbenchId(oworkbenchId);
+
+			CATUnicodeString strworkbench;
+			strworkbench.BuildFromBSTR(oworkbenchId);
+
+			cout<<"Current workbench: " + strworkbench<<endl;
+
+			if(strworkbench != istrWorkbench)
+			{
+				CATBSTR BSTR =::SysAllocString(L" ");
+				istrWorkbench.ConvertToBSTR(&BSTR );
+				if (FAILED(ptApp->StartWorkbench(BSTR)))
+				{
+					ptApp->Release();
+					ptApp=NULL;
+
+					_pGeneralCls->MessageOutputWarning("Switch to workbench " + istrWorkbench + " failed","Error");
+					return E_FAIL;
+				}
+
+				ptApp->Release();
+				ptApp=NULL;
+				return S_OK;
+			}
+		}
+	}
+
+	return E_FAIL;
 }

@@ -24,6 +24,7 @@ CATObjectSpecsModeler	\
 CATApplicationFrame	\
 CATObjectModelerBase	\
 CATVisualization	\
+InfItf		\
 
 # System dependant variables
 #

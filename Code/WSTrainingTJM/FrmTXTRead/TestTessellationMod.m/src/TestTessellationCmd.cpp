@@ -62,6 +62,127 @@ TestTessellationCmd::TestTessellationCmd() :
 
 	InitialDlg();
 
+	//test tessellation time
+	CATIPrtContainer_var spiPrtCont = _pGeneralCls->GetPrtContainer(_spiProdRoot);
+	if (spiPrtCont==NULL_var)
+	{
+		return;
+	}
+	CATISpecObject_var spiSpecPart = spiPrtCont->GetPart();
+	CATIDescendants_var spiDesc = spiSpecPart;
+	if (spiDesc==NULL_var)
+	{
+		return;
+	}
+
+	vector<CATMathPoint> lstPts;
+
+	cout<<"==> Start Tessellation............"<<endl;
+	CATTime iStartTime = CATTime::GetCurrentLocalTime();
+
+	CATListValCATISpecObject_var  ListOfChildrenObjects;
+	spiDesc->GetAllChildren("CATIMfTriDimResult",ListOfChildrenObjects);
+	for (int i=1;i<=ListOfChildrenObjects.Size();i++)
+	{
+		CATISpecObject_var spiSpecObj = ListOfChildrenObjects[i];
+		if (spiSpecObj==NULL_var)
+		{
+			continue;
+		}
+		CATBody_var spBody = _pGeneralCls->GetBodyFromFeature(spiSpecObj);
+		if (spBody==NULL_var)
+		{
+			continue;
+		}
+
+		//Tessleate the body
+		double iStep   = 2;
+		double sag=	1000000;
+		double dAngle = CATPIBY4;
+		//CATBodyTessellator * pTessellator = new CATBodyTessellator(spBody,sag,dAngle);
+		CATCellTessellator * pTessellator = new CATCellTessellator(sag,dAngle);
+		if( NULL == pTessellator ) 
+		{
+			cout << "==> Create CATCellTessellator error !" << endl;
+			continue;
+		}
+		//Set the step to the CATCellTessellator.
+		pTessellator->SetStep(iStep);
+		cout << "==> The step is: " << iStep << endl;
+
+		//Add face to the CATCellTessellator.
+		CATLISTP(CATCell) cells;
+		spBody->GetAllCells( cells,2); 
+		int numberOfCells = cells.Size();
+		cout <<"==> Number of face: " << numberOfCells << endl;
+		for (int ifa=1 ; ifa<=numberOfCells ; ifa++)
+		{
+			pTessellator->AddFace((CATFace *)(cells[ifa]));
+		}
+		//Run the CATCellTessellator
+		pTessellator->Run();
+
+		// For every face.
+		for(int i=1;i<=numberOfCells;i++) {
+			cout << "==> Face: " << i << endl;
+			// for each face, retrieve the tessellation results.
+			CATFace * piFace = (CATFace*) cells[i];
+			if( NULL == piFace )
+			{
+				continue;
+			}
+			//Get the result.
+			CATBoolean isPlanar;
+			CATTessPointIter *    pVertices  = NULL;
+			CATTessStripeIter *   pStrips    = NULL;
+			CATTessFanIter *      pFans      = NULL;
+			CATTessPolyIter *     pPolygons  = NULL;
+			CATTessTrianIter *    pTriangles = NULL;
+			short side;
+			pTessellator->GetFace(piFace,isPlanar,&pVertices,&pStrips,&pFans,&pPolygons,&pTriangles,&side);		//获得的点都是局部坐标，按需转成全局
+
+			if (NULL==pVertices)
+			{
+				continue;
+			}
+
+			//获取所有点和法向的基础信息
+			float  (* aCoord)[3] = NULL;
+			float  (* aNormal)[3] = NULL;
+			int     * aNuPts     = NULL;
+			CATLONG32 nbp = 0;
+
+			nbp=pVertices->GetNbPoint();
+			aCoord = new float[nbp][3];
+			aNormal = new float[nbp][3];
+			pVertices->GetPointXyzAll(aCoord);	//获得所有的离散点
+			pVertices->GetPointNorAll(aNormal);	//获得每个离散点处的法向
+
+			////2维列表变成1维列表
+			//int verticesArraySize=3*nbp;
+			//int normalsArraySize=3*nbp;
+
+			cout << "  ==> Total point: " << nbp << endl;
+
+			int iNum = 0;
+			while (0 == (pVertices->IsExhausted()))
+			{
+				const double *aCoord = pVertices->GetPointXyz();
+				lstPts.push_back(CATMathPoint(*aCoord,*(aCoord+1),*(aCoord+2)));
+				pVertices->GoToNext();
+				iNum++;
+			}
+
+		}
+
+		delete pTessellator;   pTessellator = NULL;
+	}
+
+	CATTime iEndTime = CATTime::GetCurrentLocalTime();
+	CATTimeSpan iTimeSpan=iEndTime-iStartTime;
+
+	cout<<"=> Run time: "<<iTimeSpan.ConvertToString("%M:%S")<<"   Points Number: "<<lstPts.size()<<endl;
+
 }
 
 //-------------------------------------------------------------------------
